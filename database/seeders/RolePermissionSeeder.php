@@ -1,0 +1,84 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
+
+class RolePermissionSeeder extends Seeder
+{
+    public function run(): void
+    {
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        $permissions = [
+            'pasien.view', 'pasien.create', 'pasien.edit', 'pasien.delete',
+            'kunjungan.view', 'kunjungan.create', 'kunjungan.edit', 'kunjungan.delete',
+            'asesmen.view', 'asesmen.create', 'asesmen.edit',
+            'soap.view', 'soap.create', 'soap.edit',
+            'resep.view', 'resep.create', 'resep.edit',
+            'obat.view', 'obat.create', 'obat.edit', 'obat.delete',
+            'tindakan.view', 'tindakan.create',
+            'billing.view', 'billing.create', 'billing.edit',
+            'pembayaran.view', 'pembayaran.create',
+            'laporan.view', 'laporan.keuangan', 'laporan.farmasi',
+            'rekammedis.view', 'rekammedis.create', 'rekammedis.edit',
+            'pengaturan.view', 'pengaturan.edit',
+            'user.view', 'user.create', 'user.edit', 'user.delete',
+        ];
+
+        foreach ($permissions as $perm) {
+            Permission::firstOrCreate(['name' => $perm]);
+        }
+
+        $roles = [
+            'pasien' => [
+                'kunjungan.view', 'rekammedis.view', 'billing.view',
+            ],
+            'kasir' => [
+                'pasien.view', 'kunjungan.view',
+                'billing.view', 'billing.create', 'billing.edit',
+                'pembayaran.view', 'pembayaran.create',
+                'laporan.keuangan',
+            ],
+            'perawat' => [
+                'pasien.view', 'pasien.create', 'pasien.edit',
+                'kunjungan.view', 'kunjungan.create', 'kunjungan.edit',
+                'asesmen.view', 'asesmen.create', 'asesmen.edit',
+                'tindakan.view', 'tindakan.create',
+            ],
+            'apoteker' => [
+                'resep.view', 'resep.edit',
+                'obat.view', 'obat.create', 'obat.edit',
+                'laporan.farmasi',
+            ],
+            'rekam_medis' => [
+                'pasien.view', 'pasien.create', 'pasien.edit',
+                'rekammedis.view', 'rekammedis.create', 'rekammedis.edit',
+                'laporan.view',
+            ],
+            'dokter' => [
+                'pasien.view',
+                'kunjungan.view', 'kunjungan.edit',
+                'soap.view', 'soap.create', 'soap.edit',
+                'resep.view', 'resep.create', 'resep.edit',
+                'tindakan.view', 'tindakan.create',
+                'laporan.view',
+            ],
+            'admin' => [
+                'pasien.view', 'pasien.create', 'pasien.edit', 'pasien.delete',
+                'kunjungan.view', 'kunjungan.create', 'kunjungan.edit', 'kunjungan.delete',
+                'user.view', 'user.create', 'user.edit',
+                'laporan.view', 'laporan.keuangan',
+                'pengaturan.view', 'pengaturan.edit',
+            ],
+            'super_admin' => [],
+        ];
+
+        foreach ($roles as $roleName => $rolePerms) {
+            $role = Role::firstOrCreate(['name' => $roleName]);
+            $role->syncPermissions($rolePerms);
+        }
+    }
+}
