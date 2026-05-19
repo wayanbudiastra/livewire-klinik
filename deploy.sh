@@ -9,7 +9,8 @@
 set -e  # Hentikan jika ada error
 
 # ── Konfigurasi — SESUAIKAN INI ─────────────────────────────
-DOMAIN="emr.domain-anda.com"          # ganti dengan domain/subdomain Anda
+SERVER_IP="xxx.xxx.xxx.xxx"            # ganti dengan IP VPS Anda
+PORT="8080"                            # port untuk EMR (hindari 80 jika sudah dipakai project lain)
 PROJECT_DIR="/var/www/livewire-klinik" # folder project di VPS
 REPO_URL="https://github.com/wayanbudiastra/livewire-klinik.git"
 DB_NAME="emr_db"
@@ -117,9 +118,9 @@ fi
 
 # Update nilai .env
 sed -i "s|APP_NAME=.*|APP_NAME=\"EMR System\"|" .env
-sed -i "s|APP_ENV=.*|APP_ENV=production|" .env
-sed -i "s|APP_DEBUG=.*|APP_DEBUG=false|" .env
-sed -i "s|APP_URL=.*|APP_URL=https://$DOMAIN|" .env
+sed -i "s|APP_ENV=.*|APP_ENV=local|" .env
+sed -i "s|APP_DEBUG=.*|APP_DEBUG=true|" .env
+sed -i "s|APP_URL=.*|APP_URL=http://$SERVER_IP:$PORT|" .env
 sed -i "s|DB_CONNECTION=.*|DB_CONNECTION=mysql|" .env
 sed -i "s|DB_HOST=.*|DB_HOST=127.0.0.1|" .env
 sed -i "s|DB_DATABASE=.*|DB_DATABASE=$DB_NAME|" .env
@@ -169,8 +170,8 @@ NGINX_CONF="/etc/nginx/sites-available/emr-klinik"
 
 cat > "$NGINX_CONF" <<NGINXCONF
 server {
-    listen 80;
-    server_name $DOMAIN;
+    listen $PORT;
+    server_name $SERVER_IP;
     root $PROJECT_DIR/public;
     index index.php;
 
@@ -226,7 +227,7 @@ echo "=============================================="
 echo -e "   ${GREEN}DEPLOY SELESAI!${NC}"
 echo "=============================================="
 echo ""
-echo -e "  URL       : http://$DOMAIN"
+echo -e "  URL       : http://$SERVER_IP:$PORT"
 echo -e "  Project   : $PROJECT_DIR"
 echo -e "  PHP EMR   : 8.2 (php8.2-fpm)"
 echo -e "  Database  : $DB_NAME"
@@ -237,8 +238,11 @@ echo "  Password : password"
 echo ""
 echo -e "  ${YELLOW}PENTING:${NC}"
 echo "  1. Ganti password default setelah login pertama"
-echo "  2. Setup SSL: sudo certbot --nginx -d $DOMAIN"
+echo "  2. Pastikan port $PORT terbuka di firewall VPS:"
+echo "     sudo ufw allow $PORT"
 echo "  3. Edit .env untuk konfigurasi email (SMTP)"
+echo "  4. Jika nanti sudah punya domain, ubah SERVER_IP ke domain"
+echo "     dan tambah SSL: sudo certbot --nginx -d nama-domain.com"
 echo ""
 echo "  Project lain (PHP 7.4) TIDAK terganggu."
 echo "=============================================="
