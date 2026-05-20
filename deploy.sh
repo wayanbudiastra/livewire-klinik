@@ -224,19 +224,10 @@ fi
 
 step "STEP 4: Install Composer"
 if ! command -v composer &> /dev/null; then
-    info "Download Composer..."
-    EXPECTED_CHECKSUM="$(php8.2 -r 'copy("https://composer.github.io/installer.sig", "php://stdout");')"
-    php8.2 -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-    ACTUAL_CHECKSUM="$(php8.2 -r "echo hash_file('sha384', 'composer-setup.php');")"
-
-    if [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ]; then
-        warning "Checksum tidak cocok, download ulang via curl..."
-        rm -f composer-setup.php
-        curl -sS https://getcomposer.org/installer -o composer-setup.php
-    fi
-
-    php8.2 composer-setup.php --install-dir=/usr/local/bin --filename=composer --quiet
-    rm -f composer-setup.php
+    info "Download Composer via curl..."
+    curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php
+    php8.2 /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer --quiet
+    rm -f /tmp/composer-setup.php
 
     command -v composer &> /dev/null \
         && info "Composer: $(composer --version 2>&1 | head -1)" \
