@@ -14,13 +14,19 @@ set -e
 
 # ── Konfigurasi — SESUAIKAN INI ─────────────────────────────
 SERVER_IP="xxx.xxx.xxx.xxx"            # ganti dengan IP VPS Anda
-PORT="8080"                            # port untuk EMR (hindari 80 jika sudah dipakai project lain)
-PROJECT_DIR="/var/www/livewire-klinik" # folder project di VPS
+PORT="8080"                            # port EMR
+ADMINER_PORT="8081"                    # port Adminer (database manager)
+PROJECT_DIR="/var/www/livewire-klinik"
 REPO_URL="https://github.com/wayanbudiastra/livewire-klinik.git"
+
+# Database EMR
 DB_NAME="emr_db"
 DB_USER="emr_user"
-DB_PASS="ganti_password_kuat"         # ganti dengan password yang kuat
-DB_ROOT_PASS=""                        # password root MySQL (kosongkan jika belum ada)
+DB_PASS="ganti_password_kuat"
+
+# User MySQL admin (untuk Adminer)
+MYSQL_ADMIN_USER="admin"
+MYSQL_ADMIN_PASS="Admin2030@"
 # ────────────────────────────────────────────────────────────
 
 GREEN='\033[0;32m'
@@ -47,7 +53,7 @@ done
 
 echo ""
 echo "╔══════════════════════════════════════════════╗"
-echo "║     Deploy EMR System — Laravel 12 + PHP 8.2 ║"
+echo "║   Deploy EMR System — Laravel 12 + PHP 8.2   ║"
 echo "╚══════════════════════════════════════════════╝"
 
 if $SKIP_DB; then
@@ -60,31 +66,96 @@ fi
 echo ""
 
 # ════════════════════════════════════════════════════════════
-#  TAHAP 2 — ONLY DB (setup database saja)
+#  FUNGSI: INSTALL MYSQL + ADMIN USER + ADMINER
 # ════════════════════════════════════════════════════════════
-if $ONLY_DB; then
+setup_mysql() {
 
-    step "Install MySQL"
+    step "Install MySQL Server"
     if ! command -v mysql &> /dev/null; then
         info "Menginstall MySQL Server..."
-        apt update -qq
         apt install -y mysql-server > /dev/null 2>&1
         systemctl enable mysql
         systemctl start mysql
-        info "MySQL berhasil diinstall."
+        info "MySQL berhasil diinstall: $(mysql --version)"
     else
-        info "MySQL sudah terinstall: $(mysql --version)"
+        info "MySQL sudah ada: $(mysql --version)"
+        systemctl start mysql 2>/dev/null || true
     fi
 
-    step "Buat Database & User"
-    mysql -u root ${DB_ROOT_PASS:+-p"$DB_ROOT_PASS"} -e "
-        CREATE DATABASE IF NOT EXISTS \`$DB_NAME\`
+    step "Buat MySQL Admin User (untuk Adminer)"
+    mysql -u root -e "
+        CREATE USER IF NOT EXISTS '${MYSQL_ADMIN_USER}'@'localhost'
+            IDENTIFIED BY '${MYSQL_ADMIN_PASS}';
+        GRANT ALL PRIVILEGES ON *.* TO '${MYSQL_ADMIN_USER}'@'localhost'
+            WITH GRANT OPTION;
+        FLUSH PRIVILEGES;
+    " 2>/dev/null || \
+    mysql -u root -e "
+        ALTER USER '${MYSQL_ADMIN_USER}'@'localhost'
+            IDENTIFIED BY '${MYSQL_ADMIN_PASS}';
+        GRANT ALL PRIVILEGES ON *.* TO '${MYSQL_ADMIN_USER}'@'localhost'
+            WITH GRANT OPTION;
+        FLUSH PRIVILEGES;
+    " 2>/dev/null || true
+    info "User MySQL '${MYSQL_ADMIN_USER}' siap."
+
+    step "Buat Database EMR & User Aplikasi"
+    mysql -u "${MYSQL_ADMIN_USER}" -p"${MYSQL_ADMIN_PASS}" -e "
+        CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`
             CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-        CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';
-        GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost';
+        CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost'
+            IDENTIFIED BY '${DB_PASS}';
+        GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
         FLUSH PRIVILEGES;
     "
-    info "Database '$DB_NAME' dan user '$DB_USER' siap."
+    info "Database '${DB_NAME}' dan user '${DB_USER}' siap."
+
+    step "Install Adminer"
+    ADMINER_DIR="/var/www/adminer"
+    mkdir -p "$ADMINER_DIR"
+    curl -sL https://www.adminer.org/latest.php -o "$ADMINER_DIR/adminer.php"
+    chown -R www-data:www-data "$ADMINER_DIR"
+    info "Adminer berhasil didownload."
+
+    step "Konfigurasi Nginx untuk Adminer (port $ADMINER_PORT)"
+    ADMINER_CONF="/etc/nginx/sites-available/adminer"
+    cat > "$ADMINER_CONF" <<ADMINERCONF
+server {
+    listen ${ADMINER_PORT};
+    server_name ${SERVER_IP};
+    root /var/www/adminer;
+    index adminer.php;
+
+    charset utf-8;
+
+    location / {
+        try_files \$uri \$uri/ /adminer.php?\$query_string;
+    }
+
+    location ~ \.php$ {
+        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
+        include fastcgi_params;
+        fastcgi_hide_header X-Powered-By;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+}
+ADMINERCONF
+
+    ln -sf "$ADMINER_CONF" /etc/nginx/sites-enabled/adminer
+    nginx -t && systemctl reload nginx
+    ufw allow "$ADMINER_PORT" > /dev/null 2>&1 || true
+    info "Adminer tersedia di http://${SERVER_IP}:${ADMINER_PORT}/adminer.php"
+}
+
+# ════════════════════════════════════════════════════════════
+#  MODE: --only-db
+# ════════════════════════════════════════════════════════════
+if $ONLY_DB; then
+    setup_mysql
 
     step "Update .env dengan Konfigurasi Database"
     cd "$PROJECT_DIR"
@@ -110,14 +181,17 @@ if $ONLY_DB; then
     echo -e "║     ${GREEN}DATABASE SETUP SELESAI!${NC}                   ║"
     echo "╚══════════════════════════════════════════════╝"
     echo ""
-    echo "  Akses : http://$SERVER_IP:$PORT"
-    echo "  Login : superadmin@emr.app / password"
+    echo "  EMR App  : http://$SERVER_IP:$PORT"
+    echo "  Adminer  : http://$SERVER_IP:$ADMINER_PORT/adminer.php"
+    echo ""
+    echo "  Login EMR     : superadmin@emr.app / password"
+    echo "  Login Adminer : $MYSQL_ADMIN_USER / $MYSQL_ADMIN_PASS"
     echo ""
     exit 0
 fi
 
 # ════════════════════════════════════════════════════════════
-#  TAHAP 1 — INSTALL SERVER & DEPLOY APP
+#  MODE: FULL DEPLOY / --skip-db
 # ════════════════════════════════════════════════════════════
 
 step "STEP 1: Update sistem & install tools dasar"
@@ -125,11 +199,11 @@ apt update -qq
 apt install -y software-properties-common curl git unzip > /dev/null 2>&1
 info "Tools dasar siap."
 
-step "STEP 2: Install PHP 8.2 (tidak mengganggu PHP lain)"
+step "STEP 2: Install PHP 8.2"
 add-apt-repository ppa:ondrej/php -y > /dev/null 2>&1
 apt update -qq
 apt install -y \
-    php8.2 php8.2-fpm \
+    php8.2 php8.2-cli php8.2-fpm \
     php8.2-mysql php8.2-mbstring \
     php8.2-xml php8.2-curl \
     php8.2-zip php8.2-bcmath \
@@ -137,13 +211,12 @@ apt install -y \
     php8.2-tokenizer php8.2-fileinfo \
     php8.2-opcache \
     > /dev/null 2>&1
-info "PHP 8.2 terinstall: $(php8.2 -v | head -1)"
+info "PHP 8.2: $(php8.2 -v | head -1)"
 
 step "STEP 3: Install Nginx"
 if ! command -v nginx &> /dev/null; then
     apt install -y nginx > /dev/null 2>&1
-    systemctl enable nginx
-    systemctl start nginx
+    systemctl enable nginx && systemctl start nginx
     info "Nginx berhasil diinstall."
 else
     info "Nginx sudah ada: $(nginx -v 2>&1)"
@@ -151,19 +224,13 @@ fi
 
 step "STEP 4: Install Composer"
 if ! command -v composer &> /dev/null; then
-    info "Download Composer installer..."
-
-    # Pastikan php8.2-cli tersedia
-    apt install -y php8.2-cli > /dev/null 2>&1
-
-    # Download installer dengan retry
+    info "Download Composer..."
     EXPECTED_CHECKSUM="$(php8.2 -r 'copy("https://composer.github.io/installer.sig", "php://stdout");')"
     php8.2 -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
     ACTUAL_CHECKSUM="$(php8.2 -r "echo hash_file('sha384', 'composer-setup.php');")"
 
     if [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ]; then
-        # Checksum gagal, coba cara alternatif
-        warning "Checksum tidak cocok, coba download ulang..."
+        warning "Checksum tidak cocok, download ulang via curl..."
         rm -f composer-setup.php
         curl -sS https://getcomposer.org/installer -o composer-setup.php
     fi
@@ -171,30 +238,26 @@ if ! command -v composer &> /dev/null; then
     php8.2 composer-setup.php --install-dir=/usr/local/bin --filename=composer --quiet
     rm -f composer-setup.php
 
-    # Verifikasi
-    if command -v composer &> /dev/null; then
-        info "Composer berhasil diinstall: $(composer --version 2>&1 | head -1)"
-    else
-        error "Gagal install Composer. Coba manual: curl -sS https://getcomposer.org/installer | php8.2 -- --install-dir=/usr/local/bin --filename=composer"
-    fi
+    command -v composer &> /dev/null \
+        && info "Composer: $(composer --version 2>&1 | head -1)" \
+        || error "Gagal install Composer!"
 else
-    info "Composer sudah ada: $(composer --version 2>&1 | head -1)"
+    info "Composer: $(composer --version 2>&1 | head -1)"
 fi
 
 step "STEP 5: Install Node.js"
 if ! command -v node &> /dev/null; then
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - > /dev/null 2>&1
     apt install -y nodejs > /dev/null 2>&1
-    info "Node.js terinstall: $(node -v)"
+    info "Node.js: $(node -v)"
 else
-    info "Node.js sudah ada: $(node -v)"
+    info "Node.js: $(node -v)"
 fi
 
-step "STEP 6: Clone / Update repo dari GitHub"
+step "STEP 6: Clone repo dari GitHub"
 if [ -d "$PROJECT_DIR/.git" ]; then
-    info "Folder sudah ada, melakukan git pull..."
-    cd "$PROJECT_DIR"
-    git pull origin main
+    info "Git pull..."
+    cd "$PROJECT_DIR" && git pull origin main
 else
     git clone "$REPO_URL" "$PROJECT_DIR"
     cd "$PROJECT_DIR"
@@ -203,85 +266,58 @@ fi
 
 step "STEP 7: Install Composer dependencies"
 php8.2 $(which composer) install \
-    --no-dev \
-    --optimize-autoloader \
-    --no-interaction 2>&1 | tail -3
+    --no-dev --optimize-autoloader --no-interaction 2>&1 | tail -3
 
-step "STEP 8: Setup file .env"
-if [ ! -f "$PROJECT_DIR/.env" ]; then
-    cp "$PROJECT_DIR/.env.example" "$PROJECT_DIR/.env"
-fi
+step "STEP 8: Setup .env"
+[ ! -f "$PROJECT_DIR/.env" ] && cp "$PROJECT_DIR/.env.example" "$PROJECT_DIR/.env"
 
 sed -i "s|APP_NAME=.*|APP_NAME=\"EMR System\"|" .env
 sed -i "s|APP_ENV=.*|APP_ENV=local|" .env
 sed -i "s|APP_DEBUG=.*|APP_DEBUG=true|" .env
 sed -i "s|APP_URL=.*|APP_URL=http://$SERVER_IP:$PORT|" .env
 sed -i "s|LOG_CHANNEL=.*|LOG_CHANNEL=daily|" .env
+sed -i "s|SESSION_DRIVER=.*|SESSION_DRIVER=database|" .env
+sed -i "s|CACHE_STORE=.*|CACHE_STORE=database|" .env
+sed -i "s|DB_CONNECTION=.*|DB_CONNECTION=mysql|" .env
+sed -i "s|DB_HOST=.*|DB_HOST=127.0.0.1|" .env
+sed -i "s|DB_DATABASE=.*|DB_DATABASE=$DB_NAME|" .env
+sed -i "s|DB_USERNAME=.*|DB_USERNAME=$DB_USER|" .env
 
-# Jika --skip-db, kosongkan konfigurasi DB (isi nanti)
 if $SKIP_DB; then
-    sed -i "s|DB_CONNECTION=.*|DB_CONNECTION=mysql|" .env
-    sed -i "s|DB_HOST=.*|DB_HOST=127.0.0.1|" .env
-    sed -i "s|DB_DATABASE=.*|DB_DATABASE=$DB_NAME|" .env
-    sed -i "s|DB_USERNAME=.*|DB_USERNAME=$DB_USER|" .env
     sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=|" .env
-    warning "Konfigurasi DB dikosongkan — isi nanti dengan: sudo bash update.sh --only-db"
+    warning "DB Password dikosongkan — isi nanti via: sudo bash /root/deploy.sh --only-db"
 else
-    sed -i "s|DB_CONNECTION=.*|DB_CONNECTION=mysql|" .env
-    sed -i "s|DB_HOST=.*|DB_HOST=127.0.0.1|" .env
-    sed -i "s|DB_DATABASE=.*|DB_DATABASE=$DB_NAME|" .env
-    sed -i "s|DB_USERNAME=.*|DB_USERNAME=$DB_USER|" .env
     sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=$DB_PASS|" .env
 fi
 
 php8.2 artisan key:generate --force
-info ".env berhasil dikonfigurasi."
+info ".env siap."
 
-step "STEP 9: Set permission storage"
+step "STEP 9: Permission storage"
 chown -R www-data:www-data "$PROJECT_DIR/storage" "$PROJECT_DIR/bootstrap/cache"
 chmod -R 775 "$PROJECT_DIR/storage" "$PROJECT_DIR/bootstrap/cache"
 
 step "STEP 10: Build frontend assets"
-npm install --silent
-npm run build
-info "Frontend assets berhasil dibuild."
+npm install --silent && npm run build
+info "Frontend assets siap."
 
-# Install & migrate DB hanya jika tidak --skip-db
+# MySQL + Adminer (skip jika --skip-db)
 if ! $SKIP_DB; then
+    setup_mysql
 
-    step "STEP 11: Install MySQL"
-    if ! command -v mysql &> /dev/null; then
-        apt install -y mysql-server > /dev/null 2>&1
-        systemctl enable mysql
-        systemctl start mysql
-        info "MySQL berhasil diinstall."
-    else
-        info "MySQL sudah ada."
-    fi
-
-    step "STEP 12: Buat database"
-    mysql -u root ${DB_ROOT_PASS:+-p"$DB_ROOT_PASS"} -e "
-        CREATE DATABASE IF NOT EXISTS \`$DB_NAME\`
-            CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-        CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';
-        GRANT ALL PRIVILEGES ON \`$DB_NAME\`.* TO '$DB_USER'@'localhost';
-        FLUSH PRIVILEGES;
-    "
-    info "Database '$DB_NAME' siap."
-
-    step "STEP 13: Migrasi & Seed"
+    step "STEP 12: Migrasi & Seed Database"
     php8.2 artisan migrate --force
     php8.2 artisan db:seed --force
-    info "Database berhasil dimigrate & di-seed."
+    info "Database siap."
 fi
 
-step "STEP $(($SKIP_DB ? 11 : 14)): Konfigurasi Nginx"
+step "STEP 13: Konfigurasi Nginx untuk EMR"
 NGINX_CONF="/etc/nginx/sites-available/emr-klinik"
 cat > "$NGINX_CONF" <<NGINXCONF
 server {
-    listen $PORT;
-    server_name $SERVER_IP;
-    root $PROJECT_DIR/public;
+    listen ${PORT};
+    server_name ${SERVER_IP};
+    root ${PROJECT_DIR}/public;
     index index.php;
 
     add_header X-Frame-Options "SAMEORIGIN";
@@ -303,54 +339,56 @@ server {
         fastcgi_hide_header X-Powered-By;
     }
 
-    location ~ /\.(?!well-known).* {
-        deny all;
-    }
+    location ~ /\.(?!well-known).* { deny all; }
 }
 NGINXCONF
 
 ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/emr-klinik
 nginx -t && systemctl reload nginx
-info "Nginx dikonfigurasi untuk $SERVER_IP:$PORT"
+info "Nginx EMR: $SERVER_IP:$PORT"
 
 step "Aktifkan PHP 8.2 FPM"
-systemctl enable php8.2-fpm
-systemctl restart php8.2-fpm
+systemctl enable php8.2-fpm && systemctl restart php8.2-fpm
 
 # Buka firewall
 ufw allow "$PORT" > /dev/null 2>&1 || true
 
-# Cache (skip jika DB belum ada)
+# Cache Laravel
 if ! $SKIP_DB; then
     php8.2 artisan config:cache
     php8.2 artisan route:cache
     php8.2 artisan view:cache
 fi
 
-# ── Selesai ──────────────────────────────────────────────────
+# ── Ringkasan Akhir ──────────────────────────────────────────
 echo ""
 echo "╔══════════════════════════════════════════════╗"
-echo -e "║     ${GREEN}DEPLOY SELESAI!${NC}                            ║"
+echo -e "║        ${GREEN}DEPLOY SELESAI!${NC}                        ║"
 echo "╚══════════════════════════════════════════════╝"
 echo ""
-echo "  URL     : http://$SERVER_IP:$PORT"
-echo "  Project : $PROJECT_DIR"
-echo "  PHP     : 8.2-fpm"
-echo ""
-
-if $SKIP_DB; then
-    echo -e "  ${YELLOW}⚠ Database belum dikonfigurasi.${NC}"
-    echo "  Setelah MySQL siap, jalankan:"
-    echo ""
-    echo "    sudo bash /root/deploy.sh --only-db"
-    echo ""
-else
-    echo "  Login  : superadmin@emr.app / password"
-    echo ""
-    echo -e "  ${YELLOW}PENTING:${NC}"
-    echo "  1. Ganti password default setelah login"
-    echo "  2. Buka firewall: sudo ufw allow $PORT"
+echo "  ┌─ EMR Application ─────────────────────────┐"
+echo "  │  URL   : http://$SERVER_IP:$PORT"
+if ! $SKIP_DB; then
+echo "  │  Login : superadmin@emr.app / password"
 fi
+echo "  └───────────────────────────────────────────┘"
 echo ""
-echo "  Update berikutnya: sudo bash /var/www/livewire-klinik/update.sh"
+if ! $SKIP_DB; then
+echo "  ┌─ Adminer (Database Manager) ──────────────┐"
+echo "  │  URL    : http://$SERVER_IP:$ADMINER_PORT/adminer.php"
+echo "  │  Server : 127.0.0.1"
+echo "  │  User   : $MYSQL_ADMIN_USER"
+echo "  │  Pass   : $MYSQL_ADMIN_PASS"
+echo "  │  DB     : $DB_NAME"
+echo "  └───────────────────────────────────────────┘"
+echo ""
+fi
+if $SKIP_DB; then
+echo -e "  ${YELLOW}⚠ Database belum dikonfigurasi.${NC}"
+echo "  Jalankan setelah MySQL siap:"
+echo "    sudo bash /root/deploy.sh --only-db"
+echo ""
+fi
+echo "  Update berikutnya:"
+echo "    sudo bash $PROJECT_DIR/update.sh"
 echo ""
