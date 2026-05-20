@@ -151,9 +151,32 @@ fi
 
 step "STEP 4: Install Composer"
 if ! command -v composer &> /dev/null; then
-    curl -sS https://getcomposer.org/installer | php8.2 -- \
-        --install-dir=/usr/local/bin --filename=composer > /dev/null 2>&1
-    info "Composer berhasil diinstall: $(composer --version 2>&1 | head -1)"
+    info "Download Composer installer..."
+
+    # Pastikan php8.2-cli tersedia
+    apt install -y php8.2-cli > /dev/null 2>&1
+
+    # Download installer dengan retry
+    EXPECTED_CHECKSUM="$(php8.2 -r 'copy("https://composer.github.io/installer.sig", "php://stdout");')"
+    php8.2 -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+    ACTUAL_CHECKSUM="$(php8.2 -r "echo hash_file('sha384', 'composer-setup.php');")"
+
+    if [ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ]; then
+        # Checksum gagal, coba cara alternatif
+        warning "Checksum tidak cocok, coba download ulang..."
+        rm -f composer-setup.php
+        curl -sS https://getcomposer.org/installer -o composer-setup.php
+    fi
+
+    php8.2 composer-setup.php --install-dir=/usr/local/bin --filename=composer --quiet
+    rm -f composer-setup.php
+
+    # Verifikasi
+    if command -v composer &> /dev/null; then
+        info "Composer berhasil diinstall: $(composer --version 2>&1 | head -1)"
+    else
+        error "Gagal install Composer. Coba manual: curl -sS https://getcomposer.org/installer | php8.2 -- --install-dir=/usr/local/bin --filename=composer"
+    fi
 else
     info "Composer sudah ada: $(composer --version 2>&1 | head -1)"
 fi
