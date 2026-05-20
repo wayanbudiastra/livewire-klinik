@@ -223,17 +223,28 @@ else
 fi
 
 step "STEP 4: Install Composer"
-if ! command -v composer &> /dev/null; then
+# Cek di semua lokasi umum
+COMPOSER_BIN=""
+for loc in /usr/local/bin/composer /usr/bin/composer /root/.config/composer/composer "$HOME/.composer/composer"; do
+    if [ -f "$loc" ]; then
+        COMPOSER_BIN="$loc"
+        break
+    fi
+done
+command -v composer &> /dev/null && COMPOSER_BIN="composer"
+
+if [ -n "$COMPOSER_BIN" ]; then
+    info "Composer sudah ada, skip install: $(php8.2 $COMPOSER_BIN --version 2>&1 | head -1)"
+    # Pastikan bisa dipanggil global
+    [ "$COMPOSER_BIN" != "composer" ] && ln -sf "$COMPOSER_BIN" /usr/local/bin/composer 2>/dev/null || true
+else
     info "Download Composer via curl..."
     curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php
     php8.2 /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer --quiet
     rm -f /tmp/composer-setup.php
-
     command -v composer &> /dev/null \
         && info "Composer: $(composer --version 2>&1 | head -1)" \
-        || error "Gagal install Composer!"
-else
-    info "Composer: $(composer --version 2>&1 | head -1)"
+        || error "Gagal install Composer! Coba manual: curl -sS https://getcomposer.org/installer | php8.2 -- --install-dir=/usr/local/bin --filename=composer"
 fi
 
 step "STEP 5: Install Node.js"
