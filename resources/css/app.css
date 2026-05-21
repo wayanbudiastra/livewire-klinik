@@ -135,8 +135,14 @@
         @apply px-4 py-3 font-medium;
     }
     .table tbody tr {
-        @apply border-t border-gray-100 hover:bg-gray-50 transition-colors
-               dark:border-gray-700 dark:hover:bg-gray-700/40;
+        @apply border-t border-gray-100 bg-white transition-colors
+               dark:border-gray-700 dark:bg-gray-800;
+    }
+    .table tbody tr:nth-child(even) {
+        @apply bg-gray-50/70 dark:bg-gray-700/30;
+    }
+    .table tbody tr:hover {
+        @apply bg-primary-50 dark:bg-primary-900/10;
     }
     .table tbody td {
         @apply px-4 py-3;
