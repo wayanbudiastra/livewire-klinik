@@ -12,24 +12,28 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     // Manajemen Pasien
     Route::prefix('pasien')->name('pasien.')->group(function () {
-        Route::middleware('permission:pasien.view')->group(function () {
-            Route::get('/', fn () => view('pasien.index'))->name('index');
-            Route::get('/{pasien}', function ($pasien) {
+
+        // ⚠ Route statis WAJIB sebelum wildcard {pasien}
+        Route::middleware('permission:pasien.view')
+             ->get('/', fn () => view('pasien.index'))->name('index');
+
+        Route::middleware('permission:pasien.create')
+             ->get('/create', fn () => view('pasien.create'))->name('create');
+
+        // Wildcard — harus paling bawah
+        Route::middleware('permission:pasien.view')
+             ->get('/{pasien}', function ($pasien) {
                 $p = \App\Models\Pasien::with(['kontakDarurat',
-                    'kunjungan' => fn($q) => $q->with(['poli:id,nama','dokter.user:id,nama'])->take(10)
+                    'kunjungan' => fn ($q) => $q->with(['poli:id,nama','dokter.user:id,nama'])->take(10)
                 ])->findOrFail($pasien);
                 return view('pasien.show', ['pasien' => $p]);
-            })->name('show');
-        });
-        Route::middleware('permission:pasien.create')->group(function () {
-            Route::get('/create', fn () => view('pasien.create'))->name('create');
-        });
-        Route::middleware('permission:pasien.edit')->group(function () {
-            Route::get('/{pasien}/edit', function ($pasien) {
+             })->name('show');
+
+        Route::middleware('permission:pasien.edit')
+             ->get('/{pasien}/edit', function ($pasien) {
                 $p = \App\Models\Pasien::findOrFail($pasien);
                 return view('pasien.edit', ['pasien' => $p]);
-            })->name('edit');
-        });
+             })->name('edit');
     });
 
     // Kunjungan (placeholder)
