@@ -54,9 +54,15 @@
                         <td>
                             @can('masterdata.edit')
                             @if ($dp->is_aktif)
-                            <button wire:click="removeMapping({{ $dp->poli_id }})"
-                                    wire:confirm="Nonaktifkan mapping Poli {{ $dp->poli->nama }}?"
-                                    class="btn-danger btn-sm">Hapus</button>
+                            <x-confirm-button
+                                action="removeMapping({{ $dp->poli_id }})"
+                                title="Hapus Mapping Poli?"
+                                text="Mapping {{ $dp->poli->nama }} akan dinonaktifkan."
+                                confirm="Ya, Hapus"
+                                type="danger"
+                                class="btn-danger btn-sm">
+                                Hapus
+                            </x-confirm-button>
                             @endif
                             @endcan
                         </td>

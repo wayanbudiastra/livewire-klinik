@@ -4,6 +4,9 @@
 @import '@fontsource/inter/600.css';
 @import '@fontsource/inter/700.css';
 
+/* SweetAlert2 */
+@import 'sweetalert2/dist/sweetalert2.min.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -305,4 +308,47 @@
     [wire\:loading] {
         @apply opacity-50 pointer-events-none;
     }
+}
+
+/* ─── SweetAlert2 Custom Theme ───────────────────────────── */
+.swal-popup {
+    @apply font-sans rounded-2xl !important;
+    font-family: 'Inter', sans-serif !important;
+}
+
+.dark .swal-popup {
+    @apply bg-gray-800 text-white !important;
+}
+.dark .swal2-title { @apply text-white !important; }
+.dark .swal2-html-container { @apply text-gray-300 !important; }
+.dark .swal2-icon { @apply border-gray-600 !important; }
+
+/* Tombol Konfirmasi */
+.swal-btn-confirm {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold
+           rounded-xl bg-[#0a3d62] text-white hover:bg-[#0c4a75] transition-colors
+           focus:outline-none focus:ring-2 focus:ring-[#0a3d62]/40 mr-2;
+}
+.swal-btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold
+           rounded-xl bg-red-600 text-white hover:bg-red-700 transition-colors
+           focus:outline-none focus:ring-2 focus:ring-red-500/40 mr-2;
+}
+.swal-btn-warning {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold
+           rounded-xl bg-amber-500 text-white hover:bg-amber-600 transition-colors
+           focus:outline-none focus:ring-2 focus:ring-amber-400/40 mr-2;
+}
+.swal-btn-success {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold
+           rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors
+           focus:outline-none focus:ring-2 focus:ring-emerald-500/40 mr-2;
+}
+.swal-btn-cancel {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold
+           rounded-xl bg-white text-gray-700 border border-gray-300
+           hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400/30;
+}
+.dark .swal-btn-cancel {
+    @apply bg-gray-700 text-gray-200 border-gray-600 hover:bg-gray-600 !important;
 }

@@ -77,9 +77,13 @@
                     </td>
                     <td>
                         @can('pasien.edit')
-                        <button
-                            wire:click="toggleActive({{ $p->id }}, {{ $p->is_active ? 'false' : 'true' }})"
-                            wire:confirm="{{ $p->is_active ? 'Nonaktifkan' : 'Aktifkan' }} pasien {{ $p->nama }}?"
+                        <x-confirm-button
+                            action="toggleActive({{ $p->id }}, {{ $p->is_active ? 'false' : 'true' }})"
+                            title="{{ $p->is_active ? 'Nonaktifkan Pasien?' : 'Aktifkan Pasien?' }}"
+                            text="Pasien: {{ $p->nama }}"
+                            icon="{{ $p->is_active ? 'warning' : 'question' }}"
+                            confirm="{{ $p->is_active ? 'Ya, Nonaktifkan' : 'Ya, Aktifkan' }}"
+                            type="{{ $p->is_active ? 'danger' : 'success' }}"
                             @class([
                                 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
                                 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300' => $p->is_active,
@@ -87,7 +91,7 @@
                             ])>
                             <span class="h-1.5 w-1.5 rounded-full {{ $p->is_active ? 'bg-emerald-500' : 'bg-red-500' }}"></span>
                             {{ $p->is_active ? 'Aktif' : 'Nonaktif' }}
-                        </button>
+                        </x-confirm-button>
                         @endcan
                     </td>
                     <td>

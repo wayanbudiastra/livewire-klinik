@@ -82,11 +82,15 @@
                     <td>
                         @if ($k->status === 'menunggu')
                         @can('kunjungan.edit')
-                        <button wire:click="cancel({{ $k->id }})"
-                                wire:confirm="Batalkan kunjungan pasien {{ $k->pasien?->nama }}?"
-                                class="btn-danger btn-sm">
+                        <x-confirm-button
+                            action="cancel({{ $k->id }})"
+                            title="Batalkan Kunjungan?"
+                            text="Kunjungan pasien {{ $k->pasien?->nama }} akan dibatalkan."
+                            confirm="Ya, Batalkan"
+                            type="danger"
+                            class="btn-danger btn-sm">
                             Cancel
-                        </button>
+                        </x-confirm-button>
                         @endcan
                         @endif
                     </td>

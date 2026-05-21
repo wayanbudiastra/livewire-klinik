@@ -76,16 +76,21 @@
                         </div>
                     </td>
                     <td>
-                        <button wire:click="toggleAktif({{ $item->id }})"
-                                wire:confirm="{{ $item->is_active ? 'Nonaktifkan' : 'Aktifkan' }} tindakan ini?"
-                                @class([
-                                    'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
-                                    'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300' => $item->is_active,
-                                    'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300' => !$item->is_active,
-                                ])>
+                        <x-confirm-button
+                            action="toggleAktif({{ $item->id }})"
+                            title="{{ $item->is_active ? 'Nonaktifkan Tindakan?' : 'Aktifkan Tindakan?' }}"
+                            text="{{ $item->nama }}"
+                            icon="{{ $item->is_active ? 'warning' : 'question' }}"
+                            confirm="{{ $item->is_active ? 'Ya, Nonaktifkan' : 'Ya, Aktifkan' }}"
+                            type="{{ $item->is_active ? 'danger' : 'success' }}"
+                            @class([
+                                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
+                                'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300' => $item->is_active,
+                                'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300' => !$item->is_active,
+                            ])>
                             <span class="h-1.5 w-1.5 rounded-full {{ $item->is_active ? 'bg-emerald-500' : 'bg-red-500' }}"></span>
                             {{ $item->is_active ? 'Aktif' : 'Nonaktif' }}
-                        </button>
+                        </x-confirm-button>
                     </td>
                     <td>
                         <div class="flex items-center gap-1">

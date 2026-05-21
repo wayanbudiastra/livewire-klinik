@@ -130,18 +130,21 @@
                     {{-- Status toggle --}}
                     <td>
                         @can('update', $user)
-                        <button
-                            wire:click="toggleActive({{ $user->id }}, {{ $user->is_active ? 'false' : 'true' }})"
-                            wire:confirm="{{ $user->is_active ? 'Nonaktifkan' : 'Aktifkan' }} user {{ $user->nama }}?"
+                        <x-confirm-button
+                            action="toggleActive({{ $user->id }}, {{ $user->is_active ? 'false' : 'true' }})"
+                            title="{{ $user->is_active ? 'Nonaktifkan User?' : 'Aktifkan User?' }}"
+                            text="{{ $user->nama }}"
+                            icon="{{ $user->is_active ? 'warning' : 'question' }}"
+                            confirm="{{ $user->is_active ? 'Ya, Nonaktifkan' : 'Ya, Aktifkan' }}"
+                            type="{{ $user->is_active ? 'danger' : 'success' }}"
                             @class([
                                 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
                                 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300' => $user->is_active,
                                 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300' => !$user->is_active,
-                            ])
-                        >
+                            ])>
                             <span class="h-1.5 w-1.5 rounded-full {{ $user->is_active ? 'bg-emerald-500' : 'bg-red-500' }}"></span>
                             {{ $user->is_active ? 'Aktif' : 'Nonaktif' }}
-                        </button>
+                        </x-confirm-button>
                         @else
                         <span @class([
                             'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
@@ -180,13 +183,15 @@
                             @endcan
 
                             @can('delete', $user)
-                            <button
-                                wire:click="deleteUser({{ $user->id }})"
-                                wire:confirm="Yakin hapus user {{ $user->nama }}? Tindakan ini tidak dapat dibatalkan."
-                                class="btn-danger btn-sm"
-                                title="Hapus">
+                            <x-confirm-button
+                                action="deleteUser({{ $user->id }})"
+                                title="Hapus User?"
+                                text="User {{ $user->nama }} akan dihapus permanen dan tidak dapat dikembalikan."
+                                confirm="Ya, Hapus Permanen"
+                                type="danger"
+                                class="btn-danger btn-sm">
                                 Hapus
-                            </button>
+                            </x-confirm-button>
                             @endcan
                         </div>
                     </td>

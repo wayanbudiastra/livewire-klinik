@@ -52,9 +52,13 @@
                     <td class="text-xs text-gray-500">{{ $item->satuan_waktu ?? '-' }}</td>
                     <td>
                         @can('masterdata.edit')
-                        <button
-                            wire:click="toggleAktif({{ $item->id }})"
-                            wire:confirm="{{ $item->is_active ? 'Nonaktifkan' : 'Aktifkan' }} item ini?"
+                        <x-confirm-button
+                            action="toggleAktif({{ $item->id }})"
+                            title="{{ $item->is_active ? 'Nonaktifkan Item?' : 'Aktifkan Item?' }}"
+                            text="{{ $item->nama }}"
+                            icon="{{ $item->is_active ? 'warning' : 'question' }}"
+                            confirm="{{ $item->is_active ? 'Ya, Nonaktifkan' : 'Ya, Aktifkan' }}"
+                            type="{{ $item->is_active ? 'danger' : 'success' }}"
                             @class([
                                 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
                                 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300' => $item->is_active,
@@ -62,7 +66,7 @@
                             ])>
                             <span class="h-1.5 w-1.5 rounded-full {{ $item->is_active ? 'bg-emerald-500' : 'bg-red-500' }}"></span>
                             {{ $item->is_active ? 'Aktif' : 'Nonaktif' }}
-                        </button>
+                        </x-confirm-button>
                         @else
                         <span @class(['badge', 'badge-success' => $item->is_active, 'badge-danger' => !$item->is_active])>
                             {{ $item->is_active ? 'Aktif' : 'Nonaktif' }}

@@ -98,9 +98,13 @@
                     {{-- Toggle Aktif/Nonaktif --}}
                     <td>
                         @can('masterdata.edit')
-                        <button
-                            wire:click="toggleAktif({{ $alat->id }})"
-                            wire:confirm="{{ $alat->is_active ? 'Nonaktifkan' : 'Aktifkan' }} peralatan ini?"
+                        <x-confirm-button
+                            action="toggleAktif({{ $alat->id }})"
+                            title="{{ $alat->is_active ? 'Nonaktifkan Peralatan?' : 'Aktifkan Peralatan?' }}"
+                            text="{{ $alat->nama }}"
+                            icon="{{ $alat->is_active ? 'warning' : 'question' }}"
+                            confirm="{{ $alat->is_active ? 'Ya, Nonaktifkan' : 'Ya, Aktifkan' }}"
+                            type="{{ $alat->is_active ? 'danger' : 'success' }}"
                             @class([
                                 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
                                 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300' => $alat->is_active,
@@ -108,7 +112,7 @@
                             ])>
                             <span class="h-1.5 w-1.5 rounded-full {{ $alat->is_active ? 'bg-emerald-500' : 'bg-red-500' }}"></span>
                             {{ $alat->is_active ? 'Aktif' : 'Nonaktif' }}
-                        </button>
+                        </x-confirm-button>
                         @else
                         <span @class(['badge', 'badge-success' => $alat->is_active, 'badge-danger' => !$alat->is_active])>
                             {{ $alat->is_active ? 'Aktif' : 'Nonaktif' }}

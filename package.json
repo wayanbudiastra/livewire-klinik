@@ -21,6 +21,7 @@
     },
     "dependencies": {
         "@fontsource/inter": "^5.2.8",
-        "flowbite": "^4.0.2"
+        "flowbite": "^4.0.2",
+        "sweetalert2": "^11.26.24"
     }
 }

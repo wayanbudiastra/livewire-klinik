@@ -145,9 +145,15 @@
                             @can('masterdata.edit')
                             <div class="flex gap-1">
                                 <button wire:click="openEdit({{ $jadwal->id }})" class="btn-info btn-sm">Edit</button>
-                                <button wire:click="delete({{ $jadwal->id }})"
-                                        wire:confirm="Hapus jadwal ini?"
-                                        class="btn-danger btn-sm">Hapus</button>
+                                <x-confirm-button
+                                    action="delete({{ $jadwal->id }})"
+                                    title="Hapus Jadwal?"
+                                    text="Jadwal {{ ucfirst($jadwal->hari) }} {{ substr($jadwal->jam_mulai,0,5) }}–{{ substr($jadwal->jam_selesai,0,5) }} akan dihapus permanen."
+                                    confirm="Ya, Hapus"
+                                    type="danger"
+                                    class="btn-danger btn-sm">
+                                    Hapus
+                                </x-confirm-button>
                             </div>
                             @endcan
                         </td>
