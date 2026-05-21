@@ -44,11 +44,27 @@
             </thead>
             <tbody>
                 @forelse ($this->kunjungan as $k)
-                <tr wire:key="k-{{ $k->id }}">
+                @php $isAppointment = str_starts_with($k->nomor_antrean, 'A-'); @endphp
+                <tr wire:key="k-{{ $k->id }}" @class([
+                    'border-l-4 border-l-blue-400' => $isAppointment,
+                    'border-l-4 border-l-gray-200 dark:border-l-gray-600' => !$isAppointment,
+                ])>
                     <td>
-                        <span class="font-mono text-lg font-bold text-[#0a3d62] dark:text-blue-400">
-                            {{ $k->nomor_antrean }}
-                        </span>
+                        <div class="flex flex-col items-start gap-1">
+                            <span @class([
+                                'font-mono text-xl font-black',
+                                'text-[#0a3d62] dark:text-blue-400' => $isAppointment,
+                                'text-gray-600 dark:text-gray-400'  => !$isAppointment,
+                            ])>
+                                {{ $k->nomor_antrean }}
+                            </span>
+                            @if ($isAppointment)
+                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold
+                                         bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 uppercase tracking-wide">
+                                ★ Prioritas
+                            </span>
+                            @endif
+                        </div>
                     </td>
                     <td>
                         <p class="font-medium text-gray-900 dark:text-gray-100">{{ $k->pasien?->nama ?? '-' }}</p>
@@ -71,11 +87,17 @@
                         ])>{{ strtoupper($penjamin) }}</span>
                     </td>
                     <td class="text-xs text-gray-500 dark:text-gray-400">
-                        @if ($k->appointment)
-                            <span class="badge-info">Appointment</span>
-                            <p class="font-mono text-xs mt-0.5">{{ $k->appointment->kode_booking }}</p>
+                        @if ($isAppointment)
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+                                         bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                                📅 Appointment
+                            </span>
+                            <p class="font-mono text-xs mt-0.5 text-gray-400">{{ $k->appointment?->kode_booking }}</p>
                         @else
-                            <span class="badge-gray">Walk-in</span>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+                                         bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                                🚶 Walk-in
+                            </span>
                         @endif
                     </td>
                     <td><x-badge-status :status="$k->status" /></td>

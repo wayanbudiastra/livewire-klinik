@@ -11,10 +11,29 @@
             </div>
             <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-1">Pasien Berhasil Didaftarkan</h3>
             <p class="text-gray-500 dark:text-gray-400 mb-4">{{ $namaPasienHasil }}</p>
-            <div class="inline-block bg-[#0a3d62] text-white rounded-xl px-8 py-4 mb-4">
+
+            @php $isApt = str_starts_with($nomorAntrean, 'A-'); @endphp
+            <div @class([
+                'inline-block text-white rounded-xl px-8 py-4 mb-3',
+                'bg-[#0a3d62]' => $isApt,
+                'bg-gray-600'  => !$isApt,
+            ])>
                 <p class="text-xs uppercase tracking-widest opacity-70 mb-1">Nomor Antrean</p>
-                <p class="text-5xl font-black">{{ $nomorAntrean }}</p>
+                <p class="text-5xl font-black tracking-widest">{{ $nomorAntrean }}</p>
             </div>
+
+            {{-- Label prioritas --}}
+            @if ($isApt)
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-100 text-blue-700
+                        dark:bg-blue-900/30 dark:text-blue-400 text-sm font-semibold mb-4">
+                ★ Prioritas — Appointment
+            </div>
+            @else
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-100 text-gray-600
+                        dark:bg-gray-700 dark:text-gray-400 text-sm font-medium mb-4">
+                🚶 Walk-in
+            </div>
+            @endif
             <div class="flex justify-center gap-3 mt-2">
                 <button wire:click="resetForm" class="btn-primary">Daftarkan Berikutnya</button>
                 <a href="?tab=list" class="btn-secondary">Lihat List</a>

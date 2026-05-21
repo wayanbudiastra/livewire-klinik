@@ -14,18 +14,23 @@ use Illuminate\Validation\ValidationException;
 class KunjunganService
 {
     // ── Nomor Antrean ─────────────────────────────────────────
+    // A-001 = Appointment (prioritas), W-001 = Walk-in
 
-    public function generateNomorAntrean(int $poliId, string $tanggal): string
+    public function generateNomorAntrean(int $poliId, string $tanggal, bool $isAppointment = false): string
     {
-        return DB::transaction(function () use ($poliId, $tanggal) {
+        return DB::transaction(function () use ($poliId, $tanggal, $isAppointment) {
+            $prefix = $isAppointment ? 'A' : 'W';
+
+            // Hitung berdasarkan prefix masing-masing
             $count = Kunjungan::whereDate('tanggal', $tanggal)
                 ->where('poli_id', $poliId)
+                ->where('nomor_antrean', 'like', "{$prefix}-%")
                 ->whereNotIn('status', ['dibatalkan'])
                 ->lockForUpdate()
                 ->count();
 
             $nomor = $count + 1;
-            return str_pad($nomor, 3, '0', STR_PAD_LEFT);
+            return $prefix . '-' . str_pad($nomor, 3, '0', STR_PAD_LEFT);
         });
     }
 
@@ -153,9 +158,12 @@ class KunjunganService
                     ->update(['status' => 'checked_in']);
             }
 
+            // Appointment → prefix A (prioritas), Walk-in → prefix W
+            $isAppointment = $appointmentId !== null;
             $noAntrean = $this->generateNomorAntrean(
                 $data['poli_id'],
-                now()->toDateString()
+                now()->toDateString(),
+                $isAppointment
             );
 
             $kunjungan = Kunjungan::create([

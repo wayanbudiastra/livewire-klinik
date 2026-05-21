@@ -47,6 +47,8 @@ class ListPendaftaran extends Component
                 $pq->where('nama', 'like', "%{$s}%")
                    ->orWhere('nomor_rm', 'like', "%{$s}%")))
         ->when($this->filterStatus, fn ($q, $st) => $q->where('status', $st))
+        // Prioritas: A- (Appointment) dulu, baru W- (Walk-in), lalu urut nomor
+        ->orderByRaw("CASE WHEN nomor_antrean LIKE 'A-%' THEN 0 ELSE 1 END")
         ->orderBy('nomor_antrean')
         ->paginate(15);
     }
