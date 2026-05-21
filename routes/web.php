@@ -3,50 +3,52 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return redirect()->route('dashboard');
-});
+Route::get('/', fn () => redirect()->route('dashboard'));
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'active'])->group(function () {
 
     // Dashboard
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', fn () => view('dashboard'))->name('dashboard');
 
-    // Pasien
-    Route::get('/pasien', fn() => abort(404))->name('pasien.index');
-    Route::get('/pasien/create', fn() => abort(404))->name('pasien.create');
-    Route::get('/pasien/{id}', fn() => abort(404))->name('pasien.show');
+    // Pasien (placeholder)
+    Route::get('/pasien', fn () => abort(404))->name('pasien.index');
+    Route::get('/pasien/create', fn () => abort(404))->name('pasien.create');
+    Route::get('/pasien/{id}', fn () => abort(404))->name('pasien.show');
 
-    // Kunjungan
+    // Kunjungan (placeholder)
     Route::prefix('kunjungan')->name('kunjungan.')->group(function () {
-        Route::get('/', fn() => abort(404))->name('index');
-        Route::get('/pendaftaran', fn() => abort(404))->name('pendaftaran');
+        Route::get('/', fn () => abort(404))->name('index');
+        Route::get('/pendaftaran', fn () => abort(404))->name('pendaftaran');
     });
 
-    // Pemeriksaan
-    Route::get('/pemeriksaan', fn() => abort(404))->name('pemeriksaan.index');
+    // Pemeriksaan (placeholder)
+    Route::get('/pemeriksaan', fn () => abort(404))->name('pemeriksaan.index');
 
-    // Rawat Inap
-    Route::get('/rawat-inap', fn() => abort(404))->name('rawat-inap.index');
+    // Rawat Inap (placeholder)
+    Route::get('/rawat-inap', fn () => abort(404))->name('rawat-inap.index');
 
-    // Farmasi
+    // Farmasi (placeholder)
     Route::prefix('farmasi')->name('farmasi.')->group(function () {
-        Route::get('/resep', fn() => abort(404))->name('resep.index');
-        Route::get('/stok-obat', fn() => abort(404))->name('stok.index');
+        Route::get('/resep', fn () => abort(404))->name('resep.index');
+        Route::get('/stok-obat', fn () => abort(404))->name('stok.index');
     });
 
-    // Billing
-    Route::get('/billing', fn() => abort(404))->name('billing.index');
+    // Billing (placeholder)
+    Route::get('/billing', fn () => abort(404))->name('billing.index');
 
-    // Laporan
-    Route::get('/laporan', fn() => abort(404))->name('laporan.index');
+    // Laporan (placeholder)
+    Route::get('/laporan', fn () => abort(404))->name('laporan.index');
 
-    // Pengaturan
+    // ── Pengaturan ──────────────────────────────────────────
     Route::prefix('pengaturan')->name('pengaturan.')->group(function () {
-        Route::get('/pengguna', fn() => abort(404))->name('pengguna');
-        Route::get('/klinik', fn() => abort(404))->name('klinik');
+
+        // Manajemen Pengguna — hanya super_admin via policy
+        Route::get('/pengguna', fn () => view('pengaturan.user.index'))
+             ->name('pengguna')
+             ->middleware('can:viewAny,App\Models\User');
+
+        // Klinik (placeholder)
+        Route::get('/klinik', fn () => abort(404))->name('klinik');
     });
 
     // Profile
