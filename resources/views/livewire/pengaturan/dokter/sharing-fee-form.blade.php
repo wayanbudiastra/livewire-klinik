@@ -27,7 +27,7 @@
                     </div>
                 </div>
                 {{-- Progress bar --}}
-                @php $val = (float) ${'this->fee_'.$key}; @endphp
+                @php $val = (float) $this->{'fee_'.$key}; @endphp
                 <div class="h-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
                     <div class="h-full rounded-full bg-{{ $cat['color'] }}-500 transition-all duration-300"
                          style="width: {{ min($val, 100) }}%"></div>
