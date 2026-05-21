@@ -34,6 +34,18 @@ class PendaftaranTab extends Component
     public string $nomorAntrean     = '';
     public string $namaPasienHasil  = '';
 
+    public function mount(): void
+    {
+        $this->tipePembayaran = 'umum';
+
+        // Auto-isi kode booking dari URL query: ?kode=BK-XXXXXXXX
+        $kode = request()->query('kode');
+        if ($kode) {
+            $this->mode        = 'appointment';
+            $this->kodeBooking = strtoupper($kode);
+        }
+    }
+
     public function updatingSearchPasien(): void
     {
         $this->pasienId   = null;

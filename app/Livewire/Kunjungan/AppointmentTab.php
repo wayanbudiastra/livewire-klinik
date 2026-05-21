@@ -30,10 +30,15 @@ class AppointmentTab extends Component
     public string $namaPasien        = '';
     public string $modePasien        = 'lama'; // 'lama' | 'baru'
 
-    // Input pasien baru
-    public string $namaInputBaru     = '';
-    public string $nikInputBaru      = '';
-    public string $hpInputBaru       = '';
+    // Input pasien baru (lengkap)
+    public string $namaInputBaru       = '';
+    public string $nikInputBaru        = '';
+    public string $hpInputBaru         = '';
+    public string $tempatLahirBaru     = '';
+    public string $tanggalLahirBaru    = '';
+    public string $jenisKelaminBaru    = 'L';
+    public string $tipePasienBaru      = 'WNI';
+    public string $alamatBaru          = '';
 
     // Keluhan
     public string $keluhan           = '';
@@ -124,23 +129,31 @@ class AppointmentTab extends Component
         }
         if ($this->modePasien === 'baru') {
             $this->validate([
-                'namaInputBaru' => 'required|string|min:3',
-                'hpInputBaru'   => 'required|string|regex:/^(\+62|62|0)[0-9]{8,13}$/',
-            ], ['hpInputBaru.regex' => 'Format HP tidak valid.']);
+                'namaInputBaru'     => 'required|string|min:3',
+                'tempatLahirBaru'   => 'required|string|min:2',
+                'tanggalLahirBaru'  => 'required|date|before_or_equal:today',
+                'alamatBaru'        => 'required|string|min:10',
+                'hpInputBaru'       => 'required|string|regex:/^(\+62|62|0)[0-9]{8,13}$/',
+            ], [
+                'hpInputBaru.regex'         => 'Format HP tidak valid.',
+                'tempatLahirBaru.required'  => 'Tempat lahir wajib diisi.',
+                'tanggalLahirBaru.required' => 'Tanggal lahir wajib diisi.',
+                'alamatBaru.min'            => 'Alamat minimal 10 karakter.',
+            ]);
         }
 
-        // Untuk pasien baru: buat pasien minimal dahulu
+        // Untuk pasien baru: buat pasien lengkap
         $pasienId = $this->pasienId;
         if ($this->modePasien === 'baru') {
             $service2 = app(\App\Services\PasienService::class);
             $pasienBaru = $service2->create([
                 'nama'           => $this->namaInputBaru,
-                'tempat_lahir'   => '-',
-                'tanggal_lahir'  => '2000-01-01',
-                'jenis_kelamin'  => 'L',
-                'tipe_pasien'    => 'WNI',
+                'tempat_lahir'   => $this->tempatLahirBaru,
+                'tanggal_lahir'  => $this->tanggalLahirBaru,
+                'jenis_kelamin'  => $this->jenisKelaminBaru,
+                'tipe_pasien'    => $this->tipePasienBaru,
                 'nik'            => $this->nikInputBaru ?: null,
-                'alamat'         => '-',
+                'alamat'         => $this->alamatBaru,
                 'telepon'        => $this->hpInputBaru,
                 'is_active'      => true,
             ]);
@@ -164,14 +177,33 @@ class AppointmentTab extends Component
             message: "Appointment berhasil! Kode: {$appointment->kode_booking}");
     }
 
+    // ── List Appointment ─────────────────────────────────────
+
+    #[Computed]
+    public function appointmentList()
+    {
+        return \App\Models\Appointment::with([
+            'pasien:id,nama,nomor_rm',
+            'dokter.user:id,nama',
+            'poli:id,nama',
+        ])
+        ->whereDate('tanggal_appointment', $this->tanggalAppointment ?: now()->toDateString())
+        ->whereIn('status', ['booked', 'checked_in'])
+        ->orderBy('created_at', 'desc')
+        ->get();
+    }
+
     public function resetForm(): void
     {
         $this->reset([
             'selectedJadwalId','selectedDokterId','selectedPoliId',
             'sisaKuota','searchPasien','pasienId','namaPasien',
             'namaInputBaru','nikInputBaru','hpInputBaru',
+            'tempatLahirBaru','tanggalLahirBaru','jenisKelaminBaru',
+            'tipePasienBaru','alamatBaru',
             'keluhan','kodeBooking','showHasil',
         ]);
+        unset($this->appointmentList);
     }
 
     public function render()

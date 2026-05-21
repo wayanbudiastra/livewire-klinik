@@ -1,4 +1,6 @@
-<div class="max-w-2xl mx-auto space-y-5">
+<div class="space-y-5">
+<div class="grid grid-cols-1 xl:grid-cols-5 gap-5">
+<div class="xl:col-span-3 space-y-5">
 
     {{-- Hasil Appointment --}}
     @if ($showHasil)
@@ -144,19 +146,68 @@
             </div>
             @else
             <div class="space-y-3">
+                {{-- Tipe Pasien --}}
+                <div class="flex gap-2">
+                    @foreach (['WNI' => '🇮🇩 WNI', 'WNA' => '🌐 WNA'] as $val => $lbl)
+                    <button type="button" wire:click="$set('tipePasienBaru', '{{ $val }}')"
+                            @class(['flex-1 py-2 rounded-lg border text-sm font-medium transition-colors',
+                                'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' => $tipePasienBaru === $val,
+                                'border-gray-200 text-gray-600 dark:border-gray-600' => $tipePasienBaru !== $val])>
+                        {{ $lbl }}
+                    </button>
+                    @endforeach
+                </div>
+
                 <div class="form-group">
                     <label class="form-label dark:text-gray-300">Nama Lengkap <span class="text-red-500">*</span></label>
-                    <input wire:model="namaInputBaru" type="text" placeholder="Nama pasien"
+                    <input wire:model="namaInputBaru" type="text" placeholder="Sesuai KTP / Paspor"
                            class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
                     @error('namaInputBaru') <p class="form-error">{{ $message }}</p> @enderror
                 </div>
+
                 <div class="grid grid-cols-2 gap-3">
                     <div class="form-group">
-                        <label class="form-label dark:text-gray-300">NIK (opsional)</label>
-                        <input wire:model="nikInputBaru" type="text" maxlength="16" placeholder="16 digit"
+                        <label class="form-label dark:text-gray-300">Tempat Lahir <span class="text-red-500">*</span></label>
+                        <input wire:model="tempatLahirBaru" type="text" placeholder="Kota / Kabupaten"
                                class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
+                        @error('tempatLahirBaru') <p class="form-error">{{ $message }}</p> @enderror
                     </div>
                     <div class="form-group">
+                        <label class="form-label dark:text-gray-300">Tanggal Lahir <span class="text-red-500">*</span></label>
+                        <input wire:model="tanggalLahirBaru" type="date"
+                               class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
+                        @error('tanggalLahirBaru') <p class="form-error">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label dark:text-gray-300">Jenis Kelamin</label>
+                    <div class="flex gap-4 mt-1">
+                        @foreach (['L' => 'Laki-laki', 'P' => 'Perempuan'] as $val => $lbl)
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" wire:model="jenisKelaminBaru" value="{{ $val }}" class="form-radio"/>
+                            <span class="text-sm text-gray-700 dark:text-gray-300">{{ $lbl }}</span>
+                        </label>
+                        @endforeach
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label dark:text-gray-300">Alamat <span class="text-red-500">*</span></label>
+                    <textarea wire:model="alamatBaru" rows="2" placeholder="Jl. Nama Jalan, Kelurahan, Kecamatan..."
+                              class="form-textarea dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"></textarea>
+                    @error('alamatBaru') <p class="form-error">{{ $message }}</p> @enderror
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    @if ($tipePasienBaru === 'WNI')
+                    <div class="form-group">
+                        <label class="form-label dark:text-gray-300">NIK</label>
+                        <input wire:model="nikInputBaru" type="text" maxlength="16" placeholder="16 digit angka"
+                               class="form-input font-mono dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
+                    </div>
+                    @endif
+                    <div class="form-group {{ $tipePasienBaru === 'WNA' ? 'col-span-2' : '' }}">
                         <label class="form-label dark:text-gray-300">No. HP <span class="text-red-500">*</span></label>
                         <input wire:model="hpInputBaru" type="tel" placeholder="08xxxxxxxxxx"
                                class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
@@ -190,4 +241,76 @@
     @endif
 
     @endif {{-- end !showHasil --}}
+</div>{{-- end xl:col-span-3 --}}
+
+{{-- ── Panel Kanan: List Appointment Hari Ini ─────────── --}}
+<div class="xl:col-span-2">
+    <div class="card sticky top-4">
+        <div class="card-header">
+            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                Appointment
+                <span class="text-xs font-normal text-gray-400 ml-1">
+                    {{ $tanggalAppointment ? \Carbon\Carbon::parse($tanggalAppointment)->translatedFormat('d M Y') : 'Hari Ini' }}
+                </span>
+            </h3>
+            <span class="badge-primary">{{ $this->appointmentList->count() }}</span>
+        </div>
+        <div class="card-body p-0 max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700">
+            @if ($this->appointmentList->isEmpty())
+            <div class="empty-state py-10">
+                <p class="empty-state-text">Belum ada appointment</p>
+            </div>
+            @else
+            <div class="divide-y divide-gray-100 dark:divide-gray-700">
+                @foreach ($this->appointmentList as $apt)
+                <div @class([
+                    'p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors',
+                    'opacity-60' => $apt->status === 'checked_in',
+                ])>
+                    <div class="flex items-start justify-between gap-2 mb-2">
+                        <div class="flex-1 min-w-0">
+                            <p class="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
+                                {{ $apt->pasien->nama }}
+                            </p>
+                            <p class="text-xs font-mono text-gray-400">{{ $apt->pasien->nomor_rm }}</p>
+                        </div>
+                        <span @class([
+                            'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0',
+                            'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' => $apt->status === 'booked',
+                            'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' => $apt->status === 'checked_in',
+                        ])>
+                            {{ $apt->status === 'booked' ? 'Booked' : 'Check-in' }}
+                        </span>
+                    </div>
+
+                    <div class="text-xs text-gray-500 dark:text-gray-400 space-y-0.5 mb-3">
+                        <p>👨‍⚕️ {{ $apt->dokter->user->nama }}</p>
+                        <p>🏥 {{ $apt->poli->nama }}</p>
+                        <p class="font-mono text-blue-600 dark:text-blue-400">{{ $apt->kode_booking }}</p>
+                        @if ($apt->keluhan)
+                        <p class="italic truncate">💬 {{ $apt->keluhan }}</p>
+                        @endif
+                    </div>
+
+                    @if ($apt->status === 'booked')
+                    <a href="{{ route('kunjungan.index', ['tab' => 'pendaftaran']) }}?kode={{ $apt->kode_booking }}"
+                       class="btn-primary btn-sm w-full text-center">
+                        <svg class="w-3.5 h-3.5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                        </svg>
+                        Daftarkan Sekarang
+                    </a>
+                    @else
+                    <span class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ Sudah check-in</span>
+                    @endif
+                </div>
+                @endforeach
+            </div>
+            @endif
+        </div>
+    </div>
 </div>
+
+</div>{{-- end grid --}}
+</div>{{-- end outer div --}}
