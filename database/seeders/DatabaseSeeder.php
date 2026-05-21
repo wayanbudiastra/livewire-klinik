@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             KlinikSeeder::class,
             PoliSeeder::class,
             ObatSeeder::class,
+            MasterdataV2Seeder::class,
         ]);
     }
 }

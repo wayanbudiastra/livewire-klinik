@@ -26,6 +26,11 @@ class RolePermissionSeeder extends Seeder
             'rekammedis.view', 'rekammedis.create', 'rekammedis.edit',
             'pengaturan.view', 'pengaturan.edit',
             'user.view', 'user.create', 'user.edit', 'user.delete',
+
+            // Master Data Klinis (v2)
+            'masterdata.view', 'masterdata.create', 'masterdata.edit', 'masterdata.delete',
+            'peralatan.pakai',
+            'penunjang.create', 'penunjang.view',
         ];
 
         foreach ($permissions as $perm) {
@@ -35,18 +40,6 @@ class RolePermissionSeeder extends Seeder
         $roles = [
             'pasien' => [
                 'kunjungan.view', 'rekammedis.view', 'billing.view',
-            ],
-            'kasir' => [
-                'pasien.view', 'kunjungan.view',
-                'billing.view', 'billing.create', 'billing.edit',
-                'pembayaran.view', 'pembayaran.create',
-                'laporan.keuangan',
-            ],
-            'perawat' => [
-                'pasien.view', 'pasien.create', 'pasien.edit',
-                'kunjungan.view', 'kunjungan.create', 'kunjungan.edit',
-                'asesmen.view', 'asesmen.create', 'asesmen.edit',
-                'tindakan.view', 'tindakan.create',
             ],
             'apoteker' => [
                 'resep.view', 'resep.edit',
@@ -65,6 +58,24 @@ class RolePermissionSeeder extends Seeder
                 'resep.view', 'resep.create', 'resep.edit',
                 'tindakan.view', 'tindakan.create',
                 'laporan.view',
+                'masterdata.view',
+                'penunjang.create', 'penunjang.view',
+                'peralatan.pakai',
+            ],
+            'perawat' => [
+                'pasien.view', 'pasien.create', 'pasien.edit',
+                'kunjungan.view', 'kunjungan.create', 'kunjungan.edit',
+                'asesmen.view', 'asesmen.create', 'asesmen.edit',
+                'tindakan.view', 'tindakan.create',
+                'masterdata.view',
+                'peralatan.pakai',
+            ],
+            'kasir' => [
+                'pasien.view', 'kunjungan.view',
+                'billing.view', 'billing.create', 'billing.edit',
+                'pembayaran.view', 'pembayaran.create',
+                'laporan.keuangan',
+                'masterdata.view',
             ],
             'admin' => [
                 'pasien.view', 'pasien.create', 'pasien.edit', 'pasien.delete',
@@ -72,6 +83,7 @@ class RolePermissionSeeder extends Seeder
                 'user.view', 'user.create', 'user.edit',
                 'laporan.view', 'laporan.keuangan',
                 'pengaturan.view', 'pengaturan.edit',
+                'masterdata.view', 'masterdata.create', 'masterdata.edit',
             ],
             'super_admin' => [],
         ];

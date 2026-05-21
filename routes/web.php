@@ -47,6 +47,11 @@ Route::middleware(['auth', 'active'])->group(function () {
              ->name('pengguna')
              ->middleware('can:viewAny,App\Models\User');
 
+        // Master Data Klinis
+        Route::get('/masterdata', fn () => view('pengaturan.masterdata.index'))
+             ->name('masterdata')
+             ->middleware('permission:masterdata.view');
+
         // Klinik (placeholder)
         Route::get('/klinik', fn () => abort(404))->name('klinik');
     });
