@@ -81,8 +81,8 @@ class PeralatanForm extends Component
 
         $this->showModal = false;
         $this->dispatch('peralatan-saved');
-        $this->dispatch('notify', ['type' => 'success',
-            'message' => $this->isEdit ? 'Peralatan diupdate.' : 'Peralatan ditambahkan.']);
+        $msg = $this->isEdit ? 'Peralatan diupdate.' : 'Peralatan ditambahkan.';
+        $this->dispatch('notify', type: 'success', message: $msg);
     }
 
     public function render()

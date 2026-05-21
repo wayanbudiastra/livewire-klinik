@@ -29,7 +29,7 @@ class PenunjangTable extends Component
                 $q->where('nama', 'like', "%{$s}%")
                   ->orWhere('kode', 'like', "%{$s}%"))
             ->orderBy('nama')
-            ->paginate(15);
+            ->paginate(10);
     }
 
     public function toggleAktif(int $id): void
@@ -37,7 +37,7 @@ class PenunjangTable extends Component
         $this->authorize('masterdata.edit');
         app(MasterdataService::class)->toggleAktifPenunjang($id);
         unset($this->items);
-        $this->dispatch('notify', ['type' => 'success', 'message' => 'Status diupdate.']);
+        $this->dispatch('notify', type: 'success', message: 'Status diupdate.');
     }
 
     #[On('penunjang-saved')]

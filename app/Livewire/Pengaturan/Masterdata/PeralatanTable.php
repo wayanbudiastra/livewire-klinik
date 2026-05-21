@@ -3,7 +3,6 @@
 namespace App\Livewire\Pengaturan\Masterdata;
 
 use App\Models\PeralatanMedis;
-use App\Services\MasterdataService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
@@ -32,7 +31,7 @@ class PeralatanTable extends Component
                   ->orWhere('kode', 'like', "%{$s}%"))
             ->when($this->filterStatus, fn ($q, $s) => $q->where('status', $s))
             ->orderBy('nama')
-            ->paginate(15);
+            ->paginate(10);
     }
 
     public function updateStatus(int $id, string $status): void
@@ -40,7 +39,7 @@ class PeralatanTable extends Component
         $this->authorize('masterdata.edit');
         PeralatanMedis::findOrFail($id)->update(['status' => $status]);
         unset($this->peralatan);
-        $this->dispatch('notify', ['type' => 'success', 'message' => 'Status peralatan diupdate.']);
+        $this->dispatch('notify', type: 'success', message: 'Status peralatan diupdate.');
     }
 
     #[On('peralatan-saved')]

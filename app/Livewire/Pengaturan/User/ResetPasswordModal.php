@@ -51,10 +51,7 @@ class ResetPasswordModal extends Component
 
         $this->showModal = false;
         $this->dispatch('password-reset');
-        $this->dispatch('notify', [
-            'type'    => 'success',
-            'message' => "Password {$this->userName} berhasil direset.",
-        ]);
+        $this->dispatch('notify', type: 'success', message: "Password {$this->userName} berhasil direset.");
     }
 
     public function render()

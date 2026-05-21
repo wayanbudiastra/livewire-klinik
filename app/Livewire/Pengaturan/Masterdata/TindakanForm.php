@@ -69,7 +69,7 @@ class TindakanForm extends Component
         $this->deskripsi   = $item->deskripsi ?? '';
         $this->tarif       = (string) $item->tarif;
         $this->tarif_bpjs  = $item->tarif_bpjs ? (string) $item->tarif_bpjs : '';
-        $this->is_active   = $item->is_active;
+        $this->is_active   = (bool) $item->is_active;
         $this->poli_ids    = $item->poli->pluck('id')->toArray();
         $this->isEdit      = true;
         $this->showModal   = true;
@@ -99,7 +99,7 @@ class TindakanForm extends Component
 
         $this->showModal = false;
         $this->dispatch('tindakan-saved');
-        $this->dispatch('notify', ['type' => 'success', 'message' => $msg]);
+        $this->dispatch('notify', type: 'success', message: $msg);
     }
 
     public function getPoliListProperty()

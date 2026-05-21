@@ -112,7 +112,7 @@ class UserForm extends Component
 
         $this->showModal = false;
         $this->dispatch('user-saved');
-        $this->dispatch('notify', ['type' => 'success', 'message' => $message]);
+        $this->dispatch('notify', type: 'success', message: $message);
     }
 
     public function getRolesListProperty()

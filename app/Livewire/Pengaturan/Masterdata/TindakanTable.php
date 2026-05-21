@@ -34,7 +34,7 @@ class TindakanTable extends Component
                 $q->whereHas('poli', fn ($sq) => $sq->where('poli.id', $p))
             )
             ->orderBy('nama')
-            ->paginate(15);
+            ->paginate(10);
     }
 
     public function toggleAktif(int $id): void
@@ -42,7 +42,7 @@ class TindakanTable extends Component
         $this->authorize('masterdata.edit');
         app(MasterdataService::class)->toggleAktifTindakan($id);
         unset($this->tindakan);
-        $this->dispatch('notify', ['type' => 'success', 'message' => 'Status tindakan diupdate.']);
+        $this->dispatch('notify', type: 'success', message: 'Status tindakan diupdate.');
     }
 
     #[On('tindakan-saved')]

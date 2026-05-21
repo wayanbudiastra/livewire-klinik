@@ -90,8 +90,8 @@ class PenunjangForm extends Component
 
         $this->showModal = false;
         $this->dispatch('penunjang-saved');
-        $this->dispatch('notify', ['type' => 'success',
-            'message' => $this->isEdit ? 'Item penunjang diupdate.' : 'Item penunjang ditambahkan.']);
+        $msg = $this->isEdit ? 'Item penunjang diupdate.' : 'Item penunjang ditambahkan.';
+        $this->dispatch('notify', type: 'success', message: $msg);
     }
 
     public function render()

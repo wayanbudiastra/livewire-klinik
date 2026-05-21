@@ -28,7 +28,7 @@ class UserTable extends Component
     #[Url]
     public string $sortDir = 'desc';
 
-    public int $perPage = 15;
+    public int $perPage = 10;
 
     public function updatingSearch(): void    { $this->resetPage(); }
     public function updatingFilterRole(): void { $this->resetPage(); }
@@ -66,10 +66,8 @@ class UserTable extends Component
         $this->authorize('update', \App\Models\User::findOrFail($userId));
         app(UserService::class)->toggleActive($userId, $state);
 
-        $this->dispatch('notify', [
-            'type'    => 'success',
-            'message' => $state ? 'User berhasil diaktifkan.' : 'User berhasil dinonaktifkan.',
-        ]);
+        $msg = $state ? 'User berhasil diaktifkan.' : 'User berhasil dinonaktifkan.';
+        $this->dispatch('notify', type: 'success', message: $msg);
     }
 
     public function deleteUser(int $userId): void
@@ -77,10 +75,7 @@ class UserTable extends Component
         $this->authorize('delete', \App\Models\User::findOrFail($userId));
         app(UserService::class)->delete($userId);
 
-        $this->dispatch('notify', [
-            'type'    => 'success',
-            'message' => 'User berhasil dihapus.',
-        ]);
+        $this->dispatch('notify', type: 'success', message: 'User berhasil dihapus.');
     }
 
     #[On('user-saved')]
