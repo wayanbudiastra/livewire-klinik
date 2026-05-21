@@ -10,13 +10,13 @@ class PeralatanMedis extends Model
 
     protected $fillable = [
         'kode', 'nama', 'merk', 'nomor_seri', 'deskripsi',
-        'status', 'lokasi_terakhir', 'poli_terakhir_id', 'tanggal_kalibrasi',
+        'status', 'is_active', 'lokasi_terakhir', 'poli_terakhir_id', 'tanggal_kalibrasi',
     ];
 
-    protected function casts(): array
-    {
-        return ['tanggal_kalibrasi' => 'date'];
-    }
+    protected $casts = [
+        'tanggal_kalibrasi' => 'date',
+        'is_active'         => 'boolean',
+    ];
 
     public function poliTerakhir()
     {

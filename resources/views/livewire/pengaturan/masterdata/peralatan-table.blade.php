@@ -9,15 +9,23 @@
                 </span>
                 <input wire:model.live.debounce.400ms="search" type="text"
                        placeholder="Cari peralatan..."
-                       class="form-input pl-9 w-60 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
+                       class="form-input pl-9 w-52 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
             </div>
+
             <select wire:model.live="filterStatus"
-                    class="form-select w-40 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200">
+                    class="form-select w-36 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200">
                 <option value="">Semua Status</option>
                 <option value="tersedia">Tersedia</option>
                 <option value="digunakan">Digunakan</option>
                 <option value="maintenance">Maintenance</option>
                 <option value="rusak">Rusak</option>
+            </select>
+
+            <select wire:model.live="filterAktif"
+                    class="form-select w-32 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200">
+                <option value="">Semua</option>
+                <option value="1">Aktif</option>
+                <option value="0">Nonaktif</option>
             </select>
         </div>
 
@@ -38,7 +46,8 @@
                     <th>Kode</th>
                     <th>Nama Peralatan</th>
                     <th>Merk / No. Seri</th>
-                    <th>Status</th>
+                    <th>Status Kondisi</th>
+                    <th>Aktif</th>
                     <th>Poli Terakhir</th>
                     <th>Aksi</th>
                 </tr>
@@ -59,11 +68,13 @@
                             <p class="text-xs font-mono text-gray-400">{{ $alat->nomor_seri }}</p>
                         @endif
                     </td>
+
+                    {{-- Status Kondisi --}}
                     <td>
                         @can('masterdata.edit')
                         <select wire:change="updateStatus({{ $alat->id }}, $event.target.value)"
                                 @class([
-                                    'text-xs rounded-full px-2 py-1 font-medium border-0 focus:ring-1',
+                                    'text-xs rounded-full px-2 py-1 font-medium border-0 focus:ring-1 cursor-pointer',
                                     'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' => $alat->status === 'tersedia',
                                     'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'           => $alat->status === 'digunakan',
                                     'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'       => $alat->status === 'maintenance',
@@ -75,8 +86,7 @@
                             <option value="rusak"       {{ $alat->status === 'rusak'       ? 'selected' : '' }}>Rusak</option>
                         </select>
                         @else
-                        <span @class([
-                            'badge',
+                        <span @class(['badge',
                             'badge-success' => $alat->status === 'tersedia',
                             'badge-info'    => $alat->status === 'digunakan',
                             'badge-warning' => $alat->status === 'maintenance',
@@ -84,9 +94,32 @@
                         ])>{{ ucfirst($alat->status) }}</span>
                         @endcan
                     </td>
+
+                    {{-- Toggle Aktif/Nonaktif --}}
+                    <td>
+                        @can('masterdata.edit')
+                        <button
+                            wire:click="toggleAktif({{ $alat->id }})"
+                            wire:confirm="{{ $alat->is_active ? 'Nonaktifkan' : 'Aktifkan' }} peralatan ini?"
+                            @class([
+                                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
+                                'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300' => $alat->is_active,
+                                'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300'                    => !$alat->is_active,
+                            ])>
+                            <span class="h-1.5 w-1.5 rounded-full {{ $alat->is_active ? 'bg-emerald-500' : 'bg-red-500' }}"></span>
+                            {{ $alat->is_active ? 'Aktif' : 'Nonaktif' }}
+                        </button>
+                        @else
+                        <span @class(['badge', 'badge-success' => $alat->is_active, 'badge-danger' => !$alat->is_active])>
+                            {{ $alat->is_active ? 'Aktif' : 'Nonaktif' }}
+                        </span>
+                        @endcan
+                    </td>
+
                     <td class="text-sm text-gray-500">
                         {{ $alat->poliTerakhir ? $alat->poliTerakhir->nama : '-' }}
                     </td>
+
                     <td>
                         @can('masterdata.edit')
                         <button wire:click="$dispatch('open-peralatan-edit', { id: {{ $alat->id }} })"
@@ -96,7 +129,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="6">
+                    <td colspan="7">
                         <div class="empty-state">
                             <p class="empty-state-text">Belum ada peralatan medis</p>
                         </div>

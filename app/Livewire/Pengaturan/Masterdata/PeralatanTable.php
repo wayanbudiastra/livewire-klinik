@@ -3,6 +3,7 @@
 namespace App\Livewire\Pengaturan\Masterdata;
 
 use App\Models\PeralatanMedis;
+use App\Services\MasterdataService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
@@ -14,13 +15,17 @@ class PeralatanTable extends Component
     use WithPagination;
 
     #[Url(as: 'q')]
-    public string $search       = '';
+    public string $search        = '';
 
     #[Url]
-    public string $filterStatus = '';
+    public string $filterStatus  = '';
 
-    public function updatingSearch(): void        { $this->resetPage(); }
-    public function updatingFilterStatus(): void   { $this->resetPage(); }
+    #[Url]
+    public string $filterAktif   = '';   // '' | '1' | '0'
+
+    public function updatingSearch(): void       { $this->resetPage(); }
+    public function updatingFilterStatus(): void  { $this->resetPage(); }
+    public function updatingFilterAktif(): void   { $this->resetPage(); }
 
     #[Computed]
     public function peralatan()
@@ -30,6 +35,8 @@ class PeralatanTable extends Component
                 $q->where('nama', 'like', "%{$s}%")
                   ->orWhere('kode', 'like', "%{$s}%"))
             ->when($this->filterStatus, fn ($q, $s) => $q->where('status', $s))
+            ->when($this->filterAktif !== '',
+                fn ($q) => $q->where('is_active', $this->filterAktif === '1'))
             ->orderBy('nama')
             ->paginate(10);
     }
@@ -40,6 +47,14 @@ class PeralatanTable extends Component
         PeralatanMedis::findOrFail($id)->update(['status' => $status]);
         unset($this->peralatan);
         $this->dispatch('notify', type: 'success', message: 'Status peralatan diupdate.');
+    }
+
+    public function toggleAktif(int $id): void
+    {
+        $this->authorize('masterdata.edit');
+        app(MasterdataService::class)->toggleAktifPeralatan($id);
+        unset($this->peralatan);
+        $this->dispatch('notify', type: 'success', message: 'Status aktif peralatan diupdate.');
     }
 
     #[On('peralatan-saved')]

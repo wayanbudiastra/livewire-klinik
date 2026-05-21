@@ -112,6 +112,13 @@ class MasterdataService
 
     // ── Peralatan Medis ──────────────────────────────────────
 
+    public function toggleAktifPeralatan(int $id): PeralatanMedis
+    {
+        $alat = PeralatanMedis::findOrFail($id);
+        $alat->update(['is_active' => ! $alat->is_active]);
+        return $alat;
+    }
+
     public function createPeralatan(array $data): PeralatanMedis
     {
         return PeralatanMedis::create($data);

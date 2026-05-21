@@ -51,14 +51,23 @@
                     </td>
                     <td class="text-xs text-gray-500">{{ $item->satuan_waktu ?? '-' }}</td>
                     <td>
-                        <button wire:click="toggleAktif({{ $item->id }})"
-                                @class([
-                                    'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
-                                    'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300' => $item->is_active,
-                                    'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300' => !$item->is_active,
-                                ])>
+                        @can('masterdata.edit')
+                        <button
+                            wire:click="toggleAktif({{ $item->id }})"
+                            wire:confirm="{{ $item->is_active ? 'Nonaktifkan' : 'Aktifkan' }} item ini?"
+                            @class([
+                                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
+                                'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300' => $item->is_active,
+                                'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300'                    => !$item->is_active,
+                            ])>
+                            <span class="h-1.5 w-1.5 rounded-full {{ $item->is_active ? 'bg-emerald-500' : 'bg-red-500' }}"></span>
                             {{ $item->is_active ? 'Aktif' : 'Nonaktif' }}
                         </button>
+                        @else
+                        <span @class(['badge', 'badge-success' => $item->is_active, 'badge-danger' => !$item->is_active])>
+                            {{ $item->is_active ? 'Aktif' : 'Nonaktif' }}
+                        </span>
+                        @endcan
                     </td>
                     <td>
                         @can('masterdata.edit')
