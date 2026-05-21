@@ -124,13 +124,20 @@
                 @error('searchPasien') <p class="form-error">{{ $message }}</p> @enderror
 
                 @if ($this->pasienSuggestions->isNotEmpty() && !$pasienId)
-                <div class="absolute z-20 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-600 shadow-lg max-h-48 overflow-y-auto">
+                <div class="absolute z-20 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-600 shadow-lg max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-600">
                     @foreach ($this->pasienSuggestions as $p)
                     <button type="button" wire:click="pilihPasien({{ $p->id }}, '{{ addslashes($p->nama) }}')"
-                            class="w-full text-left px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm border-b border-gray-100 dark:border-gray-700 last:border-0">
-                        <span class="font-medium text-gray-800 dark:text-gray-200">{{ $p->nama }}</span>
-                        <span class="text-gray-400 ml-2 text-xs font-mono">{{ $p->nomor_rm }}</span>
-                        <x-tipe-pasien :tipe="$p->tipe_pasien" />
+                            class="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-0 transition-colors">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="font-semibold text-sm text-gray-900 dark:text-gray-100">{{ $p->nama }}</span>
+                            <span class="font-mono text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">{{ $p->nomor_rm }}</span>
+                            <x-tipe-pasien :tipe="$p->tipe_pasien" />
+                        </div>
+                        <div class="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
+                            <span>📅 {{ \Carbon\Carbon::parse($p->tanggal_lahir)->format('d/m/Y') }} ({{ \Carbon\Carbon::parse($p->tanggal_lahir)->age }} thn)</span>
+                            <span>📱 {{ $p->telepon }}</span>
+                        </div>
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">📍 {{ $p->alamat }}</p>
                     </button>
                     @endforeach
                 </div>

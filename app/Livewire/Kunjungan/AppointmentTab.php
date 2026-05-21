@@ -85,8 +85,9 @@ class AppointmentTab extends Component
         return Pasien::aktif()
             ->where(fn ($q) =>
                 $q->where('nama', 'like', "%{$this->searchPasien}%")
-                  ->orWhere('nomor_rm', 'like', "%{$this->searchPasien}%"))
-            ->select('id', 'nomor_rm', 'nama', 'telepon', 'tipe_pasien')
+                  ->orWhere('nomor_rm', 'like', "%{$this->searchPasien}%")
+                  ->orWhere('nik', 'like', "%{$this->searchPasien}%"))
+            ->select('id', 'nomor_rm', 'nama', 'telepon', 'tanggal_lahir', 'alamat', 'tipe_pasien', 'nik')
             ->limit(8)
             ->get();
     }

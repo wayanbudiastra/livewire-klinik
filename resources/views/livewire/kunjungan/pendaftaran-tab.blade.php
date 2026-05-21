@@ -105,12 +105,32 @@
                 @error('searchPasien') <p class="form-error">{{ $message }}</p> @enderror
 
                 @if ($this->pasienSuggestions->isNotEmpty() && !$pasienId)
-                <div class="absolute z-20 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-600 shadow-lg max-h-48 overflow-y-auto">
+                <div class="absolute z-20 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-600 shadow-lg max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-600">
                     @foreach ($this->pasienSuggestions as $p)
                     <button type="button" wire:click="pilihPasien({{ $p->id }}, '{{ addslashes($p->nama) }}')"
-                            class="w-full text-left px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm">
-                        <span class="font-medium text-gray-800 dark:text-gray-200">{{ $p->nama }}</span>
-                        <span class="text-gray-400 ml-2 font-mono text-xs">{{ $p->nomor_rm }}</span>
+                            class="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-0 transition-colors">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex-1 min-w-0">
+                                {{-- Nama + No. RM --}}
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-semibold text-sm text-gray-900 dark:text-gray-100">{{ $p->nama }}</span>
+                                    <span class="font-mono text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">{{ $p->nomor_rm }}</span>
+                                    <x-tipe-pasien :tipe="$p->tipe_pasien" />
+                                </div>
+                                {{-- Tanggal Lahir & Umur --}}
+                                <div class="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                    <span>
+                                        📅 {{ \Carbon\Carbon::parse($p->tanggal_lahir)->format('d/m/Y') }}
+                                        <span class="text-gray-400">({{ \Carbon\Carbon::parse($p->tanggal_lahir)->age }} thn)</span>
+                                    </span>
+                                    <span>📱 {{ $p->telepon }}</span>
+                                </div>
+                                {{-- Alamat (dipenggal jika terlalu panjang) --}}
+                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate max-w-xs">
+                                    📍 {{ $p->alamat }}
+                                </p>
+                            </div>
+                        </div>
                     </button>
                     @endforeach
                 </div>
@@ -118,10 +138,30 @@
             </div>
 
             @if ($pasienId)
-            <div class="flex items-center justify-between rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 px-4 py-2">
-                <span class="text-sm font-medium text-emerald-700 dark:text-emerald-400">✓ {{ $namaPasien }}</span>
-                <button wire:click="$set('pasienId', null); $set('namaPasien', ''); $set('searchPasien', '')"
-                        class="text-xs text-red-400 hover:text-red-600">Ganti</button>
+            @php $selectedPasien = \App\Models\Pasien::select('id','nama','nomor_rm','tanggal_lahir','telepon','alamat','tipe_pasien')->find($pasienId); @endphp
+            <div class="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-300 dark:border-emerald-700 px-4 py-3">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <svg class="h-4 w-4 text-emerald-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                            <span class="font-semibold text-sm text-emerald-800 dark:text-emerald-300">{{ $namaPasien }}</span>
+                            @if ($selectedPasien)
+                                <span class="font-mono text-xs text-emerald-600 dark:text-emerald-400">{{ $selectedPasien->nomor_rm }}</span>
+                            @endif
+                        </div>
+                        @if ($selectedPasien)
+                        <div class="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-emerald-700 dark:text-emerald-400 ml-6">
+                            <span>📅 {{ \Carbon\Carbon::parse($selectedPasien->tanggal_lahir)->format('d/m/Y') }} ({{ \Carbon\Carbon::parse($selectedPasien->tanggal_lahir)->age }} thn)</span>
+                            <span>📱 {{ $selectedPasien->telepon }}</span>
+                            <span class="truncate max-w-xs">📍 {{ $selectedPasien->alamat }}</span>
+                        </div>
+                        @endif
+                    </div>
+                    <button wire:click="$set('pasienId', null); $set('namaPasien', ''); $set('searchPasien', '')"
+                            class="text-xs text-red-400 hover:text-red-600 flex-shrink-0 mt-0.5">Ganti</button>
+                </div>
             </div>
             @endif
         </div>

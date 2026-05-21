@@ -89,9 +89,10 @@ class PendaftaranTab extends Component
         return Pasien::aktif()
             ->where(fn ($q) =>
                 $q->where('nama', 'like', "%{$this->searchPasien}%")
-                  ->orWhere('nomor_rm', 'like', "%{$this->searchPasien}%"))
-            ->select('id', 'nomor_rm', 'nama', 'telepon')
-            ->limit(8)->get();
+                  ->orWhere('nomor_rm', 'like', "%{$this->searchPasien}%")
+                  ->orWhere('nik', 'like', "%{$this->searchPasien}%"))
+            ->select('id', 'nomor_rm', 'nama', 'telepon', 'tanggal_lahir', 'alamat', 'tipe_pasien', 'nik')
+            ->limit(10)->get();
     }
 
     public function pilihPasien(int $id, string $nama): void
