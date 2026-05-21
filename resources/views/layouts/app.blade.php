@@ -89,6 +89,7 @@
             <x-sidebar-item route="billing.index" icon="cash" permission="billing.view">Billing & Kasir</x-sidebar-item>
             <x-sidebar-item route="laporan.index" icon="chart-square-bar" permission="laporan.view">Laporan</x-sidebar-item>
             <x-sidebar-item route="pengaturan.masterdata" icon="clipboard-list" permission="masterdata.view">Master Data</x-sidebar-item>
+            <x-sidebar-item route="pengaturan.dokter" icon="users" permission="masterdata.view">Data Dokter</x-sidebar-item>
             <x-sidebar-item route="pengaturan.pengguna" icon="cog" permission="pengaturan.view">Pengaturan</x-sidebar-item>
         </nav>
 

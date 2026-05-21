@@ -52,6 +52,17 @@ Route::middleware(['auth', 'active'])->group(function () {
              ->name('masterdata')
              ->middleware('permission:masterdata.view');
 
+        // Data Dokter
+        Route::middleware('permission:masterdata.view')->group(function () {
+            Route::get('/dokter', fn () => view('pengaturan.dokter.index'))
+                 ->name('dokter');
+            Route::get('/dokter/{dokter}', function ($dokter) {
+                $d = \App\Models\Dokter::with(['user', 'poli', 'sharingFee', 'dokterPoli.poli'])
+                    ->findOrFail($dokter);
+                return view('pengaturan.dokter.show', ['dokter' => $d]);
+            })->name('dokter.show');
+        });
+
         // Klinik (placeholder)
         Route::get('/klinik', fn () => abort(404))->name('klinik');
     });
