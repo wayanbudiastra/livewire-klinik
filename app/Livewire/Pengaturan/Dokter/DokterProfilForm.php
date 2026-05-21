@@ -68,7 +68,7 @@ class DokterProfilForm extends Component
 
         $this->showModal = false;
         $this->dispatch('dokter-saved');
-        $this->dispatch('notify', ['type' => 'success', 'message' => 'Profil dokter berhasil disimpan.']);
+        $this->dispatch('notify', type: 'success', message: 'Profil dokter berhasil disimpan.');
     }
 
     public function render()

@@ -203,16 +203,25 @@ class PasienForm extends Component
             'no_asuransi'    => $this->no_asuransi      ?: null,
         ];
 
-        if ($this->isEdit) {
-            $data['pasien_id'] = $this->pasienId;
-            $service->update($this->pasienId, $data, $this->kontak ?: null);
-            $this->dispatch('notify', type: 'success', message: 'Data pasien berhasil diupdate.');
-            $this->dispatch('pasien-saved');
-        } else {
-            $pasien = $service->create($data, $this->kontak);
-            $this->dispatch('notify', type: 'success',
-                message: "Pasien berhasil didaftarkan. No. RM: {$pasien->nomor_rm}");
-            return redirect()->route('pasien.show', $pasien->id);
+        try {
+            if ($this->isEdit) {
+                $data['pasien_id'] = $this->pasienId;
+                $service->update($this->pasienId, $data, $this->kontak ?: null);
+                $this->dispatch('notify', type: 'success', message: 'Data pasien berhasil diupdate.');
+                $this->dispatch('pasien-saved');
+            } else {
+                $pasien = $service->create($data, $this->kontak);
+                $this->dispatch('notify', type: 'success',
+                    message: "Pasien berhasil didaftarkan. No. RM: {$pasien->nomor_rm}");
+                return redirect()->route('pasien.show', $pasien->id);
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            foreach ($e->errors() as $field => $messages) {
+                $this->addError($field, $messages[0]);
+            }
+            $this->dispatch('notify', type: 'error', message: $e->errors()[array_key_first($e->errors())][0]);
+        } catch (\Exception $e) {
+            $this->dispatch('notify', type: 'error', message: 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 

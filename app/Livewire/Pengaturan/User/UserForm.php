@@ -101,18 +101,28 @@ class UserForm extends Component
             'is_active' => $this->is_active,
         ];
 
-        if ($this->isEdit) {
-            $service->update($this->userId, $data, $this->role);
-            $message = 'Data pengguna berhasil diupdate.';
-        } else {
-            $data['password'] = $this->password;
-            $service->create($data, $this->role);
-            $message = 'Pengguna baru berhasil ditambahkan.';
-        }
+        try {
+            if ($this->isEdit) {
+                $service->update($this->userId, $data, $this->role);
+                $message = 'Data pengguna berhasil diupdate.';
+            } else {
+                $data['password'] = $this->password;
+                $service->create($data, $this->role);
+                $message = 'Pengguna baru berhasil ditambahkan.';
+            }
 
-        $this->showModal = false;
-        $this->dispatch('user-saved');
-        $this->dispatch('notify', type: 'success', message: $message);
+            $this->showModal = false;
+            $this->dispatch('user-saved');
+            $this->dispatch('notify', type: 'success', message: $message);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            foreach ($e->errors() as $field => $messages) {
+                $this->addError($field, $messages[0]);
+            }
+            $this->dispatch('notify', type: 'error', message: $e->errors()[array_key_first($e->errors())][0]);
+        } catch (\Exception $e) {
+            $this->dispatch('notify', type: 'error', message: 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 
     public function getRolesListProperty()
