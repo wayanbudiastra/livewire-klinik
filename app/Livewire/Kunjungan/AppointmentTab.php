@@ -1,0 +1,181 @@
+<?php
+
+namespace App\Livewire\Kunjungan;
+
+use App\Models\Appointment;
+use App\Models\Dokter;
+use App\Models\DokterPoli;
+use App\Models\JadwalPraktek;
+use App\Models\Pasien;
+use App\Services\KunjunganService;
+use Livewire\Attributes\Computed;
+use Livewire\Component;
+
+class AppointmentTab extends Component
+{
+    // Filter dokter
+    public string $filterSpesialisasi = '';
+    public string $filterDokter       = '';
+    public string $tanggalAppointment = '';
+
+    // Jadwal yang dipilih
+    public ?int $selectedJadwalId    = null;
+    public ?int $selectedDokterId    = null;
+    public ?int $selectedPoliId      = null;
+    public string $sisaKuota         = '';
+
+    // Data pasien
+    public string $searchPasien      = '';
+    public ?int   $pasienId          = null;
+    public string $namaPasien        = '';
+    public string $modePasien        = 'lama'; // 'lama' | 'baru'
+
+    // Input pasien baru
+    public string $namaInputBaru     = '';
+    public string $nikInputBaru      = '';
+    public string $hpInputBaru       = '';
+
+    // Keluhan
+    public string $keluhan           = '';
+
+    // Hasil
+    public ?string $kodeBooking      = null;
+    public bool    $showHasil        = false;
+
+    public function mount(): void
+    {
+        $this->tanggalAppointment = now()->toDateString();
+    }
+
+    public function updatingSearchPasien(): void
+    {
+        $this->pasienId   = null;
+        $this->namaPasien = '';
+    }
+
+    #[Computed]
+    public function dokterList()
+    {
+        return app(KunjunganService::class)
+            ->getDokterTersedia(
+                $this->filterSpesialisasi ?: null,
+                $this->tanggalAppointment ?: null
+            );
+    }
+
+    #[Computed]
+    public function spesialisasiList(): array
+    {
+        return Dokter::whereNotNull('spesialisasi')
+            ->distinct()
+            ->pluck('spesialisasi')
+            ->toArray();
+    }
+
+    #[Computed]
+    public function pasienSuggestions()
+    {
+        if (strlen($this->searchPasien) < 2) return collect();
+
+        return Pasien::aktif()
+            ->where(fn ($q) =>
+                $q->where('nama', 'like', "%{$this->searchPasien}%")
+                  ->orWhere('nomor_rm', 'like', "%{$this->searchPasien}%"))
+            ->select('id', 'nomor_rm', 'nama', 'telepon', 'tipe_pasien')
+            ->limit(8)
+            ->get();
+    }
+
+    public function pilihPasien(int $id, string $nama): void
+    {
+        $this->pasienId       = $id;
+        $this->namaPasien     = $nama;
+        $this->searchPasien   = $nama;
+    }
+
+    public function pilihJadwal(int $jadwalId, int $dokterId, int $poliId): void
+    {
+        $this->selectedJadwalId  = $jadwalId;
+        $this->selectedDokterId  = $dokterId;
+        $this->selectedPoliId    = $poliId;
+
+        $sisa = app(KunjunganService::class)
+            ->cekSisaKuota($jadwalId, $this->tanggalAppointment);
+        $this->sisaKuota = (string) $sisa;
+    }
+
+    public function buatAppointment(KunjunganService $service): void
+    {
+        $this->validate([
+            'selectedJadwalId'  => 'required|integer',
+            'selectedDokterId'  => 'required|integer',
+            'selectedPoliId'    => 'required|integer',
+            'tanggalAppointment'=> 'required|date|after_or_equal:today',
+            'keluhan'           => 'nullable|string|max:500',
+        ], [
+            'selectedJadwalId.required' => 'Pilih jadwal dokter terlebih dahulu.',
+            'tanggalAppointment.after_or_equal' => 'Tanggal tidak boleh di masa lalu.',
+        ]);
+
+        // Pasien lama wajib dipilih, pasien baru wajib isi data
+        if ($this->modePasien === 'lama' && ! $this->pasienId) {
+            $this->addError('searchPasien', 'Pilih pasien dari daftar terlebih dahulu.');
+            return;
+        }
+        if ($this->modePasien === 'baru') {
+            $this->validate([
+                'namaInputBaru' => 'required|string|min:3',
+                'hpInputBaru'   => 'required|string|regex:/^(\+62|62|0)[0-9]{8,13}$/',
+            ], ['hpInputBaru.regex' => 'Format HP tidak valid.']);
+        }
+
+        // Untuk pasien baru: buat pasien minimal dahulu
+        $pasienId = $this->pasienId;
+        if ($this->modePasien === 'baru') {
+            $service2 = app(\App\Services\PasienService::class);
+            $pasienBaru = $service2->create([
+                'nama'           => $this->namaInputBaru,
+                'tempat_lahir'   => '-',
+                'tanggal_lahir'  => '2000-01-01',
+                'jenis_kelamin'  => 'L',
+                'tipe_pasien'    => 'WNI',
+                'nik'            => $this->nikInputBaru ?: null,
+                'alamat'         => '-',
+                'telepon'        => $this->hpInputBaru,
+                'is_active'      => true,
+            ]);
+            $pasienId = $pasienBaru->id;
+        }
+
+        $appointment = $service->buatAppointment([
+            'pasien_id'          => $pasienId,
+            'dokter_id'          => $this->selectedDokterId,
+            'poli_id'            => $this->selectedPoliId,
+            'jadwal_praktek_id'  => $this->selectedJadwalId,
+            'tanggal_appointment'=> $this->tanggalAppointment,
+            'keluhan'            => $this->keluhan ?: null,
+        ]);
+
+        $this->kodeBooking = $appointment->kode_booking;
+        $this->showHasil   = true;
+
+        $this->dispatch('appointment-created');
+        $this->dispatch('notify', type: 'success',
+            message: "Appointment berhasil! Kode: {$appointment->kode_booking}");
+    }
+
+    public function resetForm(): void
+    {
+        $this->reset([
+            'selectedJadwalId','selectedDokterId','selectedPoliId',
+            'sisaKuota','searchPasien','pasienId','namaPasien',
+            'namaInputBaru','nikInputBaru','hpInputBaru',
+            'keluhan','kodeBooking','showHasil',
+        ]);
+    }
+
+    public function render()
+    {
+        return view('livewire.kunjungan.appointment-tab');
+    }
+}

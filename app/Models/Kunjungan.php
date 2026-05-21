@@ -9,13 +9,18 @@ class Kunjungan extends Model
     protected $table = 'kunjungan';
 
     protected $fillable = [
-        'nomor_antrean', 'pasien_id', 'dokter_id', 'poli_id',
+        'appointment_id', 'nomor_antrean', 'pasien_id', 'dokter_id', 'poli_id',
         'tanggal', 'keluhan', 'status', 'tipe_pembayaran',
     ];
 
     protected function casts(): array
     {
         return ['tanggal' => 'datetime'];
+    }
+
+    public function appointment()
+    {
+        return $this->belongsTo(Appointment::class);
     }
 
     public function pasien()

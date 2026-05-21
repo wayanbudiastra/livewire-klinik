@@ -36,10 +36,10 @@ Route::middleware(['auth', 'active'])->group(function () {
              })->name('edit');
     });
 
-    // Kunjungan (placeholder)
-    Route::prefix('kunjungan')->name('kunjungan.')->group(function () {
-        Route::get('/', fn () => abort(404))->name('index');
-        Route::get('/pendaftaran', fn () => abort(404))->name('pendaftaran');
+    // Pendaftaran & Kunjungan
+    Route::prefix('kunjungan')->name('kunjungan.')->middleware('permission:kunjungan.view')->group(function () {
+        Route::get('/', fn () => view('kunjungan.index'))->name('index');
+        Route::get('/pendaftaran', fn () => redirect()->route('kunjungan.index', ['tab' => 'pendaftaran']))->name('pendaftaran');
     });
 
     // Pemeriksaan (placeholder)
