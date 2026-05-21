@@ -22,14 +22,17 @@ class PasienSeeder extends Seeder
 
         $data = []; // ← inisialisasi array sebelum loop
 
-        for ($i = 4; $i <= 103; $i++) {
+        for ($i = 5; $i <= 103; $i++) {
             $tipePasien   = rand(1, 10) <= 8 ? 'WNI' : 'WNA';
             $jenisKelamin = rand(0, 1) === 0 ? 'L' : 'P';
             $faker        = $tipePasien === 'WNI' ? $fakerID : $fakerEN;
 
-            $namaPasien = $jenisKelamin === 'L'
-                ? $faker->nameMale
-                : $faker->nameFemale;
+            // Gunakan name() dengan gender — kompatibel dengan semua versi FakerPHP
+            try {
+                $namaPasien = $faker->name($jenisKelamin === 'L' ? 'male' : 'female');
+            } catch (\Exception) {
+                $namaPasien = $faker->name;
+            }
 
             $pasien = [
                 'nomor_rm'      => 'RM-' . str_pad($i, 6, '0', STR_PAD_LEFT),
@@ -66,9 +69,11 @@ class PasienSeeder extends Seeder
 
             // Kontak Darurat Utama (sesuai jenis kelamin)
             $hubunganUtama   = $jenisKelamin === 'L' ? 'istri' : 'suami';
-            $namaKontakUtama = $jenisKelamin === 'L'
-                ? $faker->nameFemale
-                : $faker->nameMale;
+            try {
+                $namaKontakUtama = $faker->name($jenisKelamin === 'L' ? 'female' : 'male');
+            } catch (\Exception) {
+                $namaKontakUtama = $faker->name;
+            }
 
             $kontakDarurat = [
                 [
