@@ -19,7 +19,7 @@ warning() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 
 echo ""
 echo "=============================================="
-echo "   Update EMR System"
+echo "   Update EMR System Demo"
 echo "=============================================="
 echo ""
 
