@@ -15,7 +15,7 @@ class ResetPasswordModal extends Component
     public string $new_password              = '';
     public string $new_password_confirmation = '';
 
-    protected function rules(): array
+    public function rules(): array
     {
         return [
             'new_password'              => 'required|string|min:8|confirmed',
@@ -23,7 +23,7 @@ class ResetPasswordModal extends Component
         ];
     }
 
-    protected function messages(): array
+    public function messages(): array
     {
         return [
             'new_password.min'       => 'Password minimal 8 karakter.',

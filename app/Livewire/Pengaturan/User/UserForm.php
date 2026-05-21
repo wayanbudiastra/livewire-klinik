@@ -22,7 +22,7 @@ class UserForm extends Component
     public string $telepon   = '';
     public bool   $is_active = true;
 
-    protected function getRules(): array
+    public function getRules(): array
     {
         $uniqueEmail = $this->isEdit
             ? 'unique:users,email,' . $this->userId
@@ -49,7 +49,7 @@ class UserForm extends Component
         return $rules;
     }
 
-    protected function getMessages(): array
+    public function getMessages(): array
     {
         return [
             'nama.min'        => 'Nama minimal 3 karakter.',
