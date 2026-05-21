@@ -42,23 +42,54 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/pendaftaran', fn () => redirect()->route('kunjungan.index', ['tab' => 'pendaftaran']))->name('pendaftaran');
     });
 
-    // Pemeriksaan (placeholder)
-    Route::get('/pemeriksaan', fn () => abort(404))->name('pemeriksaan.index');
+    // Pemeriksaan (dalam pengembangan)
+    Route::get('/pemeriksaan', fn () => view('coming-soon', [
+        'modul'      => 'Pemeriksaan',
+        'deskripsi'  => 'Modul SOAP Note, asesmen perawat, diagnosa ICD-10, dan tindakan medis.',
+        'progress'   => 10,
+        'roadmap'    => ['Input tanda vital & asesmen perawat', 'SOAP Note dokter', 'Diagnosa ICD-10', 'Tindakan medis', 'Resep elektronik'],
+    ]))->name('pemeriksaan.index');
 
-    // Rawat Inap (placeholder)
-    Route::get('/rawat-inap', fn () => abort(404))->name('rawat-inap.index');
+    // Rawat Inap (dalam pengembangan)
+    Route::get('/rawat-inap', fn () => view('coming-soon', [
+        'modul'      => 'Rawat Inap',
+        'deskripsi'  => 'Modul admisi pasien, manajemen kamar & bed, CPPT, dan discharge planning.',
+        'progress'   => 5,
+        'roadmap'    => ['Admisi pasien rawat inap', 'Manajemen kamar & bed', 'CPPT harian', 'Discharge planning', 'Surat keterangan rawat inap'],
+    ]))->name('rawat-inap.index');
 
-    // Farmasi (placeholder)
+    // Farmasi (dalam pengembangan)
     Route::prefix('farmasi')->name('farmasi.')->group(function () {
-        Route::get('/resep', fn () => abort(404))->name('resep.index');
-        Route::get('/stok-obat', fn () => abort(404))->name('stok.index');
+        Route::get('/resep', fn () => view('coming-soon', [
+            'modul'      => 'Farmasi — Resep',
+            'deskripsi'  => 'Validasi & dispensing resep elektronik dari dokter.',
+            'progress'   => 10,
+            'roadmap'    => ['Verifikasi resep dokter', 'Dispensing obat', 'Labeling obat', 'Retur resep'],
+        ]))->name('resep.index');
+
+        Route::get('/stok-obat', fn () => view('coming-soon', [
+            'modul'      => 'Farmasi — Stok Obat',
+            'deskripsi'  => 'Manajemen stok, alert minimum, dan laporan penggunaan obat.',
+            'progress'   => 20,
+            'roadmap'    => ['CRUD stok obat (sudah ada)', 'Alert stok minimum', 'Penerimaan & retur barang', 'Laporan penggunaan obat'],
+        ]))->name('stok.index');
     });
 
-    // Billing (placeholder)
-    Route::get('/billing', fn () => abort(404))->name('billing.index');
+    // Billing (dalam pengembangan)
+    Route::get('/billing', fn () => view('coming-soon', [
+        'modul'      => 'Billing & Kasir',
+        'deskripsi'  => 'Generate invoice, kalkulasi tarif tindakan + obat + kamar, dan proses pembayaran multi-metode.',
+        'progress'   => 5,
+        'roadmap'    => ['Generate invoice otomatis', 'Kalkulasi tarif + sharing fee dokter', 'Pembayaran (tunai, BPJS, transfer)', 'Cetak kwitansi & invoice PDF'],
+    ]))->name('billing.index');
 
-    // Laporan (placeholder)
-    Route::get('/laporan', fn () => abort(404))->name('laporan.index');
+    // Laporan (dalam pengembangan)
+    Route::get('/laporan', fn () => view('coming-soon', [
+        'modul'      => 'Laporan',
+        'deskripsi'  => 'Laporan kunjungan, 10 besar penyakit, pendapatan, farmasi, dan export PDF/Excel.',
+        'progress'   => 0,
+        'roadmap'    => ['Laporan kunjungan harian/bulanan', 'Laporan 10 besar penyakit ICD-10', 'Laporan pendapatan', 'Laporan farmasi', 'Export PDF & Excel'],
+    ]))->name('laporan.index');
 
     // ── Pengaturan ──────────────────────────────────────────
     Route::prefix('pengaturan')->name('pengaturan.')->group(function () {
@@ -84,8 +115,13 @@ Route::middleware(['auth', 'active'])->group(function () {
             })->name('dokter.show');
         });
 
-        // Klinik (placeholder)
-        Route::get('/klinik', fn () => abort(404))->name('klinik');
+        // Konfigurasi Klinik (dalam pengembangan)
+        Route::get('/klinik', fn () => view('coming-soon', [
+            'modul'      => 'Konfigurasi Klinik',
+            'deskripsi'  => 'Pengaturan profil fasilitas kesehatan, logo, kontak, dan konfigurasi sistem.',
+            'progress'   => 0,
+            'roadmap'    => ['Profil klinik & logo', 'Konfigurasi tarif layanan', 'Pengaturan BPJS & asuransi', 'Jam operasional'],
+        ]))->name('klinik');
     });
 
     // Profile
