@@ -1,4 +1,4 @@
-<div class="max-w-2xl mx-auto space-y-5">
+<div class="max-w-2xl mx-auto space-y-5" wire:init="prosesAutoDaftar">
 
     {{-- Hasil Pendaftaran --}}
     @if ($showHasil)
@@ -77,31 +77,28 @@
             </div>
             @error('kodeBooking') <p class="form-error">{{ $message }}</p> @enderror
 
-            @if ($appointmentData)
+            @if ($appointmentId)
             <div class="rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20 p-4 space-y-2 text-sm">
                 <div class="flex justify-between">
                     <span class="text-gray-500">Pasien</span>
-                    <span class="font-semibold text-gray-800 dark:text-gray-200">{{ $appointmentData->pasien->nama }}</span>
+                    <span class="font-semibold text-gray-800 dark:text-gray-200">{{ $aptPasienNama }}</span>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-gray-500">No. RM</span>
-                    <span class="font-mono text-gray-600 dark:text-gray-400">{{ $appointmentData->pasien->nomor_rm }}</span>
+                    <span class="font-mono text-gray-600 dark:text-gray-400">{{ $aptPasienRM }}</span>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-gray-500">Dokter</span>
-                    <span class="text-gray-700 dark:text-gray-300">{{ $appointmentData->dokter->user->nama }}</span>
+                    <span class="text-gray-700 dark:text-gray-300">{{ $aptDokterNama }}</span>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-gray-500">Poli</span>
-                    <span class="text-gray-700 dark:text-gray-300">{{ $appointmentData->poli->nama }}</span>
+                    <span class="text-gray-700 dark:text-gray-300">{{ $aptPoliNama }}</span>
                 </div>
-                @if ($appointmentData->jadwalPraktek)
+                @if ($aptJadwal)
                 <div class="flex justify-between">
                     <span class="text-gray-500">Jadwal</span>
-                    <span class="text-gray-700 dark:text-gray-300">
-                        {{ ucfirst($appointmentData->jadwalPraktek->hari) }}
-                        {{ substr($appointmentData->jadwalPraktek->jam_mulai,0,5) }}–{{ substr($appointmentData->jadwalPraktek->jam_selesai,0,5) }}
-                    </span>
+                    <span class="text-gray-700 dark:text-gray-300">{{ $aptJadwal }}</span>
                 </div>
                 @endif
             </div>
@@ -237,7 +234,7 @@
     @endif
 
     {{-- Data Tambahan --}}
-    @if (($mode === 'appointment' && $appointmentData) || ($mode === 'walkin' && $dokterId))
+    @if (($mode === 'appointment' && $appointmentId) || ($mode === 'walkin' && $dokterId))
     <div class="card">
         <div class="card-header">
             <h3 class="text-sm font-semibold dark:text-white">Data Pendaftaran</h3>

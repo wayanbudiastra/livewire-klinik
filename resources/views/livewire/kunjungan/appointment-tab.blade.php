@@ -300,8 +300,8 @@
                     </div>
 
                     @if ($apt->status === 'booked')
-                    <a href="{{ route('kunjungan.index', ['tab' => 'pendaftaran']) }}?kode={{ $apt->kode_booking }}"
-                       class="btn-primary btn-sm w-full text-center">
+                    <a href="{{ route('kunjungan.index', ['tab' => 'pendaftaran', 'kode' => $apt->kode_booking, 'auto' => '1']) }}"
+                       class="btn-primary btn-sm w-full text-center block">
                         <svg class="w-3.5 h-3.5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
@@ -309,7 +309,14 @@
                         Daftarkan Sekarang
                     </a>
                     @else
-                    <span class="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ Sudah check-in</span>
+                    <div class="text-center">
+                        <span class="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                            Sudah Terdaftar
+                        </span>
+                    </div>
                     @endif
                 </div>
                 @endforeach
