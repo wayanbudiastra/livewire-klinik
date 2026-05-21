@@ -13,9 +13,12 @@ use Illuminate\Validation\ValidationException;
 
 class MasterdataService
 {
-    public function __construct(
-        private readonly MasterdataRepository $repo
-    ) {}
+    private MasterdataRepository $repo;
+
+    public function __construct(MasterdataRepository $repo)
+    {
+        $this->repo = $repo;
+    }
 
     // ── Search Engine ────────────────────────────────────────
 
