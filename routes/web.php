@@ -10,10 +10,27 @@ Route::middleware(['auth', 'active'])->group(function () {
     // Dashboard
     Route::get('/dashboard', fn () => view('dashboard'))->name('dashboard');
 
-    // Pasien (placeholder)
-    Route::get('/pasien', fn () => abort(404))->name('pasien.index');
-    Route::get('/pasien/create', fn () => abort(404))->name('pasien.create');
-    Route::get('/pasien/{id}', fn () => abort(404))->name('pasien.show');
+    // Manajemen Pasien
+    Route::prefix('pasien')->name('pasien.')->group(function () {
+        Route::middleware('permission:pasien.view')->group(function () {
+            Route::get('/', fn () => view('pasien.index'))->name('index');
+            Route::get('/{pasien}', function ($pasien) {
+                $p = \App\Models\Pasien::with(['kontakDarurat',
+                    'kunjungan' => fn($q) => $q->with(['poli:id,nama','dokter.user:id,nama'])->take(10)
+                ])->findOrFail($pasien);
+                return view('pasien.show', ['pasien' => $p]);
+            })->name('show');
+        });
+        Route::middleware('permission:pasien.create')->group(function () {
+            Route::get('/create', fn () => view('pasien.create'))->name('create');
+        });
+        Route::middleware('permission:pasien.edit')->group(function () {
+            Route::get('/{pasien}/edit', function ($pasien) {
+                $p = \App\Models\Pasien::findOrFail($pasien);
+                return view('pasien.edit', ['pasien' => $p]);
+            })->name('edit');
+        });
+    });
 
     // Kunjungan (placeholder)
     Route::prefix('kunjungan')->name('kunjungan.')->group(function () {

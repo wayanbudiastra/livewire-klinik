@@ -10,9 +10,12 @@ use Illuminate\Validation\ValidationException;
 
 class DokterService
 {
-    public function __construct(
-        private readonly DokterRepository $repo
-    ) {}
+    private DokterRepository $repo;
+
+    public function __construct(DokterRepository $repo)
+    {
+        $this->repo = $repo;
+    }
 
     // ── Profil ────────────────────────────────────────────────
 
