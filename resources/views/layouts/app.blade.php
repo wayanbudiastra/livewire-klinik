@@ -87,6 +87,7 @@
             <p class="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/40">Administrasi</p>
 
             <x-sidebar-item route="billing.index" icon="cash" permission="billing.view">Billing & Kasir</x-sidebar-item>
+            <x-sidebar-item route="inventory.index" icon="office-building" permission="obat.view">Inventory</x-sidebar-item>
             <x-sidebar-item route="laporan.index" icon="chart-square-bar" permission="laporan.view">Laporan</x-sidebar-item>
             <x-sidebar-item route="pengaturan.masterdata" icon="clipboard-list" permission="masterdata.view">Master Data</x-sidebar-item>
             <x-sidebar-item route="pengaturan.dokter" icon="users" permission="masterdata.view">Data Dokter</x-sidebar-item>

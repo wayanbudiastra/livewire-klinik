@@ -89,6 +89,19 @@ Route::middleware(['auth', 'active'])->group(function () {
         'roadmap'    => ['Laporan kunjungan harian/bulanan', 'Laporan 10 besar penyakit ICD-10', 'Laporan pendapatan', 'Laporan farmasi', 'Export PDF & Excel'],
     ]))->name('laporan.index');
 
+    // ── Inventory ───────────────────────────────────────────
+    Route::prefix('inventory')->name('inventory.')->middleware('permission:obat.view')->group(function () {
+        Route::get('/', fn () => view('inventory.index'))->name('index');
+
+        // PO
+        Route::get('/po', fn () => view('inventory.index', ['tab' => 'po']))->name('po.index');
+        Route::get('/po/create', fn () => view('inventory.po-create'))->name('po.create');
+
+        // GR
+        Route::get('/gr', fn () => view('inventory.index', ['tab' => 'gr']))->name('gr.index');
+        Route::get('/gr/create', fn () => view('inventory.gr-create'))->name('gr.create');
+    });
+
     // ── Pengaturan ──────────────────────────────────────────
     Route::prefix('pengaturan')->name('pengaturan.')->group(function () {
 
