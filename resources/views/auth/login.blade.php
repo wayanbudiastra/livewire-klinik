@@ -67,6 +67,7 @@
                 <input
                     id="password"
                     name="password"
+                    type="password"
                     :type="show ? 'text' : 'password'"
                     required
                     autocomplete="current-password"
