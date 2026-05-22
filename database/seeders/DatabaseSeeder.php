@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             MasterdataV2Seeder::class,
             DokterV3Seeder::class,
             PasienSeeder::class,
+            FarmasiSeeder::class,
         ]);
     }
 }

@@ -98,9 +98,12 @@ class PasienRepository
             $kontak->delete();
 
             if ($wasPrimary) {
-                KontakDarurat::where('pasien_id', $pasienId)
-                              ->oldest()->first()
-                             ?->update(['is_primary' => true]);
+                $nextPrimary = KontakDarurat::where('pasien_id', $pasienId)
+                                            ->oldest()
+                                            ->first();
+                if ($nextPrimary) {
+                    $nextPrimary->update(['is_primary' => true]);
+                }
             }
         });
     }

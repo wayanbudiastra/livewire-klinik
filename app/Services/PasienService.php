@@ -10,9 +10,12 @@ use Illuminate\Validation\ValidationException;
 
 class PasienService
 {
-    public function __construct(
-        private readonly PasienRepository $repo
-    ) {}
+    private PasienRepository $repo;
+
+    public function __construct(PasienRepository $repo)
+    {
+        $this->repo = $repo;
+    }
 
     public function paginate(array $filters, int $perPage = 10): LengthAwarePaginator
     {

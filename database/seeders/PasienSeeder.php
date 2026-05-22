@@ -30,7 +30,7 @@ class PasienSeeder extends Seeder
             // Gunakan name() dengan gender — kompatibel dengan semua versi FakerPHP
             try {
                 $namaPasien = $faker->name($jenisKelamin === 'L' ? 'male' : 'female');
-            } catch (\Exception) {
+            } catch (\Exception $e) {
                 $namaPasien = $faker->name;
             }
 
@@ -71,7 +71,7 @@ class PasienSeeder extends Seeder
             $hubunganUtama   = $jenisKelamin === 'L' ? 'istri' : 'suami';
             try {
                 $namaKontakUtama = $faker->name($jenisKelamin === 'L' ? 'female' : 'male');
-            } catch (\Exception) {
+            } catch (\Exception $e) {
                 $namaKontakUtama = $faker->name;
             }
 

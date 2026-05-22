@@ -82,7 +82,7 @@
 
             <x-sidebar-item route="pemeriksaan.index" icon="document-text" permission="asesmen.view">Pemeriksaan</x-sidebar-item>
             <x-sidebar-item route="rawat-inap.index" icon="office-building">Rawat Inap</x-sidebar-item>
-            <x-sidebar-item route="farmasi.resep.index" icon="beaker" permission="resep.view">Farmasi</x-sidebar-item>
+            <x-sidebar-item route="farmasi.stok.index" icon="beaker" permission="obat.view">Farmasi</x-sidebar-item>
 
             <p class="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/40">Administrasi</p>
 

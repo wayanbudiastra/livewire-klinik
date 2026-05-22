@@ -58,21 +58,19 @@ Route::middleware(['auth', 'active'])->group(function () {
         'roadmap'    => ['Admisi pasien rawat inap', 'Manajemen kamar & bed', 'CPPT harian', 'Discharge planning', 'Surat keterangan rawat inap'],
     ]))->name('rawat-inap.index');
 
-    // Farmasi (dalam pengembangan)
-    Route::prefix('farmasi')->name('farmasi.')->group(function () {
-        Route::get('/resep', fn () => view('coming-soon', [
-            'modul'      => 'Farmasi — Resep',
-            'deskripsi'  => 'Validasi & dispensing resep elektronik dari dokter.',
-            'progress'   => 10,
-            'roadmap'    => ['Verifikasi resep dokter', 'Dispensing obat', 'Labeling obat', 'Retur resep'],
-        ]))->name('resep.index');
+    // Farmasi
+    Route::prefix('farmasi')->name('farmasi.')->middleware('permission:obat.view')->group(function () {
 
-        Route::get('/stok-obat', fn () => view('coming-soon', [
-            'modul'      => 'Farmasi — Stok Obat',
-            'deskripsi'  => 'Manajemen stok, alert minimum, dan laporan penggunaan obat.',
-            'progress'   => 20,
-            'roadmap'    => ['CRUD stok obat (sudah ada)', 'Alert stok minimum', 'Penerimaan & retur barang', 'Laporan penggunaan obat'],
-        ]))->name('stok.index');
+        // Stok Obat & Master Data → IMPLEMENTASI
+        Route::get('/stok-obat', fn () => view('farmasi.index'))->name('stok.index');
+
+        // Resep (dalam pengembangan)
+        Route::get('/resep', fn () => view('coming-soon', [
+            'modul'    => 'Farmasi — Resep',
+            'deskripsi'=> 'Validasi & dispensing resep elektronik dari dokter.',
+            'progress' => 10,
+            'roadmap'  => ['Verifikasi resep dokter', 'Dispensing obat', 'Labeling obat', 'Retur resep'],
+        ]))->name('resep.index');
     });
 
     // Billing (dalam pengembangan)
