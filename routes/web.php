@@ -100,6 +100,13 @@ Route::middleware(['auth', 'active'])->group(function () {
         // GR
         Route::get('/gr', fn () => view('inventory.index', ['tab' => 'gr']))->name('gr.index');
         Route::get('/gr/create', fn () => view('inventory.gr-create'))->name('gr.create');
+
+        // Kartu Stok
+        Route::prefix('kartu-stok')->name('kartu-stok.')->group(function () {
+            Route::get('/', fn () => view('inventory.kartu-stok'))->name('index');
+            Route::get('/export-pdf',   [\App\Http\Controllers\Inventory\KartuStokController::class, 'exportPdf'])->name('export-pdf');
+            Route::get('/export-excel', [\App\Http\Controllers\Inventory\KartuStokController::class, 'exportExcel'])->name('export-excel');
+        });
     });
 
     // ── Pengaturan ──────────────────────────────────────────
