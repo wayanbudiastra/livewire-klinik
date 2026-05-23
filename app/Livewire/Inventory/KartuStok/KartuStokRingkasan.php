@@ -29,8 +29,8 @@ class KartuStokRingkasan extends Component
             ->getRingkasanMutasi($this->tanggalMulai, $this->tanggalAkhir)
             ->when($this->search, fn ($c) =>
                 $c->filter(fn ($r) =>
-                    str_contains(strtolower($r->barang?->nama ?? ''), strtolower($this->search))
-                    || str_contains(strtolower($r->barang?->kode ?? ''), strtolower($this->search))
+                    str_contains(strtolower(optional($r->barang)->nama ?? ''), strtolower($this->search))
+                    || str_contains(strtolower(optional($r->barang)->kode ?? ''), strtolower($this->search))
                 )
             );
     }

@@ -10,7 +10,12 @@ use Maatwebsite\Excel\Concerns\WithTitle;
 
 class KartuStokExport implements FromArray, WithHeadings, WithTitle, ShouldAutoSize
 {
-    public function __construct(private readonly array $data) {}
+    private array $data;
+
+    public function __construct(array $data)
+    {
+        $this->data = $data;
+    }
 
     public function title(): string
     {

@@ -8,9 +8,12 @@ use Illuminate\Http\Request;
 
 class KartuStokController extends Controller
 {
-    public function __construct(
-        private readonly KartuStokService $service
-    ) {}
+    private KartuStokService $service;
+
+    public function __construct(KartuStokService $service)
+    {
+        $this->service = $service;
+    }
 
     public function exportPdf(Request $request)
     {

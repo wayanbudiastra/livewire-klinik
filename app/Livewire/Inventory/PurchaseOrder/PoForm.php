@@ -22,7 +22,7 @@ class PoForm extends Component
             ->where(fn($q) => $q->where('nama','like',"%{$this->searchBarang}%")->orWhere('kode','like',"%{$this->searchBarang}%"))
             ->with(['supplierBarang'=>fn($q)=>$q->when($this->supplierId,fn($sq)=>$sq->where('supplier_id',$this->supplierId))])
             ->limit(8)->get()
-            ->map(fn($b)=>['id'=>$b->id,'kode'=>$b->kode,'nama'=>$b->nama,'satuan'=>$b->satuan,'stok'=>$b->stok,'stok_minimum'=>$b->stok_minimum,'harga_terakhir'=>$b->supplierBarang->first()?->harga_terakhir??0])
+            ->map(fn($b)=>['id'=>$b->id,'kode'=>$b->kode,'nama'=>$b->nama,'satuan'=>$b->satuan,'stok'=>$b->stok,'stok_minimum'=>$b->stok_minimum,'harga_terakhir'=>optional($b->supplierBarang->first())->harga_terakhir ?? 0])
             ->toArray();
     }
 
