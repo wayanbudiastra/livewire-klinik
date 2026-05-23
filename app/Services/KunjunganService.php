@@ -188,6 +188,51 @@ class KunjunganService
         });
     }
 
+    // ── Panggil Pasien (Menunggu → Dalam Pemeriksaan) ────────
+
+    public function panggilPasien(int $kunjunganId): Kunjungan
+    {
+        $kunjungan = Kunjungan::findOrFail($kunjunganId);
+        $kunjungan->update([
+            'status'        => 'dalam_pemeriksaan',
+            'waktu_panggil' => now(),
+        ]);
+
+        activity('kunjungan')
+            ->performedOn($kunjungan)
+            ->causedBy(auth()->user())
+            ->log('Pasien dipanggil ke ruang pemeriksaan');
+
+        return $kunjungan;
+    }
+
+    // ── Selesai Pemeriksaan Perawat ───────────────────────────
+
+    public function selesaiPemeriksaan(int $kunjunganId): Kunjungan
+    {
+        $kunjungan = Kunjungan::findOrFail($kunjunganId);
+        $kunjungan->update(['status' => 'selesai']);
+
+        activity('kunjungan')
+            ->performedOn($kunjungan)
+            ->causedBy(auth()->user())
+            ->log('Pemeriksaan selesai');
+
+        return $kunjungan;
+    }
+
+    // ── Simpan Asesmen Perawat ────────────────────────────────
+
+    public function simpanAsesmen(int $kunjunganId, array $data): \App\Models\AsesmenPerawat
+    {
+        $perawatId = \App\Models\Perawat::where('user_id', auth()->id())->value('id');
+
+        return \App\Models\AsesmenPerawat::updateOrCreate(
+            ['kunjungan_id' => $kunjunganId],
+            array_merge($data, ['perawat_id' => $perawatId])
+        );
+    }
+
     // ── Cancel Kunjungan ──────────────────────────────────────
 
     public function cancelKunjungan(int $kunjunganId): Kunjungan

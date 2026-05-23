@@ -11,11 +11,15 @@ class Kunjungan extends Model
     protected $fillable = [
         'appointment_id', 'nomor_antrean', 'pasien_id', 'dokter_id', 'poli_id',
         'tanggal', 'keluhan', 'status', 'tipe_pembayaran',
+        'waktu_panggil', 'asal_kedatangan', 'catatan_penting',
     ];
 
     protected function casts(): array
     {
-        return ['tanggal' => 'datetime'];
+        return [
+            'tanggal'       => 'datetime',
+            'waktu_panggil' => 'datetime',
+        ];
     }
 
     public function appointment()
@@ -38,6 +42,11 @@ class Kunjungan extends Model
         return $this->belongsTo(Poli::class);
     }
 
+    public function asesmenPerawat()
+    {
+        return $this->hasOne(AsesmenPerawat::class);
+    }
+
     public function permintaanPenunjang()
     {
         return $this->hasMany(PermintaanPenunjang::class);
@@ -46,5 +55,15 @@ class Kunjungan extends Model
     public function penggunaanAlat()
     {
         return $this->hasMany(PenggunaanAlat::class);
+    }
+
+    public function getWaktuTungguAttribute(): ?string
+    {
+        if (! $this->waktu_panggil) return null;
+        $menit = $this->tanggal->diffInMinutes($this->waktu_panggil);
+        if ($menit < 60) return "{$menit} mnt";
+        $jam = intdiv($menit, 60);
+        $sisa = $menit % 60;
+        return "{$jam}j {$sisa}m";
     }
 }

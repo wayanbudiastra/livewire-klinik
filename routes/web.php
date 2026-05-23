@@ -42,13 +42,10 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/pendaftaran', fn () => redirect()->route('kunjungan.index', ['tab' => 'pendaftaran']))->name('pendaftaran');
     });
 
-    // Pemeriksaan (dalam pengembangan)
-    Route::get('/pemeriksaan', fn () => view('coming-soon', [
-        'modul'      => 'Pemeriksaan',
-        'deskripsi'  => 'Modul SOAP Note, asesmen perawat, diagnosa ICD-10, dan tindakan medis.',
-        'progress'   => 10,
-        'roadmap'    => ['Input tanda vital & asesmen perawat', 'SOAP Note dokter', 'Diagnosa ICD-10', 'Tindakan medis', 'Resep elektronik'],
-    ]))->name('pemeriksaan.index');
+    // Pemeriksaan
+    Route::get('/pemeriksaan', fn () => view('pemeriksaan.index'))
+        ->middleware('permission:asesmen.view')
+        ->name('pemeriksaan.index');
 
     // Rawat Inap (dalam pengembangan)
     Route::get('/rawat-inap', fn () => view('coming-soon', [
