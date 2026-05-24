@@ -369,7 +369,11 @@
                 </table>
             </div>
 
-            {{-- ── Placeholder: Notes, Penunjang, Tindakan, Obat ── --}}
+            {{-- ── Medical Notes (SOAP) ── --}}
+            @elseif($activeSection === 'notes')
+            <livewire:pemeriksaan.soap-note :kunjunganId="$kunjunganId" wire:key="soap-{{ $kunjunganId }}" />
+
+            {{-- ── Placeholder: Penunjang, Tindakan, Obat ── --}}
             @else
             <div class="card">
                 <div class="card-body py-16">

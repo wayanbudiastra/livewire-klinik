@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             PasienSeeder::class,
             FarmasiSeeder::class,
             InventorySeeder::class,
+            Icd10Seeder::class,
         ]);
     }
 }
