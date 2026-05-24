@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             FarmasiSeeder::class,
             InventorySeeder::class,
             Icd10Seeder::class,
+            PenunjangSeeder::class,
         ]);
     }
 }
