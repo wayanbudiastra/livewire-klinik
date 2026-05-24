@@ -30,19 +30,25 @@ info "STEP 1: Pull update dari GitHub..."
 git pull origin main
 info "Kode berhasil diupdate."
 
-# ── 2. Install dependency baru (jika ada) ────────────────────
-info "STEP 2: Update Composer dependencies..."
+# ── 2. Fix permission storage (sebelum artisan dijalankan) ───
+# Dilakukan di awal agar artisan tidak gagal baca/tulis log
+info "STEP 2: Fix permission storage & cache..."
+chown -R www-data:www-data "$PROJECT_DIR/storage" "$PROJECT_DIR/bootstrap/cache"
+chmod -R 775 "$PROJECT_DIR/storage" "$PROJECT_DIR/bootstrap/cache"
+
+# ── 3. Install dependency baru (jika ada) ────────────────────
+info "STEP 3: Update Composer dependencies..."
 php8.2 $(which composer) install \
   --no-dev \
   --optimize-autoloader \
   --no-interaction 2>&1 | tail -3
 
-# ── 3. Migrasi database (jika ada migration baru) ────────────
-info "STEP 3: Jalankan migrasi database..."
+# ── 4. Migrasi database (jika ada migration baru) ────────────
+info "STEP 4: Jalankan migrasi database..."
 php8.2 artisan migrate --force
 
-# ── 4. Clear & rebuild cache ─────────────────────────────────
-info "STEP 4: Rebuild cache..."
+# ── 5. Clear & rebuild cache ─────────────────────────────────
+info "STEP 5: Rebuild cache..."
 php8.2 artisan config:clear
 php8.2 artisan route:clear
 php8.2 artisan view:clear
@@ -50,18 +56,19 @@ php8.2 artisan config:cache
 php8.2 artisan route:cache
 php8.2 artisan view:cache
 
-# ── 5. Build frontend (jika ada perubahan CSS/JS) ────────────
-info "STEP 5: Build frontend assets..."
+# ── 6. Build frontend (jika ada perubahan CSS/JS) ────────────
+info "STEP 6: Build frontend assets..."
 npm install --silent
 npm run build
 
-# ── 6. Permission storage ────────────────────────────────────
-info "STEP 6: Set permission storage..."
+# ── 7. Fix permission (setelah artisan & build membuat file baru) ──
+# artisan/npm berjalan sebagai root → file baru bisa owned root
+info "STEP 7: Fix permission storage & cache (final)..."
 chown -R www-data:www-data "$PROJECT_DIR/storage" "$PROJECT_DIR/bootstrap/cache"
 chmod -R 775 "$PROJECT_DIR/storage" "$PROJECT_DIR/bootstrap/cache"
 
-# ── 7. Restart PHP FPM ───────────────────────────────────────
-info "STEP 7: Restart PHP 8.2 FPM..."
+# ── 8. Restart PHP FPM ───────────────────────────────────────
+info "STEP 8: Restart PHP 8.2 FPM..."
 systemctl restart php8.2-fpm
 
 echo ""
