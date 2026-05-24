@@ -1,0 +1,53 @@
+<?php
+
+namespace App\Exports\Laporan;
+
+use App\Services\Laporan\RegistrasiLaporanService;
+use Carbon\Carbon;
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithTitle;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+
+class BatalRegistrasiExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize, WithStyles, WithTitle
+{
+    public function __construct(
+        private Carbon $mulai,
+        private Carbon $akhir
+    ) {}
+
+    public function collection()
+    {
+        return app(RegistrasiLaporanService::class)
+            ->batalRegistrasi($this->mulai, $this->akhir)['detail'];
+    }
+
+    public function headings(): array
+    {
+        return ['Tanggal', 'No. RM', 'Nama Pasien', 'Poli', 'Status'];
+    }
+
+    public function map($k): array
+    {
+        return [
+            Carbon::parse($k->tanggal)->format('d/m/Y'),
+            $k->pasien?->nomor_rm ?? '-',
+            $k->pasien?->nama ?? '-',
+            $k->poli?->nama ?? '-',
+            'Dibatalkan',
+        ];
+    }
+
+    public function styles(Worksheet $sheet)
+    {
+        return [1 => ['font' => ['bold' => true]]];
+    }
+
+    public function title(): string
+    {
+        return 'Batal Registrasi';
+    }
+}

@@ -31,6 +31,14 @@ class RolePermissionSeeder extends Seeder
             'masterdata.view', 'masterdata.create', 'masterdata.edit', 'masterdata.delete',
             'peralatan.pakai',
             'penunjang.create', 'penunjang.view',
+
+            // Laporan (v1)
+            'laporan.registrasi.view',
+            'laporan.pemeriksaan.view',
+            'laporan.kasir.view',
+            'laporan.kasir.view_all',
+            'laporan.pharmacy.view',
+            'laporan.export',
         ];
 
         foreach ($permissions as $perm) {
@@ -45,11 +53,13 @@ class RolePermissionSeeder extends Seeder
                 'resep.view', 'resep.edit',
                 'obat.view', 'obat.create', 'obat.edit',
                 'laporan.farmasi',
+                'laporan.pharmacy.view', 'laporan.export',
             ],
             'rekam_medis' => [
                 'pasien.view', 'pasien.create', 'pasien.edit',
                 'rekammedis.view', 'rekammedis.create', 'rekammedis.edit',
                 'laporan.view',
+                'laporan.registrasi.view', 'laporan.pemeriksaan.view', 'laporan.export',
             ],
             'dokter' => [
                 'pasien.view',
@@ -58,6 +68,7 @@ class RolePermissionSeeder extends Seeder
                 'resep.view', 'resep.create', 'resep.edit',
                 'tindakan.view', 'tindakan.create',
                 'laporan.view',
+                'laporan.pemeriksaan.view',
                 'masterdata.view',
                 'penunjang.create', 'penunjang.view',
                 'peralatan.pakai',
@@ -75,6 +86,7 @@ class RolePermissionSeeder extends Seeder
                 'billing.view', 'billing.create', 'billing.edit',
                 'pembayaran.view', 'pembayaran.create',
                 'laporan.keuangan',
+                'laporan.kasir.view',
                 'masterdata.view',
             ],
             'admin' => [
@@ -82,6 +94,9 @@ class RolePermissionSeeder extends Seeder
                 'kunjungan.view', 'kunjungan.create', 'kunjungan.edit', 'kunjungan.delete',
                 'user.view', 'user.create', 'user.edit',
                 'laporan.view', 'laporan.keuangan',
+                'laporan.registrasi.view', 'laporan.pemeriksaan.view',
+                'laporan.kasir.view', 'laporan.kasir.view_all',
+                'laporan.pharmacy.view', 'laporan.export',
                 'pengaturan.view', 'pengaturan.edit',
                 'masterdata.view', 'masterdata.create', 'masterdata.edit',
             ],

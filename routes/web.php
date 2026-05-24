@@ -99,13 +99,48 @@ Route::middleware(['auth', 'active'])->group(function () {
         })->name('billing.cetak');
     });
 
-    // Laporan (dalam pengembangan)
-    Route::get('/laporan', fn () => view('coming-soon', [
-        'modul'      => 'Laporan',
-        'deskripsi'  => 'Laporan kunjungan, 10 besar penyakit, pendapatan, farmasi, dan export PDF/Excel.',
-        'progress'   => 0,
-        'roadmap'    => ['Laporan kunjungan harian/bulanan', 'Laporan 10 besar penyakit ICD-10', 'Laporan pendapatan', 'Laporan farmasi', 'Export PDF & Excel'],
-    ]))->name('laporan.index');
+    // ── Laporan ─────────────────────────────────────────────
+    Route::prefix('laporan')->name('laporan.')->group(function () {
+
+        Route::get('/', function () {
+            $user = auth()->user();
+            if ($user->can('laporan.registrasi.view')) return redirect()->route('laporan.registrasi.kunjungan');
+            if ($user->can('laporan.pemeriksaan.view')) return redirect()->route('laporan.pemeriksaan.diagnosa');
+            if ($user->can('laporan.kasir.view'))       return redirect()->route('laporan.kasir.transaksi');
+            if ($user->can('laporan.pharmacy.view'))    return redirect()->route('laporan.pharmacy.resep');
+            abort(403);
+        })->name('index');
+
+        // Registrasi
+        Route::middleware('permission:laporan.registrasi.view')->prefix('registrasi')->name('registrasi.')->group(function () {
+            Route::get('/kunjungan',    [\App\Http\Controllers\Laporan\LaporanRegistrasiController::class, 'kunjungan'])->name('kunjungan');
+            Route::get('/batal',        [\App\Http\Controllers\Laporan\LaporanRegistrasiController::class, 'batal'])->name('batal');
+            Route::get('/appointment',  [\App\Http\Controllers\Laporan\LaporanRegistrasiController::class, 'appointment'])->name('appointment');
+            Route::get('/warga-negara', [\App\Http\Controllers\Laporan\LaporanRegistrasiController::class, 'wargaNegara'])->name('warga-negara');
+        });
+
+        // Pemeriksaan
+        Route::middleware('permission:laporan.pemeriksaan.view')->prefix('pemeriksaan')->name('pemeriksaan.')->group(function () {
+            Route::get('/diagnosa', [\App\Http\Controllers\Laporan\LaporanPemeriksaanController::class, 'diagnosa'])->name('diagnosa');
+            Route::get('/tindakan', [\App\Http\Controllers\Laporan\LaporanPemeriksaanController::class, 'tindakan'])->name('tindakan');
+            Route::get('/poli',     [\App\Http\Controllers\Laporan\LaporanPemeriksaanController::class, 'poli'])->name('poli');
+            Route::get('/dokter',   [\App\Http\Controllers\Laporan\LaporanPemeriksaanController::class, 'dokter'])->name('dokter');
+        });
+
+        // Kasir
+        Route::middleware('permission:laporan.kasir.view')->prefix('kasir')->name('kasir.')->group(function () {
+            Route::get('/transaksi',   [\App\Http\Controllers\Laporan\LaporanKasirController::class, 'transaksi'])->name('transaksi');
+            Route::get('/cancel-bill', [\App\Http\Controllers\Laporan\LaporanKasirController::class, 'cancelBill'])->name('cancel-bill');
+            Route::get('/deposit',     [\App\Http\Controllers\Laporan\LaporanKasirController::class, 'deposit'])->name('deposit');
+        });
+
+        // Pharmacy
+        Route::middleware('permission:laporan.pharmacy.view')->prefix('pharmacy')->name('pharmacy.')->group(function () {
+            Route::get('/resep',          [\App\Http\Controllers\Laporan\LaporanPharmacyController::class, 'resep'])->name('resep');
+            Route::get('/fast-moving',    [\App\Http\Controllers\Laporan\LaporanPharmacyController::class, 'fastMoving'])->name('fast-moving');
+            Route::get('/nilai-inventory',[\App\Http\Controllers\Laporan\LaporanPharmacyController::class, 'nilaiInventory'])->name('nilai-inventory');
+        });
+    });
 
     // ── Inventory ───────────────────────────────────────────
     Route::prefix('inventory')->name('inventory.')->middleware('permission:obat.view')->group(function () {

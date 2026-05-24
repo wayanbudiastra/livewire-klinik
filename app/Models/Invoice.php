@@ -68,6 +68,11 @@ class Invoice extends Model
         return $this->belongsTo(User::class, 'cancelled_by');
     }
 
+    public function dibatalkanOleh()
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
+    }
+
     public function scopeBelumBayar($query)
     {
         return $query->where('status', 'belum_bayar');

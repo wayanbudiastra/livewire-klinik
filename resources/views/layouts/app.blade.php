@@ -89,7 +89,9 @@
             <x-sidebar-item route="billing.index" icon="cash" permission="billing.view">Billing & Kasir</x-sidebar-item>
             <x-sidebar-item route="inventory.index" icon="office-building" permission="obat.view">Inventory</x-sidebar-item>
             <x-sidebar-item route="inventory.kartu-stok.index" icon="clipboard-check" permission="obat.view">Kartu Stok</x-sidebar-item>
-            <x-sidebar-item route="laporan.index" icon="chart-square-bar" permission="laporan.view">Laporan</x-sidebar-item>
+            @canany(['laporan.registrasi.view','laporan.pemeriksaan.view','laporan.kasir.view','laporan.pharmacy.view','laporan.view'])
+            <x-sidebar-item route="laporan.index" icon="chart-square-bar">Laporan</x-sidebar-item>
+            @endcanany
             <x-sidebar-item route="pengaturan.masterdata" icon="clipboard-list" permission="masterdata.view">Master Data</x-sidebar-item>
             <x-sidebar-item route="pengaturan.dokter" icon="users" permission="masterdata.view">Data Dokter</x-sidebar-item>
             <x-sidebar-item route="pengaturan.pengguna" icon="cog" permission="pengaturan.view">Pengaturan</x-sidebar-item>
