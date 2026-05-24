@@ -24,10 +24,9 @@
         <label class="mb-1 block text-sm font-medium text-gray-700">Cari Pasien (Nama / No. RM)</label>
         <div class="relative">
             <input wire:model.live.debounce.400ms="searchPasien"
-                wire:keydown.enter="searchKunjungan"
                 type="text"
                 class="w-full rounded-xl border-gray-300 py-2.5 pl-4 pr-10 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                placeholder="Ketik nama atau No. RM pasien...">
+                placeholder="Ketik nama atau No. RM pasien (min. 2 karakter)...">
             <svg class="absolute right-3 top-2.5 size-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M21 21l-4.35-4.35M11 18a7 7 0 110-14 7 7 0 010 14z"/>
@@ -177,15 +176,17 @@
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-2.5 text-gray-800">{{ $item->nama_item }}</td>
                         <td class="px-3 py-2.5 text-center">
-                            <span class="rounded-full px-2 py-0.5 text-xs font-medium
-                                @switch($item->jenis)
-                                    @case('tindakan') bg-purple-100 text-purple-700 @break
-                                    @case('alkes') bg-yellow-100 text-yellow-700 @break
-                                    @case('penunjang') bg-cyan-100 text-cyan-700 @break
-                                    @case('obat') bg-green-100 text-green-700 @break
-                                    @case('racikan') bg-teal-100 text-teal-700 @break
-                                    @default bg-gray-100 text-gray-700
-                                @endswitch">
+                            @php
+                                $jenisClass = match($item->jenis) {
+                                    'tindakan' => 'bg-purple-100 text-purple-700',
+                                    'alkes'    => 'bg-yellow-100 text-yellow-700',
+                                    'penunjang'=> 'bg-cyan-100 text-cyan-700',
+                                    'obat'     => 'bg-green-100 text-green-700',
+                                    'racikan'  => 'bg-teal-100 text-teal-700',
+                                    default    => 'bg-gray-100 text-gray-700',
+                                };
+                            @endphp
+                            <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $jenisClass }}">
                                 {{ ucfirst($item->jenis) }}
                             </span>
                         </td>

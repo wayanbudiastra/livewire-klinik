@@ -91,6 +91,12 @@ class TagihanPasien extends Component
             ->exists() ?? false;
     }
 
+    // Auto-trigger search setiap kali $searchPasien berubah (live debounce)
+    public function updatedSearchPasien(): void
+    {
+        $this->searchKunjungan();
+    }
+
     public function searchKunjungan(): void
     {
         if (strlen($this->searchPasien) < 2) {
@@ -98,23 +104,28 @@ class TagihanPasien extends Component
             return;
         }
 
-        $this->searchResults = Kunjungan::with('pasien', 'dokter', 'poli')
+        // Tampilkan kunjungan yang pemeriksaannya sudah selesai
+        // (status='selesai') dan belum lunas, dalam 30 hari terakhir
+        $this->searchResults = Kunjungan::with('pasien', 'dokter', 'poli', 'invoice')
             ->whereHas('pasien', function ($q) {
                 $q->where('nama', 'like', "%{$this->searchPasien}%")
                   ->orWhere('no_rm', 'like', "%{$this->searchPasien}%");
             })
-            ->whereNotIn('status', ['selesai'])
-            ->whereDate('tanggal', today())
+            ->where('status', 'selesai')
+            ->where('tanggal', '>=', now()->subDays(30))
+            ->whereDoesntHave('invoice', fn ($q) => $q->where('status', 'lunas'))
+            ->orderByDesc('tanggal')
             ->limit(10)
             ->get()
             ->map(fn ($k) => [
-                'id'           => $k->id,
-                'nomor_antrean'=> $k->nomor_antrean,
-                'pasien_nama'  => $k->pasien->nama,
-                'no_rm'        => $k->pasien->no_rm,
-                'poli'         => $k->poli->nama ?? '-',
-                'dokter'       => $k->dokter->nama ?? '-',
-                'tipe'         => $k->tipe_pembayaran,
+                'id'             => $k->id,
+                'nomor_antrean'  => $k->nomor_antrean,
+                'pasien_nama'    => $k->pasien->nama,
+                'no_rm'          => $k->pasien->no_rm,
+                'poli'           => $k->poli->nama ?? '-',
+                'dokter'         => $k->dokter->nama ?? '-',
+                'tipe'           => $k->tipe_pembayaran,
+                'tanggal'        => $k->tanggal->format('d/m/Y'),
                 'invoice_status' => $k->invoice?->status,
             ])
             ->toArray();
@@ -139,6 +150,12 @@ class TagihanPasien extends Component
 
         $kunjungan = Kunjungan::find($this->kunjunganId);
         if (! $kunjungan) return;
+
+        if ($kunjungan->status !== 'selesai') {
+            session()->flash('error', 'Pemeriksaan pasien belum selesai. Tagihan hanya dapat dibuat setelah dokter menyelesaikan pemeriksaan.');
+            $this->kunjunganId = null;
+            return;
+        }
 
         $invoice = $this->invoiceService->createOrRefresh($kunjungan, $this->activeShift);
 
@@ -229,6 +246,12 @@ class TagihanPasien extends Component
     {
         if (! $this->activeShift) {
             session()->flash('error', 'Shift kasir tidak aktif.');
+            return;
+        }
+
+        $kunjungan = Kunjungan::find($this->kunjunganId);
+        if (! $kunjungan || $kunjungan->status !== 'selesai') {
+            session()->flash('error', 'Pemeriksaan pasien belum selesai.');
             return;
         }
 
