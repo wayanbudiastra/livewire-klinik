@@ -204,23 +204,35 @@
             </label>
 
             @if(!$isFinal)
-            <div class="relative">
+            <div x-data="{ open: false }" class="relative">
                 <div class="relative">
                     <span class="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
                         </svg>
                     </span>
-                    <input wire:model.live.debounce.350ms="searchIcd" type="text"
+                    <input wire:model.live.debounce.350ms="searchIcd"
+                           @focus="open = true"
+                           @click.away="open = false"
+                           type="text"
                            placeholder="Cari kode (J06.9) atau nama penyakit..."
                            class="form-input pl-9 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <svg wire:loading wire:target="searchIcd" class="animate-spin h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                        </svg>
+                    </div>
                 </div>
 
                 {{-- Dropdown ICD-10 --}}
-                @if($this->icdSuggestions->isNotEmpty())
-                <div class="absolute z-30 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-600 shadow-xl max-h-64 overflow-y-auto">
-                    @foreach($this->icdSuggestions as $icd)
-                    <button type="button" wire:click="addDiagnosis('{{ $icd->kode }}', @js($icd->nama))"
+                @if(strlen($searchIcd) >= 2)
+                <div x-show="open" x-transition
+                     class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-600 shadow-xl max-h-64 overflow-y-auto">
+                    @forelse($this->icdSuggestions as $icd)
+                    <button type="button"
+                            wire:click="addDiagnosis('{{ $icd->kode }}', @js($icd->nama))"
+                            @click="open = false"
                             class="w-full text-left px-4 py-2.5 hover:bg-blue-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-0 transition-colors">
                         <div class="flex items-start gap-3">
                             <span class="font-mono font-bold text-[#0a3d62] dark:text-blue-400 text-sm flex-shrink-0 mt-0.5">{{ $icd->kode }}</span>
@@ -232,7 +244,9 @@
                             </div>
                         </div>
                     </button>
-                    @endforeach
+                    @empty
+                    <div class="px-4 py-3 text-sm text-gray-400 text-center">Tidak ada hasil untuk "{{ $searchIcd }}"</div>
+                    @endforelse
                 </div>
                 @endif
             </div>

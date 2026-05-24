@@ -47,6 +47,23 @@ php8.2 $(which composer) install \
 info "STEP 4: Jalankan migrasi database..."
 php8.2 artisan migrate --force
 
+# ── 4b. Seed data referensi jika belum ada ───────────────────
+ICD_COUNT=$(php8.2 artisan tinker --execute="echo App\Models\IcdDiagnosis::count();" 2>/dev/null | tail -1)
+if [ "$ICD_COUNT" = "0" ] || [ -z "$ICD_COUNT" ]; then
+    info "STEP 4b: Seed data ICD-10 (belum ada data)..."
+    php8.2 artisan db:seed --class=Icd10Seeder --force
+else
+    info "STEP 4b: ICD-10 sudah ada ($ICD_COUNT kode), skip seed."
+fi
+
+PENUNJANG_COUNT=$(php8.2 artisan tinker --execute="echo App\Models\ItemPenunjang::count();" 2>/dev/null | tail -1)
+if [ "$PENUNJANG_COUNT" = "0" ] || [ -z "$PENUNJANG_COUNT" ]; then
+    info "STEP 4b: Seed data Item Penunjang (belum ada data)..."
+    php8.2 artisan db:seed --class=PenunjangSeeder --force
+else
+    info "STEP 4b: Item Penunjang sudah ada ($PENUNJANG_COUNT item), skip seed."
+fi
+
 # ── 5. Clear & rebuild cache ─────────────────────────────────
 info "STEP 5: Rebuild cache..."
 php8.2 artisan config:clear
