@@ -129,12 +129,16 @@ class InvoiceService
         }
 
         $clinicalItems = $this->buildItems($kunjungan);
+        $totalTagihan  = collect($clinicalItems)->sum('subtotal');
 
         if (! $invoice->exists) {
             $invoice->nomor_invoice = $this->generateNomor($kunjungan->id);
             $invoice->shift_id      = $shift->id;
             $invoice->diskon_global = 0;
             $invoice->status        = 'belum_bayar';
+            $invoice->total_tagihan = $totalTagihan;
+            $invoice->total_bayar   = 0;
+            $invoice->sisa          = $totalTagihan;
         }
 
         $invoice->save();

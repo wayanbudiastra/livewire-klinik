@@ -90,6 +90,30 @@ class TagihanPasien extends Component
         return $k->resep()->where('is_locked', false)->exists();
     }
 
+    #[Computed]
+    public function daftarHariIni(): array
+    {
+        return Kunjungan::with('pasien', 'dokter', 'poli', 'invoice')
+            ->whereNotIn('status', ['dibatalkan'])
+            ->whereDate('tanggal', today())
+            ->whereDoesntHave('invoice', fn ($q) => $q->where('status', 'lunas'))
+            ->orderByRaw("FIELD(status,'selesai','dalam_pemeriksaan','menunggu')")
+            ->get()
+            ->map(fn ($k) => [
+                'id'             => $k->id,
+                'nomor_antrean'  => $k->nomor_antrean,
+                'pasien_nama'    => $k->pasien->nama,
+                'no_rm'          => $k->pasien->nomor_rm,
+                'poli'           => $k->poli->nama ?? '-',
+                'dokter'         => $k->dokter->nama ?? '-',
+                'tipe'           => $k->tipe_pembayaran,
+                'tanggal'        => $k->tanggal->format('d/m/Y'),
+                'status'         => $k->status,
+                'invoice_status' => optional($k->invoice)->status,
+            ])
+            ->toArray();
+    }
+
     // Auto-trigger search setiap kali $searchPasien berubah (live debounce)
     public function updatedSearchPasien(): void
     {
