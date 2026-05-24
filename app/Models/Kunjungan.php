@@ -52,6 +52,16 @@ class Kunjungan extends Model
         return $this->hasMany(PermintaanPenunjang::class);
     }
 
+    public function tindakan()
+    {
+        return $this->hasMany(Tindakan::class);
+    }
+
+    public function pemakaianAlkes()
+    {
+        return $this->hasMany(PemakaianAlkes::class);
+    }
+
     public function penggunaanAlat()
     {
         return $this->hasMany(PenggunaanAlat::class);

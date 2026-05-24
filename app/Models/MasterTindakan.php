@@ -34,8 +34,7 @@ class MasterTindakan extends Model
 
     public function scopeUntukPoli($query, int $poliId)
     {
-        return $query->where('kategori', 'tindakan')
-                     ->whereHas('poli', fn ($q) => $q->where('poli.id', $poliId));
+        return $query->whereHas('poli', fn ($q) => $q->where('poli.id', $poliId));
     }
 
     public function scopeAktif($query)
