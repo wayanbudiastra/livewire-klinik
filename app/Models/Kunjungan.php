@@ -62,6 +62,16 @@ class Kunjungan extends Model
         return $this->hasMany(PemakaianAlkes::class);
     }
 
+    public function resep()
+    {
+        return $this->hasMany(Resep::class);
+    }
+
+    public function invoice()
+    {
+        return $this->hasOne(Invoice::class);
+    }
+
     public function penggunaanAlat()
     {
         return $this->hasMany(PenggunaanAlat::class);

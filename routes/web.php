@@ -65,13 +65,8 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/resep', fn () => view('farmasi.resep'))->name('resep.index');
     });
 
-    // Billing (dalam pengembangan)
-    Route::get('/billing', fn () => view('coming-soon', [
-        'modul'      => 'Billing & Kasir',
-        'deskripsi'  => 'Generate invoice, kalkulasi tarif tindakan + obat + kamar, dan proses pembayaran multi-metode.',
-        'progress'   => 5,
-        'roadmap'    => ['Generate invoice otomatis', 'Kalkulasi tarif + sharing fee dokter', 'Pembayaran (tunai, BPJS, transfer)', 'Cetak kwitansi & invoice PDF'],
-    ]))->name('billing.index');
+    // Billing & Kasir
+    Route::get('/billing', fn () => view('kasir.index'))->name('billing.index');
 
     // Laporan (dalam pengembangan)
     Route::get('/laporan', fn () => view('coming-soon', [
