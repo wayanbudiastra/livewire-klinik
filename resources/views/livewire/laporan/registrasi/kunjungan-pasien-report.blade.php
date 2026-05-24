@@ -6,7 +6,7 @@
         </div>
     </div>
 
-    <x-laporan.filter-periode />
+    @include('components.laporan.filter-periode')
 
     @if($hasil)
     <div wire:loading.remove wire:target="generate">
