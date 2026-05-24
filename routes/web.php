@@ -61,13 +61,8 @@ Route::middleware(['auth', 'active'])->group(function () {
         // Stok Obat & Master Data → IMPLEMENTASI
         Route::get('/stok-obat', fn () => view('farmasi.index'))->name('stok.index');
 
-        // Resep (dalam pengembangan)
-        Route::get('/resep', fn () => view('coming-soon', [
-            'modul'    => 'Farmasi — Resep',
-            'deskripsi'=> 'Validasi & dispensing resep elektronik dari dokter.',
-            'progress' => 10,
-            'roadmap'  => ['Verifikasi resep dokter', 'Dispensing obat', 'Labeling obat', 'Retur resep'],
-        ]))->name('resep.index');
+        // Resep
+        Route::get('/resep', fn () => view('farmasi.resep'))->name('resep.index');
     });
 
     // Billing (dalam pengembangan)

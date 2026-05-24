@@ -377,7 +377,11 @@
             @elseif($activeSection === 'penunjang')
             <livewire:pemeriksaan.penunjang :kunjunganId="$kunjunganId" wire:key="penunjang-{{ $kunjunganId }}" />
 
-            {{-- ── Placeholder: Tindakan, Obat ── --}}
+            {{-- ── Resep Obat ── --}}
+            @elseif($activeSection === 'obat')
+            <livewire:pemeriksaan.resep-obat :kunjunganId="$kunjunganId" wire:key="resep-{{ $kunjunganId }}" />
+
+            {{-- ── Placeholder: Tindakan ── --}}
             @else
             <div class="card">
                 <div class="card-body py-16">

@@ -235,8 +235,7 @@
                         <td>
                             @if($order->status === 'dipesan')
                             <x-confirm-button
-                                :action="'batalkan'"
-                                :params="[$order->id]"
+                                :action="'batalkan(' . $order->id . ')'"
                                 title="Batalkan Order?"
                                 text="Order {{ $order->itemPenunjang?->nama }} akan dibatalkan."
                                 confirm="Ya, Batalkan"
@@ -450,8 +449,7 @@
                         <td>
                             @if($order->status === 'dipesan')
                             <x-confirm-button
-                                :action="'batalkan'"
-                                :params="[$order->id]"
+                                :action="'batalkan(' . $order->id . ')'"
                                 title="Batalkan Order?"
                                 text="Order {{ $order->itemPenunjang?->nama }} akan dibatalkan."
                                 confirm="Ya, Batalkan"
