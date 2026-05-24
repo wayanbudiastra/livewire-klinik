@@ -331,13 +331,13 @@
     <div class="flex justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
         <div>
             @if($activeSection !== 's')
-            <button wire:click="$set('activeSection', '{{ prev(['s'=>'s','o'=>'s','a'=>'o','p'=>'a'])[$activeSection] }}')"
+            <button wire:click="$set('activeSection', '{{ ['o'=>'s','a'=>'o','p'=>'a'][$activeSection] }}')"
                     class="btn-secondary btn-sm">← Sebelumnya</button>
             @endif
         </div>
         <div>
             @if($activeSection !== 'p')
-            <button wire:click="$set('activeSection', '{{ next(['s'=>'o','o'=>'a','a'=>'p','p'=>'p'])[$activeSection] }}')"
+            <button wire:click="$set('activeSection', '{{ ['s'=>'o','o'=>'a','a'=>'p'][$activeSection] }}')"
                     class="btn-primary btn-sm">Selanjutnya →</button>
             @else
             <div class="flex gap-2">
