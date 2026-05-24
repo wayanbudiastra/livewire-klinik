@@ -79,6 +79,26 @@ Route::middleware(['auth', 'active'])->group(function () {
         return view('kasir.invoice-print', compact('invoice'));
     })->name('invoice.print');
 
+    // Kasir v2 — Billing Detail, Split Payment, Cetak
+    Route::prefix('kasir')->name('kasir.')->group(function () {
+        Route::get('/billing', fn () => view('kasir.index'))->name('billing.index');
+
+        Route::get('/billing/{billing}', function (\App\Models\Invoice $billing) {
+            $billing->load('kunjungan.pasien');
+            return view('kasir.billing-show', compact('billing'));
+        })->name('billing.show');
+
+        Route::get('/billing/{billing}/split-payment', function (\App\Models\Invoice $billing) {
+            $billing->load('kunjungan.pasien');
+            return view('kasir.split-payment', compact('billing'));
+        })->name('billing.split-payment');
+
+        Route::get('/billing/{billing}/cetak', function (\App\Models\Invoice $billing) {
+            $service = app(\App\Services\Kasir\CetakInvoiceService::class);
+            return $service->cetak($billing, auth()->id());
+        })->name('billing.cetak');
+    });
+
     // Laporan (dalam pengembangan)
     Route::get('/laporan', fn () => view('coming-soon', [
         'modul'      => 'Laporan',

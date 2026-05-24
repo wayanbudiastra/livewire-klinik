@@ -52,6 +52,16 @@ class Pasien extends Model
         return $this->hasMany(Kunjungan::class)->latest('tanggal');
     }
 
+    public function depositPasien()
+    {
+        return $this->hasOne(DepositPasien::class);
+    }
+
+    public function transaksiDeposit()
+    {
+        return $this->hasMany(TransaksiDeposit::class);
+    }
+
     // ── Scopes ───────────────────────────────────────────────
 
     public function scopeAktif($query)

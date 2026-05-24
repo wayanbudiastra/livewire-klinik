@@ -4,7 +4,7 @@
     <div class="page-header">
         <div>
             <h1 class="page-title">Billing & Kasir</h1>
-            <p class="page-subtitle">Manajemen shift, tagihan pasien, dan laporan kasir</p>
+            <p class="page-subtitle">Manajemen shift, tagihan pasien, deposit, dan laporan kasir</p>
         </div>
     </div>
 
@@ -15,6 +15,8 @@
             @foreach ([
                 'tagihan'  => 'Tagihan Pasien',
                 'riwayat'  => 'Riwayat Pembayaran',
+                'deposit'  => 'Deposit Pasien',
+                'sesi-kas' => 'Sesi Kas',
                 'shift'    => 'Kelola Shift',
                 'laporan'  => 'Laporan Shift',
             ] as $key => $label)
@@ -36,6 +38,16 @@
         {{-- Riwayat Pembayaran --}}
         <div x-show="tab === 'riwayat'" x-cloak>
             <livewire:kasir.riwayat-pembayaran />
+        </div>
+
+        {{-- Deposit Pasien --}}
+        <div x-show="tab === 'deposit'" x-cloak>
+            <livewire:kasir.deposit.topup-deposit-form />
+        </div>
+
+        {{-- Sesi Kas (v2) --}}
+        <div x-show="tab === 'sesi-kas'" x-cloak>
+            <livewire:kasir.sesi-kas.sesi-kas-panel />
         </div>
 
         {{-- Kelola Shift --}}
