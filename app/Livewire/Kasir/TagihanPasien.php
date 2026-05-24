@@ -103,14 +103,14 @@ class TagihanPasien extends Component
             return;
         }
 
-        // Tampilkan kunjungan yang pemeriksaannya sudah selesai
-        // (status='selesai') dan belum lunas, dalam 30 hari terakhir
+        // Tampilkan semua kunjungan terdaftar (kecuali dibatalkan & sudah lunas)
+        // dalam 30 hari terakhir, kasir bisa lihat antrian lengkap
         $this->searchResults = Kunjungan::with('pasien', 'dokter', 'poli', 'invoice')
             ->whereHas('pasien', function ($q) {
                 $q->where('nama', 'like', "%{$this->searchPasien}%")
                   ->orWhere('nomor_rm', 'like', "%{$this->searchPasien}%");
             })
-            ->where('status', 'selesai')
+            ->whereNotIn('status', ['dibatalkan'])
             ->where('tanggal', '>=', now()->subDays(30))
             ->whereDoesntHave('invoice', fn ($q) => $q->where('status', 'lunas'))
             ->orderByDesc('tanggal')
@@ -125,7 +125,8 @@ class TagihanPasien extends Component
                 'dokter'         => $k->dokter->nama ?? '-',
                 'tipe'           => $k->tipe_pembayaran,
                 'tanggal'        => $k->tanggal->format('d/m/Y'),
-                'invoice_status' => $k->invoice?->status,
+                'status'         => $k->status,
+                'invoice_status' => optional($k->invoice)->status,
             ])
             ->toArray();
     }
@@ -135,9 +136,13 @@ class TagihanPasien extends Component
         $this->kunjunganId   = $id;
         $this->searchResults = [];
         $this->searchPasien  = '';
-        unset($this->kunjungan, $this->invoice);
+        unset($this->kunjungan, $this->invoice, $this->hasPendingResep);
 
-        $this->fetchTagihan();
+        // Hanya fetch tagihan jika pemeriksaan sudah selesai
+        $kunjungan = Kunjungan::find($id);
+        if ($kunjungan && $kunjungan->status === 'selesai') {
+            $this->fetchTagihan();
+        }
     }
 
     public function fetchTagihan(): void

@@ -36,26 +36,40 @@
         @if (count($searchResults))
             <div class="mt-2 divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md">
                 @foreach ($searchResults as $r)
+                    @php
+                        $statusClass = match($r['status']) {
+                            'selesai'           => 'bg-green-100 text-green-700',
+                            'dalam_pemeriksaan' => 'bg-blue-100 text-blue-700',
+                            default             => 'bg-yellow-100 text-yellow-700',
+                        };
+                        $statusLabel = match($r['status']) {
+                            'selesai'           => 'Selesai',
+                            'dalam_pemeriksaan' => 'Diperiksa',
+                            default             => 'Menunggu',
+                        };
+                    @endphp
                     <button wire:click="selectKunjungan({{ $r['id'] }})"
                         class="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-blue-50">
                         <div>
                             <p class="text-sm font-semibold text-gray-800">{{ $r['pasien_nama'] }}</p>
-                            <p class="text-xs text-gray-500">{{ $r['no_rm'] }} &bull; {{ $r['poli'] }} &bull; dr. {{ $r['dokter'] }}</p>
+                            <p class="text-xs text-gray-500">
+                                {{ $r['no_rm'] }} &bull; {{ $r['tanggal'] }} &bull; {{ $r['poli'] }} &bull; dr. {{ $r['dokter'] }}
+                            </p>
                         </div>
-                        <div class="text-right">
-                            <span class="inline-block rounded-full px-2 py-0.5 text-xs font-semibold
-                                {{ $r['tipe'] === 'bpjs' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700' }}">
-                                {{ strtoupper($r['tipe']) }}
+                        <div class="flex items-center gap-2">
+                            <span class="rounded-full px-2 py-0.5 text-xs font-semibold {{ $statusClass }}">
+                                {{ $statusLabel }}
                             </span>
-                            @if ($r['invoice_status'])
-                                <p class="mt-0.5 text-xs text-gray-400">{{ $r['invoice_status'] }}</p>
-                            @endif
+                            <span class="rounded-full px-2 py-0.5 text-xs font-semibold
+                                {{ $r['tipe'] === 'bpjs' ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700' }}">
+                                {{ strtoupper($r['tipe'] ?? 'umum') }}
+                            </span>
                         </div>
                     </button>
                 @endforeach
             </div>
         @elseif (strlen($searchPasien) >= 2)
-            <p class="mt-2 text-xs text-gray-500">Tidak ada kunjungan aktif hari ini untuk pencarian tersebut.</p>
+            <p class="mt-2 text-xs text-gray-500">Tidak ada pasien terdaftar yang sesuai dengan pencarian tersebut.</p>
         @endif
     </div>
     @endif
@@ -69,7 +83,7 @@
             <div>
                 <p class="text-base font-bold text-gray-800">{{ $this->kunjungan->pasien->nama }}</p>
                 <p class="text-xs text-gray-500">
-                    {{ $this->kunjungan->pasien->no_rm }}
+                    {{ $this->kunjungan->pasien->nomor_rm }}
                     &bull; {{ $this->kunjungan->poli->nama ?? '-' }}
                     &bull; dr. {{ $this->kunjungan->dokter->nama ?? '-' }}
                     &bull;
@@ -94,10 +108,16 @@
             </div>
         </div>
 
-        @if ($this->hasPendingResep)
+        @if ($this->kunjungan->status !== 'selesai')
+        <div class="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
+            <strong>Pemeriksaan belum selesai.</strong>
+            Status saat ini: <span class="font-semibold">{{ ucfirst(str_replace('_', ' ', $this->kunjungan->status)) }}</span>.
+            Tagihan dapat diproses setelah dokter menyelesaikan pemeriksaan.
+        </div>
+        @elseif ($this->hasPendingResep)
         <div class="rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-700">
-            <strong>Perhatian:</strong> Masih ada resep obat yang belum dikonfirmasi apoteker.
-            Tagihan tidak dapat diproses sampai semua resep dikonfirmasi.
+            <strong>Resep belum dikonfirmasi apoteker.</strong>
+            Selesaikan konfirmasi resep di modul Farmasi sebelum proses pembayaran.
         </div>
         @endif
 
