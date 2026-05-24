@@ -85,10 +85,9 @@ class TagihanPasien extends Component
     public function hasPendingResep(): bool
     {
         if (! $this->kunjunganId) return false;
-        return Kunjungan::find($this->kunjunganId)
-            ?->resep()
-            ->where('is_locked', false)
-            ->exists() ?? false;
+        $k = Kunjungan::find($this->kunjunganId);
+        if (! $k) return false;
+        return $k->resep()->where('is_locked', false)->exists();
     }
 
     // Auto-trigger search setiap kali $searchPasien berubah (live debounce)
@@ -109,7 +108,7 @@ class TagihanPasien extends Component
         $this->searchResults = Kunjungan::with('pasien', 'dokter', 'poli', 'invoice')
             ->whereHas('pasien', function ($q) {
                 $q->where('nama', 'like', "%{$this->searchPasien}%")
-                  ->orWhere('no_rm', 'like', "%{$this->searchPasien}%");
+                  ->orWhere('nomor_rm', 'like', "%{$this->searchPasien}%");
             })
             ->where('status', 'selesai')
             ->where('tanggal', '>=', now()->subDays(30))
@@ -121,7 +120,7 @@ class TagihanPasien extends Component
                 'id'             => $k->id,
                 'nomor_antrean'  => $k->nomor_antrean,
                 'pasien_nama'    => $k->pasien->nama,
-                'no_rm'          => $k->pasien->no_rm,
+                'no_rm'          => $k->pasien->nomor_rm,
                 'poli'           => $k->poli->nama ?? '-',
                 'dokter'         => $k->dokter->nama ?? '-',
                 'tipe'           => $k->tipe_pembayaran,
