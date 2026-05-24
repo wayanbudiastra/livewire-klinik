@@ -407,14 +407,30 @@
             </div>
         </div>
         @elseif ($this->invoice->status === 'lunas')
-        <div class="rounded-xl border border-green-200 bg-green-50 px-5 py-4">
-            <p class="font-semibold text-green-800">Tagihan sudah lunas.</p>
-            <p class="mt-1 text-sm text-green-700">
-                Total dibayar: Rp {{ number_format($this->invoice->total_bayar, 0, ',', '.') }}
-            </p>
-            <button wire:click="resetPilihan" class="mt-3 rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700">
-                Pasien Berikutnya
-            </button>
+        <div class="rounded-xl border border-green-200 bg-green-50 px-5 py-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="font-bold text-green-800">&#10003; Tagihan Lunas</p>
+                    <p class="mt-1 text-sm text-green-700">
+                        {{ $this->invoice->nomor_invoice }} &bull;
+                        Total: <strong>Rp {{ number_format($this->invoice->total_tagihan, 0, ',', '.') }}</strong>
+                    </p>
+                </div>
+                <div class="flex gap-2">
+                    <a href="{{ route('invoice.print', $this->invoice->id) }}" target="_blank"
+                        class="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                        </svg>
+                        Cetak Invoice
+                    </a>
+                    <button wire:click="resetPilihan"
+                        class="rounded-lg border border-green-300 bg-white px-4 py-2 text-sm font-semibold text-green-700 hover:bg-green-50">
+                        Pasien Berikutnya
+                    </button>
+                </div>
+            </div>
         </div>
         @endif
 

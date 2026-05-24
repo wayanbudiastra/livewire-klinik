@@ -67,6 +67,17 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     // Billing & Kasir
     Route::get('/billing', fn () => view('kasir.index'))->name('billing.index');
+    Route::get('/billing/invoice/{billing}/print', function (\App\Models\Invoice $billing) {
+        $invoice = $billing->load([
+            'kunjungan.pasien',
+            'kunjungan.dokter',
+            'kunjungan.poli',
+            'items',
+            'pembayaran',
+            'shift.user',
+        ]);
+        return view('kasir.invoice-print', compact('invoice'));
+    })->name('invoice.print');
 
     // Laporan (dalam pengembangan)
     Route::get('/laporan', fn () => view('coming-soon', [

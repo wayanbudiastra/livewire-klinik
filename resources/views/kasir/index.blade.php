@@ -11,9 +11,10 @@
     <div class="page-content" x-data="{ tab: '{{ request()->query('tab', 'tagihan') }}' }">
 
         {{-- Tab navigation --}}
-        <div class="mb-6 flex gap-1 rounded-xl border border-gray-200 bg-gray-100 p-1" style="width: fit-content">
+        <div class="mb-6 flex flex-wrap gap-1 rounded-xl border border-gray-200 bg-gray-100 p-1" style="width: fit-content">
             @foreach ([
                 'tagihan'  => 'Tagihan Pasien',
+                'riwayat'  => 'Riwayat Pembayaran',
                 'shift'    => 'Kelola Shift',
                 'laporan'  => 'Laporan Shift',
             ] as $key => $label)
@@ -30,6 +31,11 @@
         {{-- Tagihan Pasien --}}
         <div x-show="tab === 'tagihan'">
             <livewire:kasir.tagihan-pasien />
+        </div>
+
+        {{-- Riwayat Pembayaran --}}
+        <div x-show="tab === 'riwayat'" x-cloak>
+            <livewire:kasir.riwayat-pembayaran />
         </div>
 
         {{-- Kelola Shift --}}
