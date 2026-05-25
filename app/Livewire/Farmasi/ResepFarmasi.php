@@ -75,8 +75,8 @@ class ResepFarmasi extends Component
 
         $obat = Obat::find($item->obat_id);
         if ($obat && $obat->stok < $this->editJumlah) {
-            $this->dispatch('notify', type: 'error',
-                message: "Stok {$obat->nama} tidak mencukupi (tersisa {$obat->stok}).");
+            $this->dispatch('notify', ['type' => 'error',
+                'message' => "Stok {$obat->nama} tidak mencukupi (tersisa {$obat->stok})."]);
             return;
         }
 
@@ -87,7 +87,7 @@ class ResepFarmasi extends Component
 
         $this->editingItemId = null;
         unset($this->resepList);
-        $this->dispatch('notify', type: 'success', message: 'Item resep diperbarui.');
+        $this->dispatch('notify', ['type' => 'success', 'message' => 'Item resep diperbarui.']);
     }
 
     public function cancelEditItem(): void
@@ -111,14 +111,17 @@ class ResepFarmasi extends Component
             'editJumlahSediaan' => 'required|integer|min:1',
         ]);
 
-        Racikan::find($this->editingRacikanId)?->update([
-            'jumlah_sediaan' => $this->editJumlahSediaan,
-            'aturan_pakai'   => $this->editAturanPakai ?: null,
-        ]);
+        $r = Racikan::find($this->editingRacikanId);
+        if ($r) {
+            $r->update([
+                'jumlah_sediaan' => $this->editJumlahSediaan,
+                'aturan_pakai'   => $this->editAturanPakai ?: null,
+            ]);
+        }
 
         $this->editingRacikanId = null;
         unset($this->resepList);
-        $this->dispatch('notify', type: 'success', message: 'Racikan diperbarui.');
+        $this->dispatch('notify', ['type' => 'success', 'message' => 'Racikan diperbarui.']);
     }
 
     public function cancelEditRacikan(): void
@@ -133,7 +136,7 @@ class ResepFarmasi extends Component
         if (! $item || $item->resep?->is_locked) return;
         $item->delete();
         unset($this->resepList);
-        $this->dispatch('notify', type: 'success', message: 'Item resep dihapus.');
+        $this->dispatch('notify', ['type' => 'success', 'message' => 'Item resep dihapus.']);
     }
 
     public function hapusRacikan(int $racikanId): void
@@ -142,7 +145,7 @@ class ResepFarmasi extends Component
         if (! $r || $r->resep?->is_locked) return;
         $r->delete();
         unset($this->resepList);
-        $this->dispatch('notify', type: 'success', message: 'Racikan dihapus.');
+        $this->dispatch('notify', ['type' => 'success', 'message' => 'Racikan dihapus.']);
     }
 
     // ── Konfirmasi (lock) resep ──────────────────────────────
@@ -156,8 +159,8 @@ class ResepFarmasi extends Component
             $obat = $item->obat;
             if ($obat) {
                 if ($obat->stok < $item->jumlah) {
-                    $this->dispatch('notify', type: 'error',
-                        message: "Stok {$obat->nama} tidak mencukupi untuk konfirmasi.");
+                    $this->dispatch('notify', ['type' => 'error',
+                        'message' => "Stok {$obat->nama} tidak mencukupi untuk konfirmasi."]);
                     return;
                 }
                 $obat->decrement('stok', $item->jumlah);
@@ -169,8 +172,8 @@ class ResepFarmasi extends Component
             foreach ($racikan->bahanRacikan as $bahan) {
                 $obat = $bahan->obat;
                 if ($obat && $obat->stok < $bahan->jumlah) {
-                    $this->dispatch('notify', type: 'error',
-                        message: "Stok bahan {$obat->nama} tidak mencukupi untuk konfirmasi.");
+                    $this->dispatch('notify', ['type' => 'error',
+                        'message' => "Stok bahan {$obat->nama} tidak mencukupi untuk konfirmasi."]);
                     return;
                 }
                 $obat?->decrement('stok', $bahan->jumlah);
@@ -185,7 +188,7 @@ class ResepFarmasi extends Component
         ]);
 
         unset($this->resepList);
-        $this->dispatch('notify', type: 'success', message: 'Resep dikonfirmasi dan stok telah dipotong.');
+        $this->dispatch('notify', ['type' => 'success', 'message' => 'Resep dikonfirmasi dan stok telah dipotong.']);
     }
 
     public function render()
