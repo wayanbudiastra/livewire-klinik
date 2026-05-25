@@ -35,7 +35,7 @@ class BillingService
             );
         }
 
-        return DB::transaction(function () use ($billing, $splitItems, $userId, $sesiKas) {
+        return DB::transaction(function () use ($billing, $splitItems, $userId, $sesiKas, $totalSplit) {
             $totalDeposit = 0;
 
             foreach ($splitItems as $item) {
