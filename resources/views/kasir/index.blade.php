@@ -4,7 +4,7 @@
     <div class="page-header">
         <div>
             <h1 class="page-title">Billing & Kasir</h1>
-            <p class="page-subtitle">Manajemen shift, tagihan pasien, deposit, dan laporan kasir</p>
+            <p class="page-subtitle">Manajemen tagihan pasien, deposit, sesi kas, dan riwayat pembayaran</p>
         </div>
     </div>
 
@@ -17,8 +17,6 @@
                 'riwayat'  => 'Riwayat Pembayaran',
                 'deposit'  => 'Deposit Pasien',
                 'sesi-kas' => 'Sesi Kas',
-                'shift'    => 'Kelola Shift',
-                'laporan'  => 'Laporan Shift',
             ] as $key => $label)
             <button @click="tab = '{{ $key }}'"
                 :class="tab === '{{ $key }}'
@@ -45,19 +43,9 @@
             <livewire:kasir.deposit.topup-deposit-form />
         </div>
 
-        {{-- Sesi Kas (v2) --}}
+        {{-- Sesi Kas --}}
         <div x-show="tab === 'sesi-kas'" x-cloak>
             <livewire:kasir.sesi-kas.sesi-kas-panel />
-        </div>
-
-        {{-- Kelola Shift --}}
-        <div x-show="tab === 'shift'" x-cloak>
-            <livewire:kasir.kelola-shift />
-        </div>
-
-        {{-- Laporan Shift --}}
-        <div x-show="tab === 'laporan'" x-cloak>
-            <livewire:kasir.laporan-shift />
         </div>
 
     </div>

@@ -125,6 +125,60 @@ class DepositService
         });
     }
 
+    public function refundManual(
+        Pasien   $pasien,
+        float    $jumlah,
+        int      $userId,
+        ?SesiKas $sesiKas = null,
+        ?string  $keterangan = null
+    ): TransaksiDeposit {
+        if ($jumlah <= 0) {
+            throw new \InvalidArgumentException('Jumlah refund harus lebih dari 0.');
+        }
+
+        return DB::transaction(function () use ($pasien, $jumlah, $userId, $sesiKas, $keterangan) {
+            $deposit = DepositPasien::where('pasien_id', $pasien->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ((float) $deposit->saldo < $jumlah) {
+                throw new \RuntimeException(
+                    'Jumlah refund melebihi saldo deposit. Saldo saat ini: Rp ' .
+                    number_format($deposit->saldo, 0, ',', '.')
+                );
+            }
+
+            $saldoSebelum = (float) $deposit->saldo;
+            $saldoSesudah = $saldoSebelum - $jumlah;
+
+            $deposit->decrement('saldo', $jumlah);
+
+            $trx = TransaksiDeposit::create([
+                'pasien_id'       => $pasien->id,
+                'sesi_kas_id'     => $sesiKas?->id,
+                'user_id'         => $userId,
+                'nomor_transaksi' => $this->generateNomorTransaksi(),
+                'tipe'            => 'refund',
+                'jumlah'          => $jumlah,
+                'saldo_sebelum'   => $saldoSebelum,
+                'saldo_sesudah'   => $saldoSesudah,
+                'referensi_tipe'  => 'refund_manual',
+                'keterangan'      => $keterangan ?: 'Refund manual deposit',
+            ]);
+
+            AuditKasirService::log('refund_deposit_manual', $userId, 'transaksi_deposit', $trx->id, [
+                'pasien_id'     => $pasien->id,
+                'nama_pasien'   => $pasien->nama,
+                'nomor_rm'      => $pasien->nomor_rm,
+                'jumlah'        => $jumlah,
+                'saldo_sesudah' => $saldoSesudah,
+                'alasan'        => $keterangan,
+            ]);
+
+            return $trx;
+        });
+    }
+
     private function generateNomorTransaksi(): string
     {
         $prefix = 'DEP-' . now()->format('Y-m-');
