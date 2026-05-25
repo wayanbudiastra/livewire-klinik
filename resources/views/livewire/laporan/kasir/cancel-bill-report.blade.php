@@ -23,25 +23,47 @@
 
         <div class="card">
             <div class="card-header"><h3 class="text-sm font-semibold text-gray-700">Detail Pembatalan</h3></div>
-            <div class="card-body p-0">
+            <div class="card-body p-0 overflow-x-auto">
                 <table class="table">
                     <thead>
-                        <tr><th>No. Invoice</th><th>Tanggal Batal</th><th>Pasien</th><th class="text-right">Nilai</th><th>Alasan</th><th>Dibatalkan Oleh</th></tr>
+                        <tr>
+                            <th>No. Invoice</th>
+                            <th>Tgl Transaksi</th>
+                            <th>Tgl Batal</th>
+                            <th>Pasien</th>
+                            <th>No. RM</th>
+                            <th class="text-right">Nilai</th>
+                            <th>Alasan</th>
+                            <th>Dibatalkan Oleh</th>
+                            <th>Diverifikasi Oleh</th>
+                        </tr>
                     </thead>
                     <tbody>
                         @forelse($hasil['detail'] as $row)
                         <tr>
-                            <td class="text-sm font-mono">{{ $row['nomor_invoice'] }}</td>
-                            <td class="text-sm">{{ $row['tanggal_batal'] ?? '-' }}</td>
-                            <td class="text-sm">{{ $row['pasien'] }}</td>
-                            <td class="text-sm text-right">Rp {{ number_format($row['nilai'], 0, ',', '.') }}</td>
-                            <td class="text-sm text-gray-600">{{ $row['alasan'] ?? '-' }}</td>
-                            <td class="text-sm">{{ $row['oleh'] ?? '-' }}</td>
+                            <td class="text-xs font-mono">{{ $row['nomor_invoice'] }}</td>
+                            <td class="text-xs text-gray-500">{{ $row['tanggal_transaksi'] }}</td>
+                            <td class="text-xs font-medium text-red-600">{{ $row['tanggal_batal'] ?? '-' }}</td>
+                            <td class="text-xs">{{ $row['pasien'] }}</td>
+                            <td class="text-xs font-mono text-gray-500">{{ $row['nomor_rm'] }}</td>
+                            <td class="text-xs text-right font-semibold">Rp {{ number_format($row['nilai'], 0, ',', '.') }}</td>
+                            <td class="text-xs text-gray-600 max-w-xs">{{ $row['alasan'] ?? '-' }}</td>
+                            <td class="text-xs">{{ $row['dibatalkan_oleh'] }}</td>
+                            <td class="text-xs font-semibold text-indigo-700">{{ $row['diverifikasi_oleh'] }}</td>
                         </tr>
                         @empty
-                        <tr><td colspan="6" class="text-center text-gray-400 py-4">Tidak ada data</td></tr>
+                        <tr><td colspan="9" class="text-center text-gray-400 py-4">Tidak ada data pembatalan pada periode ini</td></tr>
                         @endforelse
                     </tbody>
+                    @if(count($hasil['detail']) > 0)
+                    <tfoot>
+                        <tr class="font-semibold bg-gray-50">
+                            <td colspan="5" class="text-right text-xs">Total</td>
+                            <td class="text-right text-xs">Rp {{ number_format($hasil['total_nilai_batal'], 0, ',', '.') }}</td>
+                            <td colspan="3"></td>
+                        </tr>
+                    </tfoot>
+                    @endif
                 </table>
             </div>
         </div>

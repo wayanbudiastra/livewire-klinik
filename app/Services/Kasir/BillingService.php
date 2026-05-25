@@ -113,10 +113,11 @@ class BillingService
             $sesiKas->increment('total_pembatalan', $billing->total_bayar);
 
             $billing->update([
-                'status'          => 'dibatalkan',
-                'cancel_reason'   => $alasan,
-                'cancelled_by'    => $requestUserId,
-                'dibatalkan_pada' => now(),
+                'status'               => 'dibatalkan',
+                'cancel_reason'        => $alasan,
+                'cancelled_by'         => $requestUserId,
+                'cancel_verified_by'   => $superAdmin->id,
+                'dibatalkan_pada'      => now(),
             ]);
 
             AuditKasirService::log('batalkan_tagihan', $requestUserId, 'billing', $billing->id, [

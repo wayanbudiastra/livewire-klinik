@@ -12,7 +12,7 @@ class Invoice extends Model
         'kunjungan_id', 'shift_id', 'sesi_kas_id', 'nomor_invoice',
         'total_tagihan', 'total_bayar', 'total_deposit_dipakai', 'sisa', 'diskon_global',
         'status', 'sudah_cetak', 'jumlah_cetak',
-        'cancelled_by', 'cancel_reason', 'dibatalkan_pada',
+        'cancelled_by', 'cancel_verified_by', 'cancel_reason', 'dibatalkan_pada',
     ];
 
     protected function casts(): array
@@ -71,6 +71,11 @@ class Invoice extends Model
     public function dibatalkanOleh()
     {
         return $this->belongsTo(User::class, 'cancelled_by');
+    }
+
+    public function cancelVerifiedBy()
+    {
+        return $this->belongsTo(User::class, 'cancel_verified_by');
     }
 
     public function scopeBelumBayar($query)

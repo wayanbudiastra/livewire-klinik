@@ -24,22 +24,44 @@
 
     <table>
         <thead>
-            <tr><th>No. Invoice</th><th>Tgl Batal</th><th>Pasien</th><th style="text-align:right">Nilai (Rp)</th><th>Alasan</th><th>Dibatalkan Oleh</th></tr>
+            <tr>
+                <th>No. Invoice</th>
+                <th>Tgl Transaksi</th>
+                <th>Tgl Batal</th>
+                <th>Pasien</th>
+                <th>No. RM</th>
+                <th style="text-align:right">Nilai (Rp)</th>
+                <th>Alasan</th>
+                <th>Dibatalkan Oleh</th>
+                <th>Diverifikasi Oleh</th>
+            </tr>
         </thead>
         <tbody>
             @forelse($data['detail'] as $row)
             <tr>
                 <td style="font-family:monospace">{{ $row['nomor_invoice'] }}</td>
-                <td>{{ $row['tanggal_batal'] ?? '-' }}</td>
+                <td>{{ $row['tanggal_transaksi'] }}</td>
+                <td style="color:#dc2626;font-weight:bold">{{ $row['tanggal_batal'] ?? '-' }}</td>
                 <td>{{ $row['pasien'] }}</td>
+                <td style="font-family:monospace">{{ $row['nomor_rm'] }}</td>
                 <td style="text-align:right">{{ number_format($row['nilai'], 0, ',', '.') }}</td>
                 <td>{{ $row['alasan'] ?? '-' }}</td>
-                <td>{{ $row['oleh'] ?? '-' }}</td>
+                <td>{{ $row['dibatalkan_oleh'] }}</td>
+                <td style="color:#4338ca;font-weight:bold">{{ $row['diverifikasi_oleh'] }}</td>
             </tr>
             @empty
-            <tr><td colspan="6" style="text-align:center;color:#999">Tidak ada data</td></tr>
+            <tr><td colspan="9" style="text-align:center;color:#999">Tidak ada data</td></tr>
             @endforelse
         </tbody>
+        @if(count($data['detail']) > 0)
+        <tfoot>
+            <tr style="font-weight:bold;background:#fef2f2">
+                <td colspan="5" style="text-align:right">Total</td>
+                <td style="text-align:right">{{ number_format($data['total_nilai_batal'], 0, ',', '.') }}</td>
+                <td colspan="3"></td>
+            </tr>
+        </tfoot>
+        @endif
     </table>
 
     <div class="footer">Dicetak pada {{ now()->format('d/m/Y H:i') }} oleh {{ auth()->user()->nama ?? auth()->user()->name }}</div>

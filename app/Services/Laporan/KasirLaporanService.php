@@ -46,21 +46,24 @@ class KasirLaporanService
     {
         $batal = Invoice::where('status', 'dibatalkan')
             ->whereBetween('dibatalkan_pada', [$mulai, $akhir])
-            ->with(['kunjungan.pasien', 'dibatalkanOleh'])
+            ->with(['kunjungan.pasien', 'dibatalkanOleh', 'cancelVerifiedBy'])
+            ->orderBy('dibatalkan_pada')
             ->get();
 
         return [
             'total_batal'       => $batal->count(),
             'total_nilai_batal' => $batal->sum('total_tagihan'),
-            'per_alasan'        => $batal->groupBy('cancel_reason')->map->count(),
             'per_petugas'       => $batal->groupBy(fn ($b) => $b->dibatalkanOleh?->nama ?? 'N/A')->map->count(),
             'detail'            => $batal->map(fn ($b) => [
-                'nomor_invoice' => $b->nomor_invoice,
-                'tanggal_batal' => $b->dibatalkan_pada?->format('d/m/Y H:i'),
-                'pasien'        => $b->kunjungan->pasien->nama,
-                'nilai'         => $b->total_tagihan,
-                'alasan'        => $b->cancel_reason,
-                'oleh'          => $b->dibatalkanOleh?->nama,
+                'nomor_invoice'    => $b->nomor_invoice,
+                'tanggal_transaksi'=> $b->created_at->format('d/m/Y H:i'),
+                'tanggal_batal'    => $b->dibatalkan_pada?->format('d/m/Y H:i'),
+                'pasien'           => $b->kunjungan->pasien->nama,
+                'nomor_rm'         => $b->kunjungan->pasien->nomor_rm,
+                'nilai'            => $b->total_tagihan,
+                'alasan'           => $b->cancel_reason,
+                'dibatalkan_oleh'  => $b->dibatalkanOleh?->nama ?? '-',
+                'diverifikasi_oleh'=> $b->cancelVerifiedBy?->nama ?? '-',
             ]),
         ];
     }

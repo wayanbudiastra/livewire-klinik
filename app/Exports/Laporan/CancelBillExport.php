@@ -29,18 +29,31 @@ class CancelBillExport implements FromCollection, WithHeadings, WithMapping, Sho
 
     public function headings(): array
     {
-        return ['No. Invoice', 'Tanggal Batal', 'Pasien', 'Nilai (Rp)', 'Alasan', 'Dibatalkan Oleh'];
+        return [
+            'No. Invoice',
+            'Tgl Transaksi',
+            'Tgl Batal',
+            'Pasien',
+            'No. RM',
+            'Nilai (Rp)',
+            'Alasan',
+            'Dibatalkan Oleh',
+            'Diverifikasi Oleh (SuperAdmin)',
+        ];
     }
 
     public function map($row): array
     {
         return [
             $row['nomor_invoice'],
+            $row['tanggal_transaksi'],
             $row['tanggal_batal'] ?? '-',
             $row['pasien'],
+            $row['nomor_rm'],
             $row['nilai'],
             $row['alasan'] ?? '-',
-            $row['oleh'] ?? '-',
+            $row['dibatalkan_oleh'],
+            $row['diverifikasi_oleh'],
         ];
     }
 
