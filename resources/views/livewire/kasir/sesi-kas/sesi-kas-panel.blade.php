@@ -18,36 +18,277 @@
         </button>
     </div>
 
-    {{-- Modal Tutup Kas --}}
+    {{-- ══════════════════════════════════════════════════════════════
+         MODAL TUTUP KAS — 3 Step
+    ══════════════════════════════════════════════════════════════ --}}
     @if($showTutup)
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-         x-data @click.self="$wire.set('showTutup', false)">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4">
-            <div class="flex items-center justify-between p-4 border-b">
-                <h3 class="font-semibold text-gray-900">Tutup Kas</h3>
-                <button wire:click="$set('showTutup', false)" class="text-gray-400 hover:text-gray-600">&times;</button>
-            </div>
-            <div class="p-4 space-y-3">
-                <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
-                    Setelah kas ditutup, pembatalan tagihan tidak dapat dilakukan.
+         x-data="{
+             step: 1,
+             uangFisik: @entangle('uangFisikAkhir'),
+             saldoAwal: {{ (float) $sesiAktif->saldo_awal }},
+             totalCash: {{ $this->rekapSesi['total_cash'] }},
+             get totalSeharusnya() { return this.saldoAwal + this.totalCash; },
+             get selisih() { return parseFloat(this.uangFisik || 0) - this.totalSeharusnya; },
+             get selisihLabel() {
+                 if (this.selisih > 100) return 'Lebih';
+                 if (this.selisih < -100) return 'Kurang';
+                 return 'Sesuai';
+             },
+             fmt(n) { return new Intl.NumberFormat('id-ID').format(Math.round(n)); }
+         }"
+         @click.self="$wire.set('showTutup', false); step = 1">
+
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl mx-4">
+
+            {{-- Header --}}
+            <div class="flex items-center justify-between px-5 py-4 border-b">
+                <div class="flex items-center gap-4">
+                    <h3 class="font-semibold text-gray-900">Tutup Kas</h3>
+                    {{-- Step indicator --}}
+                    <div class="flex items-center gap-1 text-xs">
+                        <template x-for="n in [1,2,3]" :key="n">
+                            <div class="flex items-center gap-1">
+                                <span class="w-6 h-6 rounded-full flex items-center justify-center font-semibold transition-colors"
+                                    :class="step >= n ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-500'"
+                                    x-text="n"></span>
+                                <span x-show="n < 3" class="w-6 h-0.5"
+                                    :class="step > n ? 'bg-primary-400' : 'bg-gray-200'"></span>
+                            </div>
+                        </template>
+                    </div>
                 </div>
+                <button @click="$wire.set('showTutup', false); step = 1" class="text-gray-400 hover:text-gray-600 text-lg">&times;</button>
+            </div>
+
+            {{-- ── Step 1: Rekap Transaksi ─────────────────────────────────── --}}
+            <div x-show="step === 1" x-cloak class="p-5 space-y-4">
+                <p class="text-sm font-medium text-gray-700">Rekap transaksi pada shift ini:</p>
+
+                <div class="overflow-hidden rounded-lg border border-gray-200">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50 text-xs font-semibold uppercase text-gray-500">
+                            <tr>
+                                <th class="px-4 py-2.5 text-left">Metode Pembayaran</th>
+                                <th class="px-4 py-2.5 text-right">Jml Transaksi</th>
+                                <th class="px-4 py-2.5 text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @forelse($this->rekapSesi['per_metode'] as $row)
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-2.5 font-medium text-gray-800">{{ $row['label'] }}</td>
+                                <td class="px-4 py-2.5 text-right text-gray-600">{{ $row['jumlah_trx'] }}</td>
+                                <td class="px-4 py-2.5 text-right font-semibold text-gray-900">
+                                    Rp {{ number_format($row['total'], 0, ',', '.') }}
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="3" class="px-4 py-6 text-center text-gray-400">
+                                    Belum ada transaksi pada shift ini
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                        <tfoot class="bg-gray-50 border-t border-gray-200">
+                            <tr>
+                                <td class="px-4 py-2.5 font-bold text-gray-900" colspan="2">Total Semua Transaksi</td>
+                                <td class="px-4 py-2.5 text-right font-bold text-gray-900">
+                                    Rp {{ number_format($this->rekapSesi['total_semua'], 0, ',', '.') }}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                @if($this->rekapSesi['total_pembatalan'] > 0)
+                <div class="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+                    <svg class="size-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    </svg>
+                    <span>
+                        Terdapat <strong>{{ $this->rekapSesi['total_pembatalan'] }} tagihan dibatalkan</strong> pada shift ini.
+                    </span>
+                </div>
+                @endif
+
+                <div class="flex justify-end pt-1">
+                    <button @click="step = 2"
+                        class="flex items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700">
+                        Lanjut: Validasi Uang Fisik
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            {{-- ── Step 2: Validasi Uang Fisik ─────────────────────────────── --}}
+            <div x-show="step === 2" x-cloak class="p-5 space-y-4">
+                <p class="text-sm font-medium text-gray-700">Hitung uang fisik di laci kas dan masukkan jumlahnya:</p>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="rounded-lg bg-gray-50 border border-gray-200 p-3">
+                        <p class="text-xs text-gray-500 mb-0.5">Saldo Awal Kas</p>
+                        <p class="font-semibold text-gray-900">Rp {{ number_format($sesiAktif->saldo_awal, 0, ',', '.') }}</p>
+                    </div>
+                    <div class="rounded-lg bg-blue-50 border border-blue-200 p-3">
+                        <p class="text-xs text-blue-600 mb-0.5">Total Tunai Masuk</p>
+                        <p class="font-semibold text-blue-900">Rp {{ number_format($this->rekapSesi['total_cash'], 0, ',', '.') }}</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3">
+                    <p class="text-sm font-medium text-emerald-700">Total yang Seharusnya Ada di Laci</p>
+                    <p class="text-lg font-bold text-emerald-900">
+                        Rp <span x-text="fmt(totalSeharusnya)"></span>
+                    </p>
+                </div>
+
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Catatan (opsional)</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Jumlah Uang Fisik Dihitung (Rp) <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number"
+                        x-model="uangFisik"
+                        wire:model="uangFisikAkhir"
+                        class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent @error('uangFisikAkhir') border-red-400 @enderror"
+                        placeholder="Hitung dan masukkan total uang di laci" min="0" step="1000" />
+                    @error('uangFisikAkhir') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                {{-- Selisih real-time --}}
+                <div x-show="uangFisik !== '' && uangFisik !== null"
+                     class="flex items-center justify-between rounded-lg px-4 py-3 transition-colors"
+                     :class="{
+                         'bg-emerald-50 border border-emerald-200': Math.abs(selisih) <= 100,
+                         'bg-blue-50 border border-blue-200': selisih > 100,
+                         'bg-red-50 border border-red-200': selisih < -100
+                     }">
+                    <div>
+                        <p class="text-sm font-semibold"
+                           :class="{
+                               'text-emerald-700': Math.abs(selisih) <= 100,
+                               'text-blue-700': selisih > 100,
+                               'text-red-700': selisih < -100
+                           }">
+                            Selisih &mdash; <span x-text="selisihLabel"></span>
+                        </p>
+                        <p class="text-xs mt-0.5"
+                           :class="{
+                               'text-emerald-600': Math.abs(selisih) <= 100,
+                               'text-blue-600': selisih > 100,
+                               'text-red-600': selisih < -100
+                           }">
+                            <span x-text="selisih < 0 ? 'Uang fisik kurang dari sistem' : (selisih > 100 ? 'Uang fisik lebih dari sistem' : 'Uang fisik sesuai sistem')"></span>
+                        </p>
+                    </div>
+                    <p class="text-xl font-bold"
+                       :class="{
+                           'text-emerald-800': Math.abs(selisih) <= 100,
+                           'text-blue-800': selisih > 100,
+                           'text-red-800': selisih < -100
+                       }">
+                        <span x-text="selisih >= 0 ? '' : '-'"></span>Rp <span x-text="fmt(Math.abs(selisih))"></span>
+                    </p>
+                </div>
+
+                <div class="flex justify-between pt-1">
+                    <button @click="step = 1"
+                        class="flex items-center gap-1.5 rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                        Kembali
+                    </button>
+                    <button @click="if(uangFisik !== '' && uangFisik !== null) step = 3"
+                        :disabled="uangFisik === '' || uangFisik === null"
+                        class="flex items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed">
+                        Lanjut: Konfirmasi
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            {{-- ── Step 3: Konfirmasi & Tutup ──────────────────────────────── --}}
+            <div x-show="step === 3" x-cloak class="p-5 space-y-4">
+                <p class="text-sm font-medium text-gray-700">Ringkasan sebelum menutup kas:</p>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="rounded-lg bg-gray-50 border border-gray-200 p-3 text-center">
+                        <p class="text-xs text-gray-500 mb-1">Total Transaksi</p>
+                        <p class="font-bold text-gray-900 text-sm">
+                            Rp {{ number_format($this->rekapSesi['total_semua'], 0, ',', '.') }}
+                        </p>
+                    </div>
+                    <div class="rounded-lg bg-blue-50 border border-blue-200 p-3 text-center">
+                        <p class="text-xs text-blue-600 mb-1">Uang Fisik</p>
+                        <p class="font-bold text-blue-900 text-sm">
+                            Rp <span x-text="fmt(parseFloat(uangFisik || 0))"></span>
+                        </p>
+                    </div>
+                    <div class="rounded-lg p-3 text-center border"
+                         :class="{
+                             'bg-emerald-50 border-emerald-200': Math.abs(selisih) <= 100,
+                             'bg-blue-50 border-blue-200': selisih > 100,
+                             'bg-red-50 border-red-200': selisih < -100
+                         }">
+                        <p class="text-xs mb-1"
+                           :class="{
+                               'text-emerald-600': Math.abs(selisih) <= 100,
+                               'text-blue-600': selisih > 100,
+                               'text-red-600': selisih < -100
+                           }">Selisih</p>
+                        <p class="font-bold text-sm"
+                           :class="{
+                               'text-emerald-800': Math.abs(selisih) <= 100,
+                               'text-blue-800': selisih > 100,
+                               'text-red-800': selisih < -100
+                           }">
+                            <span x-text="selisih >= 0 ? '' : '-'"></span>Rp <span x-text="fmt(Math.abs(selisih))"></span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5 text-xs text-amber-800">
+                    <strong>Perhatian:</strong> Setelah kas ditutup, transaksi baru tidak dapat diproses dan
+                    pembatalan tagihan tidak dapat dilakukan. Pembukaan kembali memerlukan otorisasi SuperAdmin.
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Catatan Penutupan (opsional)</label>
                     <textarea wire:model="catatanTutup" rows="2"
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        placeholder="Catatan penutupan kas"></textarea>
+                        class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500"
+                        placeholder="Catatan tambahan (opsional)"></textarea>
                     @error('catatanTutup') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
+
+                <div class="flex justify-between pt-1">
+                    <button @click="step = 2"
+                        class="flex items-center gap-1.5 rounded-lg border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                        Kembali
+                    </button>
+                    <button wire:click="tutupKas" wire:loading.attr="disabled"
+                        class="flex items-center gap-1.5 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50">
+                        <span wire:loading.remove wire:target="tutupKas">
+                            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </span>
+                        <span wire:loading.remove wire:target="tutupKas">Tutup Kas Sekarang</span>
+                        <span wire:loading wire:target="tutupKas">Menutup...</span>
+                    </button>
+                </div>
             </div>
-            <div class="flex justify-end gap-2 p-4 border-t">
-                <button wire:click="$set('showTutup', false)"
-                    class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Batal</button>
-                <button wire:click="tutupKas" wire:loading.attr="disabled"
-                    class="px-4 py-2 text-sm bg-amber-500 text-white rounded-lg hover:bg-amber-600">
-                    <span wire:loading.remove wire:target="tutupKas">Tutup Sekarang</span>
-                    <span wire:loading wire:target="tutupKas">Menutup...</span>
-                </button>
-            </div>
+
         </div>
     </div>
     @endif

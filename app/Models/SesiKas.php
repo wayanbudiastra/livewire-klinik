@@ -11,7 +11,7 @@ class SesiKas extends Model
 
     protected $fillable = [
         'user_id', 'tanggal', 'dibuka_pada', 'saldo_awal',
-        'ditutup_pada', 'saldo_akhir',
+        'ditutup_pada', 'saldo_akhir', 'uang_fisik_akhir', 'selisih',
         'total_cash', 'total_non_cash', 'total_deposit', 'total_bpjs', 'total_asuransi', 'total_pembatalan',
         'status', 'ditutup_oleh',
         'dibuka_kembali_oleh', 'dibuka_kembali_pada', 'alasan_dibuka_kembali',
@@ -27,6 +27,8 @@ class SesiKas extends Model
             'dibuka_kembali_pada' => 'datetime',
             'saldo_awal'          => 'decimal:2',
             'saldo_akhir'         => 'decimal:2',
+            'uang_fisik_akhir'    => 'decimal:2',
+            'selisih'             => 'decimal:2',
             'total_cash'          => 'decimal:2',
             'total_non_cash'      => 'decimal:2',
             'total_deposit'       => 'decimal:2',

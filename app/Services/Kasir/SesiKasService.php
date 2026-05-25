@@ -34,13 +34,13 @@ class SesiKasService
         return $sesi;
     }
 
-    public function tutupKas(SesiKas $sesi, int $userId, ?string $catatan = null): SesiKas
+    public function tutupKas(SesiKas $sesi, int $userId, float $uangFisikAkhir, ?string $catatan = null): SesiKas
     {
         if ($sesi->status === 'tutup') {
             throw new \RuntimeException('Sesi kas ini sudah ditutup.');
         }
 
-        return DB::transaction(function () use ($sesi, $userId, $catatan) {
+        return DB::transaction(function () use ($sesi, $userId, $uangFisikAkhir, $catatan) {
             $rekap = PembayaranSplit::where('sesi_kas_id', $sesi->id)
                 ->join('billing', 'pembayaran_split.billing_id', '=', 'billing.id')
                 ->where('billing.status', 'lunas')
@@ -54,23 +54,30 @@ class SesiKasService
                 ")
                 ->first();
 
+            $totalCash     = (float) ($rekap->total_cash ?? 0);
+            $selisih       = $uangFisikAkhir - ((float) $sesi->saldo_awal + $totalCash);
+
             $sesi->update([
-                'status'         => 'tutup',
-                'ditutup_pada'   => now(),
-                'ditutup_oleh'   => $userId,
-                'saldo_akhir'    => $rekap->saldo_akhir ?? 0,
-                'total_cash'     => $rekap->total_cash ?? 0,
-                'total_non_cash' => $rekap->total_non_cash ?? 0,
-                'total_deposit'  => $rekap->total_deposit ?? 0,
-                'total_bpjs'     => $rekap->total_bpjs ?? 0,
-                'total_asuransi' => $rekap->total_asuransi ?? 0,
-                'catatan'        => $catatan,
+                'status'           => 'tutup',
+                'ditutup_pada'     => now(),
+                'ditutup_oleh'     => $userId,
+                'saldo_akhir'      => $rekap->saldo_akhir ?? 0,
+                'uang_fisik_akhir' => $uangFisikAkhir,
+                'selisih'          => $selisih,
+                'total_cash'       => $totalCash,
+                'total_non_cash'   => $rekap->total_non_cash ?? 0,
+                'total_deposit'    => $rekap->total_deposit ?? 0,
+                'total_bpjs'       => $rekap->total_bpjs ?? 0,
+                'total_asuransi'   => $rekap->total_asuransi ?? 0,
+                'catatan'          => $catatan,
             ]);
 
             AuditKasirService::log('tutup_kas', $userId, 'sesi_kas', $sesi->id, [
-                'saldo_akhir'    => $sesi->fresh()->saldo_akhir,
-                'total_cash'     => $rekap->total_cash ?? 0,
-                'total_non_cash' => $rekap->total_non_cash ?? 0,
+                'saldo_akhir'      => $sesi->fresh()->saldo_akhir,
+                'uang_fisik_akhir' => $uangFisikAkhir,
+                'selisih'          => $selisih,
+                'total_cash'       => $totalCash,
+                'total_non_cash'   => $rekap->total_non_cash ?? 0,
             ]);
 
             return $sesi->fresh();
