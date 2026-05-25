@@ -27,9 +27,10 @@
     {{-- ═══ LIST RESEP ═══ --}}
     @forelse($this->resepList as $resep)
     @php
-        $pasien  = $resep->kunjungan?->pasien;
-        $dokter  = $resep->kunjungan?->dokter?->user?->nama ?? '—';
-        $hasItem = $resep->itemResep->count() > 0 || $resep->racikan->count() > 0;
+        $pasien        = $resep->kunjungan?->pasien;
+        $dokter        = $resep->kunjungan?->dokter?->user?->nama ?? '—';
+        $hasItem       = $resep->itemResep->count() > 0 || $resep->racikan->count() > 0;
+        $billingLunas  = $resep->kunjungan?->invoice?->status === 'lunas';
     @endphp
     <div class="card mb-4" wire:key="resep-{{ $resep->id }}">
         {{-- Header Resep --}}
@@ -64,6 +65,19 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                 </svg>
                 Konfirmasi & Potong Stok
+            </x-confirm-button>
+            @elseif($resep->is_locked && !$billingLunas)
+            <x-confirm-button
+                :action="'batalkanKonfirmasi(' . $resep->id . ')'"
+                title="Batalkan Konfirmasi Resep?"
+                text="Stok obat akan dikembalikan dan resep dikembalikan ke status menunggu."
+                confirm="Ya, Batalkan"
+                type="danger"
+                class="btn-danger btn-sm flex-shrink-0">
+                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                Batalkan Konfirmasi
             </x-confirm-button>
             @endif
         </div>

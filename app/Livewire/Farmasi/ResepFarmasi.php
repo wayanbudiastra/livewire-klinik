@@ -38,6 +38,7 @@ class ResepFarmasi extends Component
         return Resep::with([
                 'kunjungan.pasien',
                 'kunjungan.dokter.user:id,nama',
+                'kunjungan.invoice:id,kunjungan_id,status',
                 'itemResep.obat',
                 'racikan.bahanRacikan.obat',
                 'locker:id,nama',
@@ -189,6 +190,47 @@ class ResepFarmasi extends Component
 
         unset($this->resepList);
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Resep dikonfirmasi dan stok telah dipotong.']);
+    }
+
+    public function batalkanKonfirmasi(int $resepId): void
+    {
+        $resep = Resep::with([
+            'itemResep.obat',
+            'racikan.bahanRacikan.obat',
+            'kunjungan.invoice',
+        ])->find($resepId);
+
+        if (! $resep || ! $resep->is_locked) return;
+
+        // Hanya boleh dibatalkan jika invoice belum lunas
+        if ($resep->kunjungan?->invoice?->status === 'lunas') {
+            $this->dispatch('notify', ['type' => 'error',
+                'message' => 'Resep tidak dapat dibatalkan karena billing sudah lunas.']);
+            return;
+        }
+
+        // Kembalikan stok obat jadi
+        foreach ($resep->itemResep as $item) {
+            $item->obat?->increment('stok', $item->jumlah);
+        }
+
+        // Kembalikan stok bahan racikan
+        foreach ($resep->racikan as $racikan) {
+            foreach ($racikan->bahanRacikan as $bahan) {
+                $bahan->obat?->increment('stok', $bahan->jumlah);
+            }
+        }
+
+        $resep->update([
+            'is_locked'  => false,
+            'locked_by'  => null,
+            'locked_at'  => null,
+            'status'     => 'menunggu',
+        ]);
+
+        unset($this->resepList);
+        $this->dispatch('notify', ['type' => 'success',
+            'message' => 'Konfirmasi resep dibatalkan dan stok dikembalikan.']);
     }
 
     public function render()
