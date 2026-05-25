@@ -5,9 +5,10 @@ namespace App\Livewire\Kasir;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Kunjungan;
-use App\Models\Pembayaran;
-use App\Models\ShiftKasir;
+use App\Models\PembayaranSplit;
+use App\Models\SesiKas;
 use App\Services\InvoiceService;
+use App\Services\Kasir\SesiKasService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
@@ -46,16 +47,18 @@ class TagihanPasien extends Component
     public string $catatanBayar     = '';
 
     protected InvoiceService $invoiceService;
+    protected SesiKasService $sesiKasService;
 
-    public function boot(InvoiceService $invoiceService): void
+    public function boot(InvoiceService $invoiceService, SesiKasService $sesiKasService): void
     {
         $this->invoiceService = $invoiceService;
+        $this->sesiKasService = $sesiKasService;
     }
 
     #[Computed]
-    public function activeShift(): ?ShiftKasir
+    public function activeSesi(): ?SesiKas
     {
-        return ShiftKasir::where('user_id', Auth::id())->open()->latest()->first();
+        return $this->sesiKasService->getSesiAktif(Auth::id());
     }
 
     #[Computed]
@@ -93,7 +96,7 @@ class TagihanPasien extends Component
     #[Computed]
     public function daftarHariIni(): array
     {
-        return Kunjungan::with('pasien', 'dokter', 'poli', 'invoice')
+        return Kunjungan::with('pasien', 'dokter.user', 'poli', 'invoice')
             ->whereNotIn('status', ['dibatalkan'])
             ->whereDate('tanggal', today())
             ->whereDoesntHave('invoice', fn ($q) => $q->where('status', 'lunas'))
@@ -104,8 +107,8 @@ class TagihanPasien extends Component
                 'nomor_antrean'  => $k->nomor_antrean,
                 'pasien_nama'    => $k->pasien->nama,
                 'no_rm'          => $k->pasien->nomor_rm,
-                'poli'           => $k->poli->nama ?? '-',
-                'dokter'         => $k->dokter->nama ?? '-',
+                'poli'           => $k->poli?->nama ?? '-',
+                'dokter'         => $k->dokter?->user?->nama ?? '-',
                 'tipe'           => $k->tipe_pembayaran,
                 'tanggal'        => $k->tanggal->format('d/m/Y'),
                 'status'         => $k->status,
@@ -129,7 +132,7 @@ class TagihanPasien extends Component
 
         // Tampilkan semua kunjungan terdaftar (kecuali dibatalkan & sudah lunas)
         // dalam 30 hari terakhir, kasir bisa lihat antrian lengkap
-        $this->searchResults = Kunjungan::with('pasien', 'dokter', 'poli', 'invoice')
+        $this->searchResults = Kunjungan::with('pasien', 'dokter.user', 'poli', 'invoice')
             ->whereHas('pasien', function ($q) {
                 $q->where('nama', 'like', "%{$this->searchPasien}%")
                   ->orWhere('nomor_rm', 'like', "%{$this->searchPasien}%");
@@ -145,8 +148,8 @@ class TagihanPasien extends Component
                 'nomor_antrean'  => $k->nomor_antrean,
                 'pasien_nama'    => $k->pasien->nama,
                 'no_rm'          => $k->pasien->nomor_rm,
-                'poli'           => $k->poli->nama ?? '-',
-                'dokter'         => $k->dokter->nama ?? '-',
+                'poli'           => $k->poli?->nama ?? '-',
+                'dokter'         => $k->dokter?->user?->nama ?? '-',
                 'tipe'           => $k->tipe_pembayaran,
                 'tanggal'        => $k->tanggal->format('d/m/Y'),
                 'status'         => $k->status,
@@ -171,8 +174,8 @@ class TagihanPasien extends Component
 
     public function fetchTagihan(): void
     {
-        if (! $this->activeShift) {
-            session()->flash('error', 'Buka shift kasir terlebih dahulu.');
+        if (! $this->activeSesi) {
+            session()->flash('error', 'Buka kas terlebih dahulu.');
             return;
         }
 
@@ -185,7 +188,7 @@ class TagihanPasien extends Component
             return;
         }
 
-        $invoice = $this->invoiceService->createOrRefresh($kunjungan, $this->activeShift);
+        $invoice = $this->invoiceService->createOrRefresh($kunjungan, $this->activeSesi);
 
         $this->invoiceId     = $invoice->id;
         $this->editDiskon    = $invoice->items->pluck('diskon_item', 'id')
@@ -272,8 +275,8 @@ class TagihanPasien extends Component
 
     public function prosesPembayaran(): void
     {
-        if (! $this->activeShift) {
-            session()->flash('error', 'Shift kasir tidak aktif.');
+        if (! $this->activeSesi) {
+            session()->flash('error', 'Kas tidak aktif. Buka kas terlebih dahulu.');
             return;
         }
 
@@ -310,34 +313,25 @@ class TagihanPasien extends Component
         ]);
 
         DB::transaction(function () use ($invoice) {
-            $jumlah = match ($this->metodePembayaran) {
-                'tunai'     => $invoice->sisa,
-                'non_tunai' => $invoice->sisa,
-                'asuransi'  => $invoice->sisa,
+            $jumlah = $invoice->sisa;
+
+            // Map metode pembayaran ke format PembayaranSplit
+            $metodeSplit = match ($this->metodePembayaran) {
+                'tunai'     => 'tunai',
+                'non_tunai' => $this->tipeKartu ?? 'transfer',
+                'asuransi'  => 'asuransi',
             };
 
-            Pembayaran::create([
-                'billing_id'       => $invoice->id,
-                'shift_id'         => $this->activeShift->id,
-                'metode'           => $this->metodePembayaran,
-                'jumlah'           => $jumlah,
-                'bank_nama'        => $this->bankNama ?: null,
-                'nomor_referensi'  => $this->nomorReferensi ?: null,
-                'tipe_kartu'       => $this->tipeKartu ?: null,
-                'nama_asuransi'    => $this->namaAsuransi ?: null,
-                'catatan'          => $this->catatanBayar ?: null,
-                'created_at'       => now(),
+            PembayaranSplit::create([
+                'billing_id'    => $invoice->id,
+                'sesi_kas_id'   => $this->activeSesi->id,
+                'user_id'       => Auth::id(),
+                'metode'        => $metodeSplit,
+                'jumlah'        => $jumlah,
+                'referensi'     => $this->nomorReferensi ?: null,
+                'nama_asuransi' => $this->namaAsuransi ?: null,
+                'tanggal_bayar' => now(),
             ]);
-
-            // Update shift totals
-            $shift = $this->activeShift;
-            if ($this->metodePembayaran === 'tunai') {
-                $shift->increment('total_tunai', $jumlah);
-            } elseif ($this->metodePembayaran === 'non_tunai') {
-                $shift->increment('total_nontunai', $jumlah);
-            } else {
-                $shift->increment('total_piutang', $jumlah);
-            }
 
             $this->invoiceService->recalcTotal($invoice);
             $invoice->refresh();
@@ -353,7 +347,7 @@ class TagihanPasien extends Component
         ]);
         $this->tipeKartu = 'debit';
 
-        unset($this->invoice, $this->activeShift, $this->kembalian, $this->hasPendingResep);
+        unset($this->invoice, $this->activeSesi, $this->kembalian, $this->hasPendingResep);
         session()->flash('success', 'Pembayaran berhasil diproses.');
     }
 
@@ -367,7 +361,7 @@ class TagihanPasien extends Component
         ]);
         $this->metodePembayaran = 'tunai';
         $this->tipeKartu        = 'debit';
-        unset($this->kunjungan, $this->invoice, $this->kembalian, $this->hasPendingResep);
+        unset($this->kunjungan, $this->invoice, $this->kembalian, $this->hasPendingResep, $this->activeSesi);
     }
 
     public function render()
