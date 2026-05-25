@@ -11,10 +11,10 @@
         </div>
     @endif
 
-    {{-- Guard: shift harus aktif --}}
-    @if (! $this->activeShift)
+    {{-- Guard: kas harus aktif --}}
+    @if (! $this->activeSesi)
         <div class="rounded-xl border border-yellow-200 bg-yellow-50 px-5 py-4 text-sm text-yellow-800">
-            <strong>Shift belum dibuka.</strong> Buka shift kasir terlebih dahulu untuk memproses transaksi.
+            <strong>Kas belum dibuka.</strong> Buka kas terlebih dahulu di tab "Sesi Kas" untuk memproses transaksi.
         </div>
     @else
 
@@ -438,5 +438,5 @@
     </div>
     @endif {{-- end if kunjunganId --}}
 
-    @endif {{-- end if activeShift --}}
+    @endif {{-- end if activeSesi --}}
 </div>

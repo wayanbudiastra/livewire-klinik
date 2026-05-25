@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Models\Invoice;
 use App\Models\Kunjungan;
-use App\Models\ShiftKasir;
+use App\Models\SesiKas;
 
 class InvoiceService
 {
@@ -119,7 +119,7 @@ class InvoiceService
      * Create a new invoice or refresh an existing unpaid one.
      * Manual items added by the cashier are preserved on refresh.
      */
-    public function createOrRefresh(Kunjungan $kunjungan, ShiftKasir $shift): Invoice
+    public function createOrRefresh(Kunjungan $kunjungan, SesiKas $sesiKas): Invoice
     {
         $invoice = Invoice::firstOrNew(['kunjungan_id' => $kunjungan->id]);
 
@@ -133,7 +133,7 @@ class InvoiceService
 
         if (! $invoice->exists) {
             $invoice->nomor_invoice = $this->generateNomor($kunjungan->id);
-            $invoice->shift_id      = $shift->id;
+            $invoice->sesi_kas_id   = $sesiKas->id;
             $invoice->diskon_global = 0;
             $invoice->status        = 'belum_bayar';
             $invoice->total_tagihan = $totalTagihan;
@@ -159,11 +159,12 @@ class InvoiceService
      */
     public function recalcTotal(Invoice $invoice): void
     {
-        $invoice->load('items', 'pembayaran');
+        $invoice->load('items', 'pembayaran', 'pembayaranSplit');
 
         $subtotalItems  = $invoice->items->sum(fn ($i) => $i->subtotal - $i->diskon_item);
         $totalTagihan   = max(0, $subtotalItems - $invoice->diskon_global);
-        $totalBayar     = $invoice->pembayaran->sum('jumlah');
+        $totalBayar     = $invoice->pembayaran->sum('jumlah')
+                        + $invoice->pembayaranSplit->sum('jumlah');
         $sisa           = max(0, $totalTagihan - $totalBayar);
 
         $invoice->total_tagihan = $totalTagihan;
