@@ -502,7 +502,7 @@
                             @foreach($resep->itemResep as $item)
                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/40">
                                 <td class="px-4 py-2.5 font-medium text-gray-800 dark:text-gray-200">
-                                    {{ $item->obat?->nama_obat ?? '-' }}
+                                    {{ $item->obat?->nama ?? '-' }}
                                     <span class="text-xs text-gray-400 ml-1">{{ $item->obat?->satuan }}</span>
                                 </td>
                                 <td class="px-4 py-2.5 text-center font-bold text-gray-700 dark:text-gray-300">
@@ -528,7 +528,7 @@
                             <p class="text-xs font-bold text-purple-700 dark:text-purple-300">{{ $rac->nama ?? 'Racikan #'.$loop->iteration }}</p>
                             @foreach($rac->bahanRacikan as $bahan)
                             <p class="text-xs text-gray-600 dark:text-gray-400 ml-2">
-                                &bull; {{ $bahan->obat?->nama_obat }} — {{ $bahan->jumlah }} {{ $bahan->satuan }}
+                                &bull; {{ $bahan->obat?->nama }} — {{ $bahan->jumlah }} {{ $bahan->satuan }}
                             </p>
                             @endforeach
                         </div>

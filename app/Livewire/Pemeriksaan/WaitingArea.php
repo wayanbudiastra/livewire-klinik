@@ -70,8 +70,8 @@ class WaitingArea extends Component
             'poli:id,nama',
             'asesmenPerawat',
             'soapNote',
-            'resep.itemResep.obat:id,nama_obat,satuan',
-            'resep.racikan.bahanRacikan.obat:id,nama_obat,satuan',
+            'resep.itemResep.obat:id,nama,satuan',
+            'resep.racikan.bahanRacikan.obat:id,nama,satuan',
             'tindakan.masterTindakan:id,nama,tarif',
         ])->find($this->viewKunjunganId);
     }
