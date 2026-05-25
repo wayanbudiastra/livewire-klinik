@@ -69,7 +69,7 @@ class Kunjungan extends Model
 
     public function invoice()
     {
-        return $this->hasOne(Invoice::class);
+        return $this->hasOne(Invoice::class)->latestOfMany();
     }
 
     public function penggunaanAlat()

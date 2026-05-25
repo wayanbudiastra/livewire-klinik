@@ -121,31 +121,16 @@ class InvoiceService
      */
     public function createOrRefresh(Kunjungan $kunjungan, SesiKas $sesiKas): Invoice
     {
-        $invoice = Invoice::firstOrNew(['kunjungan_id' => $kunjungan->id]);
+        // Cancelled invoices are kept for audit; always look for an active (non-cancelled) one.
+        $invoice = Invoice::where('kunjungan_id', $kunjungan->id)
+            ->whereNotIn('status', ['dibatalkan'])
+            ->latest()
+            ->first()
+            ?? new Invoice(['kunjungan_id' => $kunjungan->id]);
 
         // Never touch a paid invoice
         if ($invoice->exists && $invoice->status === 'lunas') {
             return $invoice->load('items');
-        }
-
-        // Reactivate a cancelled invoice: clear old payment splits and reset to fresh state.
-        // A new invoice cannot be created (kunjungan_id is unique), so the same row is reused.
-        if ($invoice->exists && $invoice->status === 'dibatalkan') {
-            $invoice->pembayaranSplit()->delete();
-            $invoice->cetakLogs()->delete();
-            $invoice->forceFill([
-                'nomor_invoice'        => $this->generateNomor($kunjungan->id),
-                'sesi_kas_id'          => $sesiKas->id,
-                'diskon_global'        => 0,
-                'total_bayar'          => 0,
-                'total_deposit_dipakai'=> 0,
-                'sudah_cetak'          => false,
-                'jumlah_cetak'         => 0,
-                'status'               => 'belum_bayar',
-                'cancel_reason'        => null,
-                'cancelled_by'         => null,
-                'dibatalkan_pada'      => null,
-            ]);
         }
 
         $clinicalItems = $this->buildItems($kunjungan);
@@ -195,8 +180,14 @@ class InvoiceService
 
     private function generateNomor(int $kunjunganId): string
     {
-        $tanggal = now()->format('Ymd');
-        $seq     = str_pad($kunjunganId, 5, '0', STR_PAD_LEFT);
-        return "INV-{$tanggal}-{$seq}";
+        $tanggal  = now()->format('Ymd');
+        $base     = str_pad($kunjunganId, 5, '0', STR_PAD_LEFT);
+        $existing = Invoice::where('kunjungan_id', $kunjunganId)->count();
+
+        // First invoice: INV-20260525-00042
+        // Re-issued after cancellation: INV-20260525-00042-R1, -R2, …
+        $suffix = $existing > 0 ? "-R{$existing}" : '';
+
+        return "INV-{$tanggal}-{$base}{$suffix}";
     }
 }
