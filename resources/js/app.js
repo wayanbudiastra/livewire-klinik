@@ -2,6 +2,11 @@ import './bootstrap';
 
 import { initFlowbite } from 'flowbite';
 import Swal from 'sweetalert2';
+import { Chart, registerables } from 'chart.js';
+
+// ── Chart.js global ──────────────────────────────────────
+Chart.register(...registerables);
+window.Chart = Chart;
 
 // ── Flowbite init ────────────────────────────────────────
 document.addEventListener('livewire:navigated', () => initFlowbite());
