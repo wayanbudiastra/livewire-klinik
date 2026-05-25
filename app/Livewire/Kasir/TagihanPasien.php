@@ -2,9 +2,12 @@
 
 namespace App\Livewire\Kasir;
 
+use App\Models\Barang;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
+use App\Models\ItemPenunjang;
 use App\Models\Kunjungan;
+use App\Models\MasterTindakan;
 use App\Models\PembayaranSplit;
 use App\Models\SesiKas;
 use App\Services\InvoiceService;
@@ -33,6 +36,11 @@ class TagihanPasien extends Component
     public string $manualQty      = '1';
     public string $manualHarga    = '';
     public string $manualSatuan   = '';
+
+    // Add komponen form
+    public bool   $showKomponenForm = false;
+    public string $komponenTab      = 'prosedur';
+    public string $searchKomponen   = '';
 
     // Global discount
     public string $diskonGlobalNominal = '';
@@ -362,6 +370,116 @@ class TagihanPasien extends Component
         $this->metodePembayaran = 'tunai';
         $this->tipeKartu        = 'debit';
         unset($this->kunjungan, $this->invoice, $this->kembalian, $this->hasPendingResep, $this->activeSesi);
+    }
+
+    // ── Tambah Komponen ──────────────────────────────────────────
+
+    #[Computed]
+    public function komponenList(): array
+    {
+        $q = strlen($this->searchKomponen) >= 2 ? $this->searchKomponen : null;
+
+        return match ($this->komponenTab) {
+            'prosedur' => MasterTindakan::aktif()
+                ->when($q, fn ($query) => $query->where('nama', 'like', "%{$q}%"))
+                ->orderBy('nama')
+                ->limit(40)
+                ->get()
+                ->map(fn ($i) => [
+                    'id'     => $i->id,
+                    'nama'   => $i->nama,
+                    'harga'  => (float) $i->tarif,
+                    'satuan' => 'tindakan',
+                    'info'   => $i->kategori ?? '',
+                ])
+                ->toArray(),
+
+            'peralatan' => Barang::active()
+                ->when($q, fn ($query) => $query->where('nama', 'like', "%{$q}%")
+                                                ->orWhere('kode', 'like', "%{$q}%"))
+                ->orderBy('nama')
+                ->limit(40)
+                ->get()
+                ->map(fn ($i) => [
+                    'id'     => $i->id,
+                    'nama'   => $i->nama,
+                    'harga'  => (float) $i->harga_jual,
+                    'satuan' => $i->satuan ?? 'buah',
+                    'info'   => 'Stok: ' . $i->stok,
+                ])
+                ->toArray(),
+
+            'lab' => ItemPenunjang::aktif()->lab()
+                ->when($q, fn ($query) => $query->where('nama', 'like', "%{$q}%")
+                                                ->orWhere('kode', 'like', "%{$q}%"))
+                ->orderBy('nama')
+                ->limit(40)
+                ->get()
+                ->map(fn ($i) => [
+                    'id'     => $i->id,
+                    'nama'   => $i->nama,
+                    'harga'  => (float) $i->tarif,
+                    'satuan' => 'pemeriksaan',
+                    'info'   => '',
+                ])
+                ->toArray(),
+
+            'radiologi' => ItemPenunjang::aktif()->radiologi()
+                ->when($q, fn ($query) => $query->where('nama', 'like', "%{$q}%")
+                                                ->orWhere('kode', 'like', "%{$q}%"))
+                ->orderBy('nama')
+                ->limit(40)
+                ->get()
+                ->map(fn ($i) => [
+                    'id'     => $i->id,
+                    'nama'   => $i->nama,
+                    'harga'  => (float) $i->tarif,
+                    'satuan' => 'pemeriksaan',
+                    'info'   => '',
+                ])
+                ->toArray(),
+
+            default => [],
+        };
+    }
+
+    public function switchKomponenTab(string $tab): void
+    {
+        $this->komponenTab    = $tab;
+        $this->searchKomponen = '';
+        unset($this->komponenList);
+    }
+
+    public function addKomponenItem(int $refId, string $nama, float $harga, string $satuan, int $qty): void
+    {
+        $invoice = Invoice::find($this->invoiceId);
+        if (! $invoice || $invoice->status !== 'belum_bayar') return;
+
+        $qty      = max(1, $qty);
+        $subtotal = $harga * $qty;
+
+        $jenis = match ($this->komponenTab) {
+            'prosedur'  => 'tindakan',
+            'peralatan' => 'alkes',
+            default     => 'penunjang',
+        };
+
+        $item = $invoice->items()->create([
+            'jenis'        => $jenis,
+            'ref_id'       => null,
+            'nama_item'    => $nama,
+            'qty'          => $qty,
+            'satuan'       => $satuan,
+            'harga_satuan' => $harga,
+            'diskon_item'  => 0,
+            'subtotal'     => $subtotal,
+        ]);
+
+        $this->editDiskon[$item->id] = '0';
+        $this->invoiceService->recalcTotal($invoice);
+        unset($this->invoice, $this->komponenList);
+
+        $this->dispatch('notify', type: 'success', message: "{$nama} berhasil ditambahkan ke tagihan.");
     }
 
     public function render()

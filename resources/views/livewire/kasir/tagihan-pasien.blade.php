@@ -144,10 +144,20 @@
                     <span class="ml-2 text-xs font-normal text-gray-400">{{ $this->invoice->nomor_invoice }}</span>
                 </p>
                 @if ($this->invoice->status === 'belum_bayar')
-                <button wire:click="$set('showManualForm', true)"
-                    class="flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200">
-                    + Tambah Item Manual
-                </button>
+                <div class="flex items-center gap-2">
+                    <button wire:click="$set('showKomponenForm', true)"
+                        class="flex items-center gap-1 rounded-lg bg-indigo-100 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-200">
+                        <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                        </svg>
+                        Tambah Komponen
+                    </button>
+                    <button wire:click="$set('showManualForm', true)"
+                        class="flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200">
+                        + Tambah Item Manual
+                    </button>
+                </div>
                 @endif
             </div>
 
@@ -457,4 +467,152 @@
     @endif {{-- end if kunjunganId --}}
 
     @endif {{-- end if activeSesi --}}
+
+    {{-- ══ PANEL TAMBAH KOMPONEN ══ --}}
+    @if($showKomponenForm)
+    <div class="fixed inset-0 z-50 flex">
+        {{-- Backdrop --}}
+        <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm"
+             wire:click="$set('showKomponenForm', false)"></div>
+
+        {{-- Side panel (slide in from right) --}}
+        <div class="relative ml-auto flex h-full w-full max-w-lg flex-col bg-white shadow-2xl">
+
+            {{-- Header --}}
+            <div class="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900">Tambah Komponen Tagihan</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">Pilih dari master data klinik</p>
+                </div>
+                <button wire:click="$set('showKomponenForm', false)"
+                    class="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                    <svg class="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            {{-- Tab navigation --}}
+            <div class="flex border-b border-gray-200 bg-gray-50">
+                @foreach([
+                    'prosedur'  => ['label' => 'Prosedur',     'color' => 'purple', 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01'],
+                    'peralatan' => ['label' => 'Peralatan',    'color' => 'amber',  'icon' => 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z'],
+                    'lab'       => ['label' => 'Laboratorium', 'color' => 'cyan',   'icon' => 'M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18'],
+                    'radiologi' => ['label' => 'Radiologi',    'color' => 'rose',   'icon' => 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'],
+                ] as $tabKey => $tabCfg)
+                @php
+                    $isActive = $komponenTab === $tabKey;
+                    $activeClass = match($tabCfg['color']) {
+                        'purple' => 'border-purple-600 text-purple-700 bg-white',
+                        'amber'  => 'border-amber-500 text-amber-700 bg-white',
+                        'cyan'   => 'border-cyan-600 text-cyan-700 bg-white',
+                        'rose'   => 'border-rose-600 text-rose-700 bg-white',
+                        default  => 'border-blue-600 text-blue-700 bg-white',
+                    };
+                @endphp
+                <button wire:click="switchKomponenTab('{{ $tabKey }}')"
+                    class="flex flex-1 flex-col items-center gap-1 border-b-2 px-2 py-2.5 text-xs font-medium transition-colors
+                           {{ $isActive ? $activeClass : 'border-transparent text-gray-500 hover:text-gray-700' }}">
+                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="{{ $tabCfg['icon'] }}"/>
+                    </svg>
+                    {{ $tabCfg['label'] }}
+                </button>
+                @endforeach
+            </div>
+
+            {{-- Search box --}}
+            <div class="border-b border-gray-100 px-4 py-3">
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none">
+                        <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+                        </svg>
+                    </span>
+                    <input wire:model.live.debounce.400ms="searchKomponen"
+                        type="text"
+                        placeholder="Cari nama atau kode..."
+                        class="w-full rounded-lg border-gray-300 pl-9 pr-3 py-2 text-sm shadow-sm focus:border-indigo-400 focus:ring-indigo-400"/>
+                    <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                        <svg wire:loading wire:target="searchKomponen,switchKomponenTab"
+                            class="animate-spin size-4 text-gray-400" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                        </svg>
+                    </div>
+                </div>
+                @if(strlen($searchKomponen) < 2 && strlen($searchKomponen) > 0)
+                <p class="mt-1 text-xs text-gray-400">Ketik minimal 2 karakter untuk mencari, atau kosongkan untuk lihat semua.</p>
+                @endif
+            </div>
+
+            {{-- Item list --}}
+            <div class="flex-1 overflow-y-auto divide-y divide-gray-100">
+                @forelse($this->komponenList as $item)
+                <div x-data="{ qty: 1 }"
+                     class="flex items-center gap-3 px-4 py-3 hover:bg-indigo-50/40 transition-colors">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-800 truncate">{{ $item['nama'] }}</p>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <span class="text-xs font-semibold text-indigo-700">
+                                Rp {{ number_format($item['harga'], 0, ',', '.') }}
+                            </span>
+                            <span class="text-xs text-gray-400">/ {{ $item['satuan'] }}</span>
+                            @if($item['info'])
+                            <span class="text-xs text-gray-400">&bull; {{ $item['info'] }}</span>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <div class="flex items-center rounded-lg border border-gray-300 bg-white overflow-hidden">
+                            <button @click="qty = Math.max(1, qty - 1)"
+                                class="px-2 py-1 text-gray-500 hover:bg-gray-100 text-sm leading-none">−</button>
+                            <input x-model.number="qty" type="number" min="1" max="999"
+                                class="w-12 border-0 border-x border-gray-300 py-1 text-center text-sm focus:ring-0"/>
+                            <button @click="qty = Math.min(999, qty + 1)"
+                                class="px-2 py-1 text-gray-500 hover:bg-gray-100 text-sm leading-none">+</button>
+                        </div>
+                        <button
+                            x-on:click="$wire.addKomponenItem({{ $item['id'] }}, @js($item['nama']), {{ $item['harga'] }}, @js($item['satuan']), qty)"
+                            class="flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors">
+                            <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Tambah
+                        </button>
+                    </div>
+                </div>
+                @empty
+                <div class="flex flex-col items-center justify-center py-16 text-center">
+                    <svg class="size-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-sm text-gray-400">
+                        @if(strlen($searchKomponen) >= 2)
+                            Tidak ada {{ match($komponenTab) { 'prosedur' => 'prosedur', 'peralatan' => 'peralatan', 'lab' => 'item laboratorium', 'radiologi' => 'item radiologi', default => 'item' } }}
+                            yang cocok dengan "{{ $searchKomponen }}"
+                        @else
+                            Belum ada data {{ match($komponenTab) { 'prosedur' => 'prosedur', 'peralatan' => 'peralatan/BMHP', 'lab' => 'laboratorium', 'radiologi' => 'radiologi', default => '' } }} aktif.
+                        @endif
+                    </p>
+                </div>
+                @endforelse
+            </div>
+
+            {{-- Footer --}}
+            <div class="border-t border-gray-200 bg-gray-50 px-5 py-3 flex items-center justify-between">
+                <p class="text-xs text-gray-400">
+                    {{ count($this->komponenList) }} item ditampilkan
+                </p>
+                <button wire:click="$set('showKomponenForm', false)"
+                    class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
+
 </div>
