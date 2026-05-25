@@ -1,3 +1,4 @@
+<div>
 @if($show)
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
      x-data @click.self="$wire.set('show', false)">
@@ -72,3 +73,4 @@
     </div>
 </div>
 @endif
+</div>
