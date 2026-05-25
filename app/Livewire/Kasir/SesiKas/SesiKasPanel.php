@@ -49,7 +49,7 @@ class SesiKasPanel extends Component
             'asuransi' => 'Asuransi',
         ];
 
-        $rows = PembayaranSplit::where('sesi_kas_id', $this->sesiAktif->id)
+        $rows = PembayaranSplit::where('pembayaran_split.sesi_kas_id', $this->sesiAktif->id)
             ->join('billing', 'pembayaran_split.billing_id', '=', 'billing.id')
             ->where('billing.status', 'lunas')
             ->selectRaw('metode, COUNT(*) as jumlah_trx, SUM(pembayaran_split.jumlah) as total')

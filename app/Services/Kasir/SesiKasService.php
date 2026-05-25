@@ -41,7 +41,7 @@ class SesiKasService
         }
 
         return DB::transaction(function () use ($sesi, $userId, $uangFisikAkhir, $catatan) {
-            $rekap = PembayaranSplit::where('sesi_kas_id', $sesi->id)
+            $rekap = PembayaranSplit::where('pembayaran_split.sesi_kas_id', $sesi->id)
                 ->join('billing', 'pembayaran_split.billing_id', '=', 'billing.id')
                 ->where('billing.status', 'lunas')
                 ->selectRaw("
