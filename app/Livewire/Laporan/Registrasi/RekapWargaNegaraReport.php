@@ -18,6 +18,13 @@ class RekapWargaNegaraReport extends BaseLaporanComponent
         [$mulai, $akhir] = $this->periodeRange;
         $this->hasil = app(RegistrasiLaporanService::class)
             ->rekapWargaNegara($mulai, $akhir);
+
+        $this->dispatch('wna-chart-update',
+            kunjungan_wni: $this->hasil['kunjungan_wni'],
+            kunjungan_wna: $this->hasil['kunjungan_wna'],
+            total_wni:     $this->hasil['total_wni'],
+            total_wna:     $this->hasil['total_wna'],
+        );
     }
 
     public function exportPdf()

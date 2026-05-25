@@ -29,6 +29,71 @@
             </div>
         </div>
 
+        {{-- Pie Chart WNI vs WNA --}}
+        <div
+            class="card p-4 mb-5"
+            x-data="{
+                chart: null,
+                wni: @js($hasil['kunjungan_wni']),
+                wna: @js($hasil['kunjungan_wna']),
+                init() {
+                    this.$nextTick(() => this.renderChart());
+                },
+                renderChart() {
+                    if (!window.Chart || !this.$refs.wnaCanvas) return;
+                    if (this.chart) { this.chart.destroy(); this.chart = null; }
+
+                    const total = this.wni + this.wna;
+                    const pctWni = total > 0 ? ((this.wni / total) * 100).toFixed(1) : 0;
+                    const pctWna = total > 0 ? ((this.wna / total) * 100).toFixed(1) : 0;
+
+                    const ctx = this.$refs.wnaCanvas.getContext('2d');
+                    this.chart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: [
+                                'WNI (' + pctWni + '%)',
+                                'WNA (' + pctWna + '%)',
+                            ],
+                            datasets: [{
+                                data: [this.wni || 0.001, this.wna || 0],
+                                backgroundColor: ['#3b82f6', '#10b981'],
+                                borderColor: ['#2563eb', '#059669'],
+                                borderWidth: 2,
+                                hoverOffset: 8,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '60%',
+                            plugins: {
+                                legend: {
+                                    position: 'right',
+                                    labels: { font: { size: 13 }, padding: 16, boxWidth: 16 }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: (c) => '  ' + c.label + ': ' + (c.raw === 0.001 ? 0 : c.raw).toLocaleString('id-ID') + ' kunjungan'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            }"
+            x-on:wna-chart-update.window="
+                wni = $event.detail.kunjungan_wni;
+                wna = $event.detail.kunjungan_wna;
+                $nextTick(() => renderChart());
+            "
+        >
+            <h3 class="text-sm font-semibold text-gray-700 mb-3">Perbandingan Kunjungan WNI vs WNA</h3>
+            <div style="height: 260px;">
+                <canvas x-ref="wnaCanvas"></canvas>
+            </div>
+        </div>
+
         @if($hasil['total_wna'] > 0)
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <div class="card">
