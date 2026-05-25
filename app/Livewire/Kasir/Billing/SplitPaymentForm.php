@@ -2,8 +2,9 @@
 
 namespace App\Livewire\Kasir\Billing;
 
+use Livewire\Attributes\Computed;
 use Livewire\Component;
-use App\Models\{Invoice, DepositPasien};
+use App\Models\{Invoice, DepositPasien, Kunjungan};
 use App\Services\Kasir\{BillingService, SesiKasService};
 
 class SplitPaymentForm extends Component
@@ -116,8 +117,20 @@ class SplitPaymentForm extends Component
         $this->jumlahInput = (string) max(0, $sisa);
     }
 
+    #[Computed]
+    public function hasPendingResep(): bool
+    {
+        $kunjungan = Kunjungan::find($this->billing->kunjungan_id);
+        return $kunjungan?->resep()->where('is_locked', false)->exists() ?? false;
+    }
+
     public function konfirmasi(BillingService $billingService, SesiKasService $sesiKasService): void
     {
+        if ($this->hasPendingResep) {
+            $this->addError('global', 'Masih ada resep obat yang belum dikonfirmasi apoteker. Selesaikan terlebih dahulu sebelum proses pembayaran.');
+            return;
+        }
+
         if (empty($this->splitItems)) {
             $this->addError('global', 'Tambahkan minimal 1 metode pembayaran.');
             return;

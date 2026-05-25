@@ -6,6 +6,19 @@
     </div>
     @endif
 
+    @if($this->hasPendingResep)
+    <div class="flex items-start gap-3 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
+        <svg class="mt-0.5 size-5 shrink-0 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <div>
+            <p class="font-semibold">Resep belum dikonfirmasi</p>
+            <p class="mt-0.5 text-orange-700">Masih ada resep obat yang belum dikonfirmasi oleh apoteker. Pembayaran tidak dapat diproses sebelum seluruh resep dikonfirmasi.</p>
+        </div>
+    </div>
+    @endif
+
     {{-- Ringkasan Invoice --}}
     <div class="bg-white rounded-xl shadow-sm p-5">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -208,7 +221,7 @@
             class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Batal</a>
         <button type="button" wire:click="konfirmasi" wire:loading.attr="disabled"
             class="px-6 py-2 bg-primary-600 text-white text-sm font-semibold rounded-lg hover:bg-primary-700 transition disabled:opacity-50"
-            @disabled(abs($totalSudahDiisi - $sisaTagihan) >= 0.01 || empty($splitItems))>
+            @disabled($this->hasPendingResep || abs($totalSudahDiisi - $sisaTagihan) >= 0.01 || empty($splitItems))>
             <span wire:loading.remove>Konfirmasi Pembayaran</span>
             <span wire:loading>Memproses...</span>
         </button>

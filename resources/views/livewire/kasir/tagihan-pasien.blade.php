@@ -404,7 +404,8 @@
                 <div class="mt-5 flex items-center gap-3">
                     <button wire:click="prosesPembayaran"
                         wire:confirm="Konfirmasi proses pembayaran untuk pasien {{ $this->kunjungan->pasien->nama }}?"
-                        class="flex items-center gap-2 rounded-xl bg-green-600 px-6 py-2.5 text-sm font-bold text-white shadow hover:bg-green-700 focus:outline-none">
+                        @disabled($this->hasPendingResep)
+                        class="flex items-center gap-2 rounded-xl bg-green-600 px-6 py-2.5 text-sm font-bold text-white shadow hover:bg-green-700 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50">
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M5 13l4 4L19 7"/>
