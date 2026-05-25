@@ -90,7 +90,79 @@
             <x-sidebar-item route="inventory.index" icon="office-building" permission="obat.view">Inventory</x-sidebar-item>
             <x-sidebar-item route="inventory.kartu-stok.index" icon="clipboard-check" permission="obat.view">Kartu Stok</x-sidebar-item>
             @canany(['laporan.registrasi.view','laporan.pemeriksaan.view','laporan.kasir.view','laporan.pharmacy.view','laporan.view'])
-            <x-sidebar-item route="laporan.index" icon="chart-square-bar">Laporan</x-sidebar-item>
+            <div x-data="{ laporanOpen: {{ request()->routeIs('laporan.*') ? 'true' : 'false' }} }">
+                <button
+                    @click="laporanOpen = !laporanOpen"
+                    @class([
+                        'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150',
+                        'bg-white/10 text-white' => request()->routeIs('laporan.*'),
+                        'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('laporan.*'),
+                    ])
+                >
+                    <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <span class="flex-1 text-left">Laporan</span>
+                    <svg
+                        class="h-4 w-4 flex-shrink-0 transition-transform duration-200"
+                        :class="laporanOpen ? 'rotate-180' : ''"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    >
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+
+                <div
+                    x-show="laporanOpen"
+                    x-transition:enter="transition ease-out duration-150"
+                    x-transition:enter-start="opacity-0 -translate-y-1"
+                    x-transition:enter-end="opacity-100 translate-y-0"
+                    x-transition:leave="transition ease-in duration-100"
+                    x-transition:leave-start="opacity-100 translate-y-0"
+                    x-transition:leave-end="opacity-0 -translate-y-1"
+                    class="mt-0.5 space-y-0.5 pl-9"
+                >
+                    @can('laporan.registrasi.view')
+                    <a href="{{ route('laporan.registrasi.kunjungan') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('laporan.registrasi.*'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('laporan.registrasi.*'),
+                        ])
+                    >Registrasi</a>
+                    @endcan
+
+                    @can('laporan.pemeriksaan.view')
+                    <a href="{{ route('laporan.pemeriksaan.diagnosa') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('laporan.pemeriksaan.*'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('laporan.pemeriksaan.*'),
+                        ])
+                    >Pemeriksaan</a>
+                    @endcan
+
+                    @can('laporan.kasir.view')
+                    <a href="{{ route('laporan.kasir.transaksi') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('laporan.kasir.*'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('laporan.kasir.*'),
+                        ])
+                    >Kasir</a>
+                    @endcan
+
+                    @can('laporan.pharmacy.view')
+                    <a href="{{ route('laporan.pharmacy.resep') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('laporan.pharmacy.*'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('laporan.pharmacy.*'),
+                        ])
+                    >Pharmacy</a>
+                    @endcan
+                </div>
+            </div>
             @endcanany
             <x-sidebar-item route="pengaturan.masterdata" icon="clipboard-list" permission="masterdata.view">Master Data</x-sidebar-item>
             <x-sidebar-item route="pengaturan.dokter" icon="users" permission="masterdata.view">Data Dokter</x-sidebar-item>
