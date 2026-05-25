@@ -14,7 +14,7 @@ class BillingDetail extends Component
     {
         $this->billing = $billing->load([
             'kunjungan.pasien',
-            'kunjungan.dokter',
+            'kunjungan.dokter.user',
             'kunjungan.poli',
             'items',
             'pembayaranSplit',
@@ -47,7 +47,7 @@ class BillingDetail extends Component
     {
         $this->billing->refresh()->load([
             'kunjungan.pasien',
-            'kunjungan.dokter',
+            'kunjungan.dokter.user',
             'kunjungan.poli',
             'items',
             'pembayaranSplit',

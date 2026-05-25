@@ -61,7 +61,7 @@
         <div class="space-y-1">
             <p class="text-gray-500">Poli / Dokter</p>
             <p class="font-semibold text-gray-900">{{ $billing->kunjungan->poli?->nama ?? '-' }}</p>
-            <p class="text-gray-400">{{ $billing->kunjungan->dokter?->nama ?? '-' }}</p>
+            <p class="text-gray-400">{{ $billing->kunjungan->dokter?->user?->nama ?? '-' }}</p>
         </div>
     </div>
 

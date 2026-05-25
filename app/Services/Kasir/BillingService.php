@@ -26,7 +26,7 @@ class BillingService
         }
 
         $totalSplit  = collect($splitItems)->sum('jumlah');
-        $sisaTagihan = (float) $billing->total_tagihan - (float) $billing->total_bayar;
+        $sisaTagihan = (float) $billing->sisa;
 
         if (abs($totalSplit - $sisaTagihan) > 0.01) {
             throw new \InvalidArgumentException(

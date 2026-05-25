@@ -36,7 +36,7 @@ class SplitPaymentForm extends Component
     public function mount(Invoice $billing): void
     {
         $this->billing     = $billing;
-        $this->sisaTagihan = (float) $billing->total_tagihan - (float) $billing->total_bayar;
+        $this->sisaTagihan = (float) $billing->sisa;
 
         $pasienId         = $billing->kunjungan->pasien_id;
         $deposit          = DepositPasien::where('pasien_id', $pasienId)->first();

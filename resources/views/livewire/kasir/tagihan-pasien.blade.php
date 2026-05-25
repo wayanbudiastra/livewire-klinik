@@ -303,8 +303,16 @@
         {{-- Payment section --}}
         @if ($this->invoice->status === 'belum_bayar')
         <div class="rounded-xl border border-gray-200 bg-white">
-            <div class="border-b border-gray-200 px-5 py-3">
+            <div class="flex items-center justify-between border-b border-gray-200 px-5 py-3">
                 <p class="text-sm font-semibold text-gray-700">Proses Pembayaran</p>
+                <a href="{{ route('kasir.billing.split-payment', $this->invoice) }}"
+                   class="flex items-center gap-1.5 rounded-lg border border-purple-300 bg-purple-50 px-3 py-1.5 text-xs font-medium text-purple-700 hover:bg-purple-100">
+                    <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    Split / Deposit
+                </a>
             </div>
             <div class="px-5 py-4">
 
