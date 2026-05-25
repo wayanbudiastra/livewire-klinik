@@ -176,7 +176,6 @@
         </table>
     </div>
     <div class="mt-4">{{ $this->kunjungan->links() }}</div>
-</div>
 
 {{-- ══════════════════════════════════════════════════════════════
      MODAL HISTORY PEMERIKSAAN (Read-Only)
@@ -618,3 +617,4 @@
     </div>
 </div>
 @endif
+</div>
