@@ -132,12 +132,15 @@ class InvoiceService
         // A new invoice cannot be created (kunjungan_id is unique), so the same row is reused.
         if ($invoice->exists && $invoice->status === 'dibatalkan') {
             $invoice->pembayaranSplit()->delete();
+            $invoice->cetakLogs()->delete();
             $invoice->forceFill([
                 'nomor_invoice'        => $this->generateNomor($kunjungan->id),
                 'sesi_kas_id'          => $sesiKas->id,
                 'diskon_global'        => 0,
                 'total_bayar'          => 0,
                 'total_deposit_dipakai'=> 0,
+                'sudah_cetak'          => false,
+                'jumlah_cetak'         => 0,
                 'status'               => 'belum_bayar',
                 'cancel_reason'        => null,
                 'cancelled_by'         => null,
