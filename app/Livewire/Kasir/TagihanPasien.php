@@ -395,6 +395,7 @@ class TagihanPasien extends Component
                 ->toArray(),
 
             'peralatan' => Barang::active()
+                ->whereIn('jenis', ['alkes', 'bahan_habis_pakai'])
                 ->when($q, fn ($query) => $query->where('nama', 'like', "%{$q}%")
                                                 ->orWhere('kode', 'like', "%{$q}%"))
                 ->orderBy('nama')
@@ -405,7 +406,7 @@ class TagihanPasien extends Component
                     'nama'   => $i->nama,
                     'harga'  => (float) $i->harga_jual,
                     'satuan' => $i->satuan ?? 'buah',
-                    'info'   => 'Stok: ' . $i->stok,
+                    'info'   => ($i->jenis === 'alkes' ? 'Alkes' : 'BMHP') . ' · Stok: ' . $i->stok,
                 ])
                 ->toArray(),
 
