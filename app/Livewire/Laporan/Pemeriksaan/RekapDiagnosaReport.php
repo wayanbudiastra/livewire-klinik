@@ -10,6 +10,8 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class RekapDiagnosaReport extends BaseLaporanComponent
 {
+    public int $topN = 10;
+
     public function mount(): void
     {
         $this->mountPeriode();
@@ -19,16 +21,30 @@ class RekapDiagnosaReport extends BaseLaporanComponent
     {
         [$mulai, $akhir] = $this->periodeRange;
         $this->hasil = app(PemeriksaanLaporanService::class)
-            ->rekapDiagnosa($mulai, $akhir);
+            ->rekapDiagnosa($mulai, $akhir, $this->topN);
+
+        $this->dispatch('diagnosaChartUpdate',
+            labels: array_keys($this->hasil['n_besar']),
+            values: array_values($this->hasil['n_besar']),
+        );
+    }
+
+    public function updatedTopN(): void
+    {
+        if ($this->hasil !== null) {
+            $this->generate();
+        }
     }
 
     public function exportPdf()
     {
         [$mulai, $akhir] = $this->periodeRange;
-        $data = app(PemeriksaanLaporanService::class)->rekapDiagnosa($mulai, $akhir);
+        $data = app(PemeriksaanLaporanService::class)
+            ->rekapDiagnosa($mulai, $akhir, $this->topN);
 
         $pdf = Pdf::loadView('laporan.pdf.rekap-diagnosa', [
             'data'  => $data,
+            'topN'  => $this->topN,
             'label' => $this->periodeLabel,
         ])->setPaper('a4', 'portrait');
 

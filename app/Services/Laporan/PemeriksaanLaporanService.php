@@ -9,7 +9,7 @@ use Carbon\Carbon;
 
 class PemeriksaanLaporanService
 {
-    public function rekapDiagnosa(Carbon $mulai, Carbon $akhir): array
+    public function rekapDiagnosa(Carbon $mulai, Carbon $akhir, int $topN = 10): array
     {
         $soap = SoapNote::whereHas('kunjungan', fn ($q) =>
                 $q->whereBetween('tanggal', [$mulai, $akhir])
@@ -30,7 +30,7 @@ class PemeriksaanLaporanService
         return [
             'total_diagnosa' => array_sum($diagnosaCounter),
             'jumlah_jenis'   => count($diagnosaCounter),
-            'sepuluh_besar'  => array_slice($diagnosaCounter, 0, 10, true),
+            'n_besar'        => array_slice($diagnosaCounter, 0, $topN, true),
             'semua'          => $diagnosaCounter,
         ];
     }

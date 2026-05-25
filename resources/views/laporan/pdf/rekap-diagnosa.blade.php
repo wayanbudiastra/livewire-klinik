@@ -20,7 +20,7 @@
 <body>
     <div class="header">
         <h1>{{ config('emr.klinik_nama', 'Klinik') }}</h1>
-        <div class="sub">Laporan Rekap Diagnosa — 10 Besar Penyakit</div>
+        <div class="sub">Laporan Rekap Diagnosa — {{ $topN ?? 10 }} Besar Penyakit</div>
     </div>
     <div class="periode">Periode: {{ $label }}</div>
     <p style="font-size:8px;color:#666;">Total diagnosa: {{ number_format($data['total_diagnosa']) }} | Jenis: {{ number_format($data['jumlah_jenis']) }}</p>
@@ -31,7 +31,7 @@
         </thead>
         <tbody>
             @php $rank = 1; $total = $data['total_diagnosa']; @endphp
-            @foreach($data['sepuluh_besar'] as $kode => $jumlah)
+            @foreach($data['n_besar'] as $kode => $jumlah)
             <tr class="{{ $rank === 1 ? 'rank-1' : ($rank === 2 ? 'rank-2' : ($rank === 3 ? 'rank-3' : '')) }}">
                 <td style="text-align:center;font-weight:bold;">{{ $rank++ }}</td>
                 <td style="font-family:monospace;font-weight:bold;">{{ $kode }}</td>
