@@ -22,6 +22,8 @@ class WaitingArea extends Component
     #[Url]
     public string $filterStatus = 'aktif';
 
+    public ?int $viewKunjunganId = null;
+
     public function mount(): void
     {
         $this->tanggal = now()->toDateString();
@@ -55,6 +57,35 @@ class WaitingArea extends Component
             ELSE 4 END")
         ->orderBy('nomor_antrean')
         ->paginate(10);
+    }
+
+    #[Computed]
+    public function viewKunjungan(): ?Kunjungan
+    {
+        if (! $this->viewKunjunganId) return null;
+
+        return Kunjungan::with([
+            'pasien',
+            'dokter.user:id,nama',
+            'poli:id,nama',
+            'asesmenPerawat',
+            'soapNote',
+            'resep.itemResep.obat:id,nama_obat,satuan',
+            'resep.racikan.bahanRacikan.obat:id,nama_obat,satuan',
+            'tindakan.masterTindakan:id,nama,tarif',
+        ])->find($this->viewKunjunganId);
+    }
+
+    public function openView(int $id): void
+    {
+        $this->viewKunjunganId = $id;
+        unset($this->viewKunjungan);
+    }
+
+    public function closeView(): void
+    {
+        $this->viewKunjunganId = null;
+        unset($this->viewKunjungan);
     }
 
     public function panggil(int $id, KunjunganService $service): void

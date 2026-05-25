@@ -77,10 +77,15 @@ class Kunjungan extends Model
         return $this->hasMany(PenggunaanAlat::class);
     }
 
+    public function soapNote()
+    {
+        return $this->hasOne(SoapNote::class);
+    }
+
     public function getWaktuTungguAttribute(): ?string
     {
         if (! $this->waktu_panggil) return null;
-        $menit = $this->tanggal->diffInMinutes($this->waktu_panggil);
+        $menit = (int) $this->tanggal->diffInMinutes($this->waktu_panggil);
         if ($menit < 60) return "{$menit} mnt";
         $jam = intdiv($menit, 60);
         $sisa = $menit % 60;
