@@ -38,7 +38,7 @@ class ResepFarmasi extends Component
         return Resep::with([
                 'kunjungan.pasien',
                 'kunjungan.dokter.user:id,nama',
-                'kunjungan.invoice:id,kunjungan_id,status',
+                'kunjungan.invoice' => fn ($q) => $q->select('billing.id', 'billing.kunjungan_id', 'billing.status'),
                 'itemResep.obat',
                 'racikan.bahanRacikan.obat',
                 'locker:id,nama',
