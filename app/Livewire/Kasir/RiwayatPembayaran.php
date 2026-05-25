@@ -4,6 +4,7 @@ namespace App\Livewire\Kasir;
 
 use App\Models\Invoice;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -19,13 +20,21 @@ class RiwayatPembayaran extends Component
         $this->filterTanggal = today()->format('Y-m-d');
     }
 
-    public function updatedFilterTanggal(): void
+    public function updatedFilterTanggal(): void { $this->resetPage(); }
+    public function updatedSearchNama(): void    { $this->resetPage(); }
+
+    public function batalkan(int $billingId): void
     {
-        $this->resetPage();
+        $this->dispatch('openBatalkanModal',
+            billingId:  $billingId,
+            redirectTo: route('kasir.billing.index') . '?tab=riwayat',
+        );
     }
 
-    public function updatedSearchNama(): void
+    #[On('billingDibatalkan')]
+    public function refreshList(): void
     {
+        unset($this->invoices, $this->totalHariIni);
         $this->resetPage();
     }
 
@@ -35,10 +44,10 @@ class RiwayatPembayaran extends Component
         return Invoice::with([
                 'kunjungan.pasien',
                 'kunjungan.poli',
-                'kunjungan.dokter',
-                'pembayaran',
+                'kunjungan.dokter.user',
+                'pembayaranSplit',
             ])
-            ->where('status', 'lunas')
+            ->whereIn('status', ['lunas', 'dibatalkan'])
             ->when(
                 $this->filterTanggal,
                 fn ($q) => $q->whereDate('updated_at', $this->filterTanggal)
@@ -58,7 +67,7 @@ class RiwayatPembayaran extends Component
     #[Computed]
     public function totalHariIni(): array
     {
-        $invoices = Invoice::with('pembayaran')
+        $invoices = Invoice::with('pembayaranSplit')
             ->where('status', 'lunas')
             ->when(
                 $this->filterTanggal,
@@ -71,19 +80,23 @@ class RiwayatPembayaran extends Component
         $totalAsuransi = 0;
 
         foreach ($invoices as $inv) {
-            foreach ($inv->pembayaran as $p) {
-                if ($p->metode === 'tunai')         $totalTunai    += $p->jumlah;
-                elseif ($p->metode === 'non_tunai') $totalNonTunai += $p->jumlah;
-                else                                $totalAsuransi += $p->jumlah;
+            foreach ($inv->pembayaranSplit as $p) {
+                match ($p->metode) {
+                    'tunai'                              => $totalTunai    += $p->jumlah,
+                    'debit', 'kredit', 'transfer', 'qris',
+                    'deposit'                            => $totalNonTunai += $p->jumlah,
+                    'bpjs', 'asuransi'                   => $totalAsuransi += $p->jumlah,
+                    default                              => $totalNonTunai += $p->jumlah,
+                };
             }
         }
 
         return [
-            'count'      => $invoices->count(),
-            'tunai'      => $totalTunai,
-            'non_tunai'  => $totalNonTunai,
-            'asuransi'   => $totalAsuransi,
-            'grand'      => $totalTunai + $totalNonTunai + $totalAsuransi,
+            'count'     => $invoices->count(),
+            'tunai'     => $totalTunai,
+            'non_tunai' => $totalNonTunai,
+            'asuransi'  => $totalAsuransi,
+            'grand'     => $totalTunai + $totalNonTunai + $totalAsuransi,
         ];
     }
 

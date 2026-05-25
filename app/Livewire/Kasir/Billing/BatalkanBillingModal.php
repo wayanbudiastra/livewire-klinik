@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Kasir\Billing;
 
+use Livewire\Attributes\On;
 use Livewire\Component;
 use App\Models\Invoice;
 use App\Services\Kasir\BillingService;
@@ -14,16 +15,17 @@ class BatalkanBillingModal extends Component
     public string $password   = '';
     public bool   $processing = false;
     public string $errorMsg   = '';
+    public string $redirectTo = '';
 
-    protected $listeners = ['openBatalkanModal' => 'open'];
-
-    public function open(int $billingId): void
+    #[On('openBatalkanModal')]
+    public function open(int $billingId, string $redirectTo = ''): void
     {
-        $this->billingId = $billingId;
-        $this->alasan    = '';
-        $this->password  = '';
-        $this->errorMsg  = '';
-        $this->show      = true;
+        $this->billingId  = $billingId;
+        $this->alasan     = '';
+        $this->password   = '';
+        $this->errorMsg   = '';
+        $this->redirectTo = $redirectTo;
+        $this->show       = true;
     }
 
     public function batalkan(BillingService $service): void
@@ -49,7 +51,8 @@ class BatalkanBillingModal extends Component
             $this->show = false;
             $this->dispatch('billingDibatalkan');
             session()->flash('success', "Invoice {$billing->nomor_invoice} berhasil dibatalkan.");
-            $this->redirectRoute('kasir.billing.index');
+            $dest = $this->redirectTo ?: route('kasir.billing.index');
+            $this->redirect($dest);
         } catch (\Exception $e) {
             $this->errorMsg   = $e->getMessage();
             $this->processing = false;
