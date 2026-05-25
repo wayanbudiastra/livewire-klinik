@@ -7,7 +7,7 @@ use App\Models\InvoiceItem;
 use App\Models\ItemPenunjang;
 use App\Models\Kunjungan;
 use App\Models\MasterTindakan;
-use App\Models\Obat;
+use App\Models\PeralatanMedis;
 use App\Models\PembayaranSplit;
 use App\Models\SesiKas;
 use App\Services\InvoiceService;
@@ -394,8 +394,7 @@ class TagihanPasien extends Component
                 ])
                 ->toArray(),
 
-            'peralatan' => Obat::aktif()
-                ->where('jenis_barang', 'alkes')
+            'peralatan' => PeralatanMedis::where('is_active', true)
                 ->when($q, fn ($query) => $query->where('nama', 'like', "%{$q}%")
                                                 ->orWhere('kode', 'like', "%{$q}%"))
                 ->orderBy('nama')
@@ -404,9 +403,9 @@ class TagihanPasien extends Component
                 ->map(fn ($i) => [
                     'id'     => $i->id,
                     'nama'   => $i->nama,
-                    'harga'  => (float) $i->harga,
-                    'satuan' => $i->satuan ?? 'buah',
-                    'info'   => 'Stok: ' . $i->stok,
+                    'harga'  => 0,
+                    'satuan' => 'penggunaan',
+                    'info'   => trim(($i->merk ?? '') . ($i->status ? ' · ' . ucfirst($i->status) : '')),
                 ])
                 ->toArray(),
 

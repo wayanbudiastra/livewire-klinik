@@ -550,14 +550,22 @@
             {{-- Item list --}}
             <div class="flex-1 overflow-y-auto divide-y divide-gray-100">
                 @forelse($this->komponenList as $item)
-                <div x-data="{ qty: 1 }"
+                <div x-data="{ qty: 1, harga: {{ $item['harga'] }} }"
                      class="flex items-center gap-3 px-4 py-3 hover:bg-indigo-50/40 transition-colors">
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium text-gray-800 truncate">{{ $item['nama'] }}</p>
                         <div class="flex items-center gap-2 mt-0.5">
+                            @if($komponenTab === 'peralatan')
+                            {{-- Peralatan tidak punya tarif di master, kasir input manual --}}
+                            <span class="text-xs text-gray-400 flex-shrink-0">Rp</span>
+                            <input x-model.number="harga" type="number" min="0" step="1000"
+                                placeholder="Tarif penggunaan..."
+                                class="w-36 rounded border-gray-300 py-0.5 text-xs text-right shadow-sm focus:border-indigo-400 focus:ring-indigo-400"/>
+                            @else
                             <span class="text-xs font-semibold text-indigo-700">
                                 Rp {{ number_format($item['harga'], 0, ',', '.') }}
                             </span>
+                            @endif
                             <span class="text-xs text-gray-400">/ {{ $item['satuan'] }}</span>
                             @if($item['info'])
                             <span class="text-xs text-gray-400">&bull; {{ $item['info'] }}</span>
@@ -574,7 +582,7 @@
                                 class="px-2 py-1 text-gray-500 hover:bg-gray-100 text-sm leading-none">+</button>
                         </div>
                         <button
-                            x-on:click="$wire.addKomponenItem({{ $item['id'] }}, @js($item['nama']), {{ $item['harga'] }}, @js($item['satuan']), qty)"
+                            x-on:click="$wire.addKomponenItem({{ $item['id'] }}, @js($item['nama']), harga, @js($item['satuan']), qty)"
                             class="flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors">
                             <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
