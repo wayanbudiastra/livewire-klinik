@@ -2,12 +2,12 @@
 
 namespace App\Livewire\Kasir;
 
-use App\Models\Barang;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\ItemPenunjang;
 use App\Models\Kunjungan;
 use App\Models\MasterTindakan;
+use App\Models\Obat;
 use App\Models\PembayaranSplit;
 use App\Models\SesiKas;
 use App\Services\InvoiceService;
@@ -394,8 +394,8 @@ class TagihanPasien extends Component
                 ])
                 ->toArray(),
 
-            'peralatan' => Barang::active()
-                ->whereIn('jenis', ['alkes', 'bahan_habis_pakai'])
+            'peralatan' => Obat::aktif()
+                ->where('jenis_barang', 'alkes')
                 ->when($q, fn ($query) => $query->where('nama', 'like', "%{$q}%")
                                                 ->orWhere('kode', 'like', "%{$q}%"))
                 ->orderBy('nama')
@@ -404,9 +404,9 @@ class TagihanPasien extends Component
                 ->map(fn ($i) => [
                     'id'     => $i->id,
                     'nama'   => $i->nama,
-                    'harga'  => (float) $i->harga_jual,
+                    'harga'  => (float) $i->harga,
                     'satuan' => $i->satuan ?? 'buah',
-                    'info'   => ($i->jenis === 'alkes' ? 'Alkes' : 'BMHP') . ' · Stok: ' . $i->stok,
+                    'info'   => 'Stok: ' . $i->stok,
                 ])
                 ->toArray(),
 
