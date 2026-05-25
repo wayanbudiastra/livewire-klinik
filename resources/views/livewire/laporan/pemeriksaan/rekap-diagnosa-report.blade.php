@@ -35,13 +35,13 @@
                 '#c2410c','#4338ca','#0c4a6e','#581c87','#14532d',
             ],
             init() {
-                this.\$nextTick(() => this.renderChart());
+                this.$nextTick(() => this.renderChart());
             },
             renderChart() {
-                if (!window.Chart || !this.\$refs.chartCanvas || this.labels.length === 0) return;
+                if (!window.Chart || !this.$refs.chartCanvas || this.labels.length === 0) return;
                 if (this.chart) { this.chart.destroy(); this.chart = null; }
 
-                const ctx = this.\$refs.chartCanvas.getContext('2d');
+                const ctx = this.$refs.chartCanvas.getContext('2d');
                 const bg  = this.labels.map((_, i) => this.palette[i % this.palette.length]);
 
                 const isBar = this.chartType === 'bar';
@@ -94,7 +94,7 @@
             },
             switchType(type) {
                 this.chartType = type;
-                this.\$nextTick(() => this.renderChart());
+                this.$nextTick(() => this.renderChart());
             }
         }"
         x-on:diagnosa-chart-update.window="

@@ -23,7 +23,7 @@ class RekapDiagnosaReport extends BaseLaporanComponent
         $this->hasil = app(PemeriksaanLaporanService::class)
             ->rekapDiagnosa($mulai, $akhir, $this->topN);
 
-        $this->dispatch('diagnosaChartUpdate',
+        $this->dispatch('diagnosa-chart-update',
             labels: array_keys($this->hasil['n_besar']),
             values: array_values($this->hasil['n_besar']),
         );
