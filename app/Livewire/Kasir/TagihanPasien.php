@@ -292,7 +292,7 @@ class TagihanPasien extends Component
         }
 
         $invoice = Invoice::with('items')->find($this->invoiceId);
-        if (! $invoice || $invoice->status === 'lunas') return;
+        if (! $invoice || in_array($invoice->status, ['lunas', 'dibatalkan'])) return;
 
         $rules = ['metodePembayaran' => 'required|in:tunai,non_tunai,asuransi'];
 

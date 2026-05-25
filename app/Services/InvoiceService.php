@@ -123,9 +123,26 @@ class InvoiceService
     {
         $invoice = Invoice::firstOrNew(['kunjungan_id' => $kunjungan->id]);
 
-        // Never touch a paid or cancelled invoice
-        if ($invoice->exists && !in_array($invoice->status, ['belum_bayar', 'sebagian'])) {
+        // Never touch a paid invoice
+        if ($invoice->exists && $invoice->status === 'lunas') {
             return $invoice->load('items');
+        }
+
+        // Reactivate a cancelled invoice: clear old payment splits and reset to fresh state.
+        // A new invoice cannot be created (kunjungan_id is unique), so the same row is reused.
+        if ($invoice->exists && $invoice->status === 'dibatalkan') {
+            $invoice->pembayaranSplit()->delete();
+            $invoice->forceFill([
+                'nomor_invoice'        => $this->generateNomor($kunjungan->id),
+                'sesi_kas_id'          => $sesiKas->id,
+                'diskon_global'        => 0,
+                'total_bayar'          => 0,
+                'total_deposit_dipakai'=> 0,
+                'status'               => 'belum_bayar',
+                'cancel_reason'        => null,
+                'cancelled_by'         => null,
+                'dibatalkan_pada'      => null,
+            ]);
         }
 
         $clinicalItems = $this->buildItems($kunjungan);
