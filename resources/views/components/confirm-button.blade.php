@@ -29,7 +29,7 @@
         icon: '{{ $icon }}',
         confirmText: '{{ addslashes($confirm) }}',
         confirmColor: '{{ $type }}',
-        callback: () => $wire.{{ $action }}
+        callback: () => $wire.{{ str_contains($action, '(') ? $action : $action . '()' }}
     })"
     {{ $attributes }}
 >{{ $slot }}</button>

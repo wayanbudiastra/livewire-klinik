@@ -171,52 +171,14 @@ class SoapNote extends Component
     public function simpan(): void
     {
         if ($this->isFinal) return;
-
-        $this->validate([
-            'diagnoses' => 'required|array|min:1',
-        ], [
-            'diagnoses.required' => 'Minimal satu diagnosa ICD-10 wajib diisi.',
-            'diagnoses.min'      => 'Minimal satu diagnosa ICD-10 wajib diisi.',
-        ]);
-
-        $data = [
-            's_cc_hpi'       => $this->sCcHpi        ?: null,
-            's_past_medical'  => $this->sPastMedical  ?: null,
-            's_past_surgical' => $this->sPastSurgical ?: null,
-            's_allergies'     => $this->sAllergies    ?: null,
-            's_other'         => $this->sOther        ?: null,
-            'o_physical_exam' => $this->oPhysicalExam ?: null,
-            'o_systemic_exam' => $this->oSystemicExam ?: null,
-            'o_observation'   => $this->oObservation  ?: null,
-            'o_other'         => $this->oOther        ?: null,
-            'icd_codes'       => $this->diagnoses,
-            'a_problems'      => $this->aProblems     ?: null,
-            'a_progress_note' => $this->aProgressNote ?: null,
-            'a_other'         => $this->aOther        ?: null,
-            'p_advice'        => $this->pAdvice       ?: null,
-            'p_other'         => $this->pOther        ?: null,
-        ];
-
-        $soap = SoapNoteModel::updateOrCreate(
-            ['kunjungan_id' => $this->kunjunganId],
-            $data
-        );
-
-        $this->soapId = $soap->id;
-        unset($this->kunjungan);
+        $this->doSimpan();
         $this->dispatch('notify', type: 'success', message: 'SOAP Note berhasil disimpan.');
     }
 
     public function finalisasi(): void
     {
-        if (! $this->soapId) {
-            $this->simpan();
-        }
-
-        if (count($this->diagnoses) === 0) {
-            $this->addError('diagnoses', 'Diagnosa ICD-10 wajib diisi sebelum finalisasi.');
-            return;
-        }
+        if ($this->isFinal) return;
+        $this->doSimpan();
 
         SoapNoteModel::where('id', $this->soapId)->update([
             'is_final'     => true,
@@ -226,6 +188,40 @@ class SoapNote extends Component
 
         $this->isFinal = true;
         $this->dispatch('notify', type: 'success', message: 'SOAP Note telah difinalisasi dan dikunci.');
+    }
+
+    private function doSimpan(): void
+    {
+        $this->validate([
+            'diagnoses' => 'required|array|min:1',
+        ], [
+            'diagnoses.required' => 'Minimal satu diagnosa ICD-10 wajib diisi.',
+            'diagnoses.min'      => 'Minimal satu diagnosa ICD-10 wajib diisi.',
+        ]);
+
+        $soap = SoapNoteModel::updateOrCreate(
+            ['kunjungan_id' => $this->kunjunganId],
+            [
+                's_cc_hpi'       => $this->sCcHpi        ?: null,
+                's_past_medical'  => $this->sPastMedical  ?: null,
+                's_past_surgical' => $this->sPastSurgical ?: null,
+                's_allergies'     => $this->sAllergies    ?: null,
+                's_other'         => $this->sOther        ?: null,
+                'o_physical_exam' => $this->oPhysicalExam ?: null,
+                'o_systemic_exam' => $this->oSystemicExam ?: null,
+                'o_observation'   => $this->oObservation  ?: null,
+                'o_other'         => $this->oOther        ?: null,
+                'icd_codes'       => $this->diagnoses,
+                'a_problems'      => $this->aProblems     ?: null,
+                'a_progress_note' => $this->aProgressNote ?: null,
+                'a_other'         => $this->aOther        ?: null,
+                'p_advice'        => $this->pAdvice       ?: null,
+                'p_other'         => $this->pOther        ?: null,
+            ]
+        );
+
+        $this->soapId = $soap->id;
+        unset($this->kunjungan);
     }
 
     public function render()
