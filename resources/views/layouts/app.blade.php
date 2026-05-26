@@ -164,9 +164,82 @@
                 </div>
             </div>
             @endcanany
-            <x-sidebar-item route="pengaturan.masterdata" icon="clipboard-list" permission="masterdata.view">Master Data</x-sidebar-item>
-            <x-sidebar-item route="pengaturan.dokter" icon="users" permission="masterdata.view">Data Dokter</x-sidebar-item>
-            <x-sidebar-item route="pengaturan.pengguna" icon="cog" permission="pengaturan.view">Pengaturan</x-sidebar-item>
+            @canany(['masterdata.view','masterdata.create','pengaturan.view'])
+            <div x-data="{ pengaturanOpen: {{ request()->routeIs('pengaturan.*') ? 'true' : 'false' }} }">
+                <button
+                    @click="pengaturanOpen = !pengaturanOpen"
+                    @class([
+                        'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150',
+                        'bg-white/10 text-white' => request()->routeIs('pengaturan.*'),
+                        'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('pengaturan.*'),
+                    ])
+                >
+                    <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    <span class="flex-1 text-left">Pengaturan</span>
+                    <svg
+                        class="h-4 w-4 flex-shrink-0 transition-transform duration-200"
+                        :class="pengaturanOpen ? 'rotate-180' : ''"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    >
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+
+                <div
+                    x-show="pengaturanOpen"
+                    x-transition:enter="transition ease-out duration-150"
+                    x-transition:enter-start="opacity-0 -translate-y-1"
+                    x-transition:enter-end="opacity-100 translate-y-0"
+                    x-transition:leave="transition ease-in duration-100"
+                    x-transition:leave-start="opacity-100 translate-y-0"
+                    x-transition:leave-end="opacity-0 -translate-y-1"
+                    class="mt-0.5 space-y-0.5 pl-9"
+                >
+                    @can('masterdata.view')
+                    <a href="{{ route('pengaturan.masterdata') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('pengaturan.masterdata'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('pengaturan.masterdata'),
+                        ])
+                    >Master Data Klinis</a>
+                    @endcan
+
+                    @can('masterdata.view')
+                    <a href="{{ route('pengaturan.dokter') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('pengaturan.dokter*'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('pengaturan.dokter*'),
+                        ])
+                    >Data Dokter</a>
+                    @endcan
+
+                    @can('masterdata.create')
+                    <a href="{{ route('pengaturan.sumber-informasi') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('pengaturan.sumber-informasi'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('pengaturan.sumber-informasi'),
+                        ])
+                    >Sumber Informasi</a>
+                    @endcan
+
+                    @can('pengaturan.view')
+                    <a href="{{ route('pengaturan.pengguna') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('pengaturan.pengguna'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('pengaturan.pengguna'),
+                        ])
+                    >Manajemen Pengguna</a>
+                    @endcan
+                </div>
+            </div>
+            @endcanany
         </nav>
 
         {{-- User info --}}

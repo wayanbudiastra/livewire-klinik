@@ -190,7 +190,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         // Master Sumber Informasi
         Route::get('/sumber-informasi', fn () => view('pengaturan.sumber-informasi.index'))
              ->name('sumber-informasi')
-             ->middleware('permission:masterdata.manage');
+             ->middleware('permission:masterdata.create');
 
         // Konfigurasi Klinik (dalam pengembangan)
         Route::get('/klinik', fn () => view('coming-soon', [
