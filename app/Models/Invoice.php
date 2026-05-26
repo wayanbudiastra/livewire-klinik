@@ -13,6 +13,7 @@ class Invoice extends Model
         'total_tagihan', 'total_bayar', 'total_deposit_dipakai', 'sisa', 'diskon_global',
         'status', 'sudah_cetak', 'jumlah_cetak',
         'cancelled_by', 'cancel_verified_by', 'cancel_reason', 'dibatalkan_pada',
+        'total_cover_asuransi', 'total_tanggungan_pasien', 'asuransi_id',
     ];
 
     protected function casts(): array
@@ -24,13 +25,20 @@ class Invoice extends Model
             'sisa'                 => 'decimal:2',
             'diskon_global'        => 'decimal:2',
             'sudah_cetak'          => 'boolean',
-            'dibatalkan_pada'      => 'datetime',
+            'dibatalkan_pada'          => 'datetime',
+            'total_cover_asuransi'     => 'decimal:2',
+            'total_tanggungan_pasien'  => 'decimal:2',
         ];
     }
 
     public function kunjungan()
     {
         return $this->belongsTo(Kunjungan::class);
+    }
+
+    public function asuransi()
+    {
+        return $this->belongsTo(Asuransi::class);
     }
 
     public function shift()

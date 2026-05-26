@@ -164,7 +164,60 @@
                 </div>
             </div>
             @endcanany
-            @canany(['masterdata.view','masterdata.create','pengaturan.view'])
+            @canany(['piutang.view', 'piutang.tagih', 'piutang.lunas'])
+            <div x-data="{ keuanganOpen: {{ request()->routeIs('keuangan.*') ? 'true' : 'false' }} }">
+                <button
+                    @click="keuanganOpen = !keuanganOpen"
+                    @class([
+                        'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150',
+                        'bg-white/10 text-white' => request()->routeIs('keuangan.*'),
+                        'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('keuangan.*'),
+                    ])
+                >
+                    <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span class="flex-1 text-left">Keuangan</span>
+                    <svg
+                        class="h-4 w-4 flex-shrink-0 transition-transform duration-200"
+                        :class="keuanganOpen ? 'rotate-180' : ''"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    >
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div
+                    x-show="keuanganOpen"
+                    x-transition:enter="transition ease-out duration-150"
+                    x-transition:enter-start="opacity-0 -translate-y-1"
+                    x-transition:enter-end="opacity-100 translate-y-0"
+                    x-transition:leave="transition ease-in duration-100"
+                    x-transition:leave-start="opacity-100 translate-y-0"
+                    x-transition:leave-end="opacity-0 -translate-y-1"
+                    class="mt-0.5 space-y-0.5 pl-9"
+                >
+                    @can('piutang.view')
+                    <a href="{{ route('keuangan.piutang.index') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('keuangan.piutang.*'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('keuangan.piutang.*'),
+                        ])
+                    >Piutang Asuransi</a>
+                    @endcan
+                    @can('piutang.tagih')
+                    <a href="{{ route('keuangan.penagihan.index') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('keuangan.penagihan.*'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('keuangan.penagihan.*'),
+                        ])
+                    >Penagihan</a>
+                    @endcan
+                </div>
+            </div>
+            @endcanany
+            @canany(['masterdata.view','masterdata.create','pengaturan.view','asuransi.config_bpjs','asuransi.master.view'])
             <div x-data="{ pengaturanOpen: {{ request()->routeIs('pengaturan.*') ? 'true' : 'false' }} }">
                 <button
                     @click="pengaturanOpen = !pengaturanOpen"
@@ -226,6 +279,26 @@
                             'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('pengaturan.sumber-informasi'),
                         ])
                     >Sumber Informasi</a>
+                    @endcan
+
+                    @can('asuransi.config_bpjs')
+                    <a href="{{ route('pengaturan.asuransi.bpjs') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('pengaturan.asuransi.bpjs'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('pengaturan.asuransi.bpjs'),
+                        ])
+                    >Konfigurasi BPJS</a>
+                    @endcan
+
+                    @can('asuransi.master.view')
+                    <a href="{{ route('pengaturan.asuransi.index') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('pengaturan.asuransi.index') || request()->routeIs('pengaturan.asuransi.create') || request()->routeIs('pengaturan.asuransi.edit'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('pengaturan.asuransi.*'),
+                        ])
+                    >Master Asuransi</a>
                     @endcan
 
                     @can('pengaturan.view')

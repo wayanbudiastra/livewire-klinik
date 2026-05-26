@@ -192,6 +192,24 @@ Route::middleware(['auth', 'active'])->group(function () {
              ->name('sumber-informasi')
              ->middleware('permission:masterdata.create');
 
+        // Asuransi & Penjamin
+        Route::prefix('asuransi')->name('asuransi.')->group(function () {
+            Route::get('/bpjs', fn () => view('pengaturan.asuransi.bpjs'))
+                 ->name('bpjs')
+                 ->middleware('permission:asuransi.config_bpjs');
+            Route::get('/', fn () => view('pengaturan.asuransi.index'))
+                 ->name('index')
+                 ->middleware('permission:asuransi.master.view');
+            Route::get('/create', fn () => view('pengaturan.asuransi.create'))
+                 ->name('create')
+                 ->middleware('permission:asuransi.master.manage');
+            Route::get('/{id}/edit', function ($id) {
+                $asuransi = \App\Models\Asuransi::findOrFail($id);
+                return view('pengaturan.asuransi.edit', compact('asuransi'));
+            })->name('edit')
+              ->middleware('permission:asuransi.master.manage');
+        });
+
         // Konfigurasi Klinik (dalam pengembangan)
         Route::get('/klinik', fn () => view('coming-soon', [
             'modul'      => 'Konfigurasi Klinik',
@@ -199,6 +217,20 @@ Route::middleware(['auth', 'active'])->group(function () {
             'progress'   => 0,
             'roadmap'    => ['Profil klinik & logo', 'Konfigurasi tarif layanan', 'Pengaturan BPJS & asuransi', 'Jam operasional'],
         ]))->name('klinik');
+    });
+
+    // ── Keuangan ────────────────────────────────────────────
+    Route::prefix('keuangan')->name('keuangan.')->middleware('permission:piutang.view')->group(function () {
+        Route::get('/piutang', fn () => view('keuangan.piutang.index'))->name('piutang.index');
+
+        Route::get('/penagihan', fn () => view('keuangan.penagihan.index'))->name('penagihan.index');
+        Route::get('/penagihan/create', fn () => view('keuangan.penagihan.create'))
+             ->name('penagihan.create')
+             ->middleware('permission:piutang.tagih');
+        Route::get('/penagihan/{id}', function ($id) {
+            $penagihan = \App\Models\PenagihanAsuransi::findOrFail($id);
+            return view('keuangan.penagihan.show', compact('penagihan'));
+        })->name('penagihan.show');
     });
 
     // Profile

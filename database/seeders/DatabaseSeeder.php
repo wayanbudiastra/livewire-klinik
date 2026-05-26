@@ -22,6 +22,8 @@ class DatabaseSeeder extends Seeder
             Icd10Seeder::class,
             PenunjangSeeder::class,
             SumberInformasiSeeder::class,
+            ConfigBpjsSeeder::class,
+            AsuransiSeeder::class,
         ]);
     }
 }

@@ -11,7 +11,7 @@ class Kunjungan extends Model
     protected $fillable = [
         'appointment_id', 'nomor_antrean', 'pasien_id', 'dokter_id', 'poli_id',
         'tanggal', 'keluhan', 'status', 'tipe_pembayaran',
-        'waktu_panggil', 'asal_kedatangan', 'catatan_penting',
+        'waktu_panggil', 'asal_kedatangan', 'catatan_penting', 'pasien_asuransi_id',
     ];
 
     protected function casts(): array
@@ -80,6 +80,11 @@ class Kunjungan extends Model
     public function soapNote()
     {
         return $this->hasOne(SoapNote::class);
+    }
+
+    public function pasienAsuransi()
+    {
+        return $this->belongsTo(PasienAsuransi::class, 'pasien_asuransi_id');
     }
 
     public function getWaktuTungguAttribute(): ?string

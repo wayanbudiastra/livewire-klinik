@@ -39,6 +39,12 @@ class RolePermissionSeeder extends Seeder
             'laporan.kasir.view_all',
             'laporan.pharmacy.view',
             'laporan.export',
+
+            // Asuransi & Piutang
+            'asuransi.config_bpjs',
+            'asuransi.master.view', 'asuransi.master.manage',
+            'asuransi.pasien.manage',
+            'piutang.view', 'piutang.tagih', 'piutang.lunas',
         ];
 
         foreach ($permissions as $perm) {
@@ -88,6 +94,20 @@ class RolePermissionSeeder extends Seeder
                 'laporan.keuangan',
                 'laporan.kasir.view',
                 'masterdata.view',
+                'asuransi.master.view', 'asuransi.pasien.manage',
+            ],
+            'front_office' => [
+                'pasien.view', 'pasien.create', 'pasien.edit',
+                'kunjungan.view', 'kunjungan.create',
+                'asuransi.master.view', 'asuransi.pasien.manage',
+            ],
+            'keuangan' => [
+                'pasien.view', 'kunjungan.view',
+                'billing.view',
+                'laporan.view', 'laporan.keuangan',
+                'laporan.kasir.view', 'laporan.export',
+                'asuransi.master.view',
+                'piutang.view', 'piutang.tagih', 'piutang.lunas',
             ],
             'admin' => [
                 'pasien.view', 'pasien.create', 'pasien.edit', 'pasien.delete',
@@ -99,6 +119,9 @@ class RolePermissionSeeder extends Seeder
                 'laporan.pharmacy.view', 'laporan.export',
                 'pengaturan.view', 'pengaturan.edit',
                 'masterdata.view', 'masterdata.create', 'masterdata.edit',
+                'asuransi.config_bpjs', 'asuransi.master.view', 'asuransi.master.manage',
+                'asuransi.pasien.manage',
+                'piutang.view', 'piutang.tagih', 'piutang.lunas',
             ],
             'super_admin' => [],
         ];
