@@ -26,4 +26,9 @@ class LaporanRegistrasiController extends Controller
     {
         return view('laporan.registrasi.index', ['tab' => 'warga-negara']);
     }
+
+    public function sumberInformasi(): View
+    {
+        return view('laporan.registrasi.index', ['tab' => 'sumber-informasi']);
+    }
 }

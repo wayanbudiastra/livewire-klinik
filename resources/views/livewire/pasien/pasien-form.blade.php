@@ -254,6 +254,48 @@
         </div>
     </div>
 
+    {{-- ── Section: Sumber Informasi ───────────────────────── --}}
+    <div class="card border-l-4 border-blue-400">
+        <div class="card-header">
+            <h3 class="text-sm font-semibold text-gray-700">
+                Sumber Informasi
+                @if(!$isEdit)<span class="text-red-500 ml-1">*</span>@endif
+            </h3>
+        </div>
+        <div class="card-body space-y-4">
+            <p class="text-sm text-gray-500">Dari mana pasien mengetahui klinik kami?</p>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                @foreach($daftarSumber as $sumber)
+                <button type="button"
+                    wire:click="$set('sumberInformasiId', {{ $sumber->id }})"
+                    @class([
+                        'py-3 px-3 rounded-lg border text-sm font-medium transition-all text-center',
+                        'bg-blue-50 border-blue-500 text-blue-700 ring-1 ring-blue-500' => $sumberInformasiId == $sumber->id,
+                        'border-gray-200 hover:bg-gray-50 text-gray-700' => $sumberInformasiId != $sumber->id,
+                    ])>
+                    <div class="text-xl mb-1">{{ $sumber->icon }}</div>
+                    <div class="leading-tight">{{ $sumber->nama }}</div>
+                </button>
+                @endforeach
+            </div>
+            @error('sumberInformasiId') <p class="form-error">{{ $message }}</p> @enderror
+
+            @if($sumberButuhKeterangan)
+            <div class="form-group">
+                <label class="form-label">
+                    Sebutkan sumber lainnya
+                    @if(!$isEdit)<span class="text-red-500">*</span>@endif
+                </label>
+                <input type="text" wire:model.blur="sumberKeterangan"
+                    class="form-input @error('sumberKeterangan') border-red-400 @enderror"
+                    placeholder="Contoh: YouTube, papan reklame, event kesehatan, dll" />
+                @error('sumberKeterangan') <p class="form-error">{{ $message }}</p> @enderror
+            </div>
+            @endif
+        </div>
+    </div>
+
     {{-- ── Tombol Simpan ────────────────────────────────────── --}}
     <div class="flex justify-end gap-3">
         <a href="{{ $isEdit ? route('pasien.show', $pasienId) : route('pasien.index') }}"

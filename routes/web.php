@@ -113,10 +113,11 @@ Route::middleware(['auth', 'active'])->group(function () {
 
         // Registrasi
         Route::middleware('permission:laporan.registrasi.view')->prefix('registrasi')->name('registrasi.')->group(function () {
-            Route::get('/kunjungan',    [\App\Http\Controllers\Laporan\LaporanRegistrasiController::class, 'kunjungan'])->name('kunjungan');
-            Route::get('/batal',        [\App\Http\Controllers\Laporan\LaporanRegistrasiController::class, 'batal'])->name('batal');
-            Route::get('/appointment',  [\App\Http\Controllers\Laporan\LaporanRegistrasiController::class, 'appointment'])->name('appointment');
-            Route::get('/warga-negara', [\App\Http\Controllers\Laporan\LaporanRegistrasiController::class, 'wargaNegara'])->name('warga-negara');
+            Route::get('/kunjungan',        [\App\Http\Controllers\Laporan\LaporanRegistrasiController::class, 'kunjungan'])->name('kunjungan');
+            Route::get('/batal',            [\App\Http\Controllers\Laporan\LaporanRegistrasiController::class, 'batal'])->name('batal');
+            Route::get('/appointment',      [\App\Http\Controllers\Laporan\LaporanRegistrasiController::class, 'appointment'])->name('appointment');
+            Route::get('/warga-negara',     [\App\Http\Controllers\Laporan\LaporanRegistrasiController::class, 'wargaNegara'])->name('warga-negara');
+            Route::get('/sumber-informasi', [\App\Http\Controllers\Laporan\LaporanRegistrasiController::class, 'sumberInformasi'])->name('sumber-informasi');
         });
 
         // Pemeriksaan
@@ -185,6 +186,11 @@ Route::middleware(['auth', 'active'])->group(function () {
                 return view('pengaturan.dokter.show', ['dokter' => $d]);
             })->name('dokter.show');
         });
+
+        // Master Sumber Informasi
+        Route::get('/sumber-informasi', fn () => view('pengaturan.sumber-informasi.index'))
+             ->name('sumber-informasi')
+             ->middleware('permission:masterdata.manage');
 
         // Konfigurasi Klinik (dalam pengembangan)
         Route::get('/klinik', fn () => view('coming-soon', [

@@ -3,6 +3,7 @@
 namespace App\Livewire\Pasien;
 
 use App\Models\Pasien;
+use App\Models\SumberInformasi;
 use App\Services\PasienService;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
@@ -38,6 +39,11 @@ class PasienForm extends Component
 
     // Kontak darurat
     public array $kontak = [];
+
+    // Sumber Informasi
+    public ?int  $sumberInformasiId     = null;
+    public string $sumberKeterangan     = '';
+    public bool  $sumberButuhKeterangan = false;
 
     // ── Kontak Darurat Helpers ───────────────────────────────
 
@@ -79,6 +85,20 @@ class PasienForm extends Component
         }
     }
 
+    public function updatedSumberInformasiId($value): void
+    {
+        if ($value) {
+            $sumber = SumberInformasi::find($value);
+            $this->sumberButuhKeterangan = $sumber?->butuh_keterangan ?? false;
+            if (!$this->sumberButuhKeterangan) {
+                $this->sumberKeterangan = '';
+            }
+        } else {
+            $this->sumberButuhKeterangan = false;
+            $this->sumberKeterangan      = '';
+        }
+    }
+
     // ── Load Edit ────────────────────────────────────────────
 
     public function mount(?int $pasienId = null): void
@@ -116,6 +136,11 @@ class PasienForm extends Component
             'alamat'     => $k->alamat ?? '',
             'is_primary' => $k->is_primary,
         ])->toArray();
+
+        // Sumber informasi (mode edit — isi jika ada, tidak wajib)
+        $this->sumberInformasiId     = $p->sumber_informasi_id;
+        $this->sumberKeterangan      = $p->sumber_informasi_keterangan ?? '';
+        $this->sumberButuhKeterangan = $p->sumberInformasi?->butuh_keterangan ?? false;
     }
 
     // ── Validation Rules ─────────────────────────────────────
@@ -123,7 +148,7 @@ class PasienForm extends Component
     public function getRules(): array
     {
         $id = $this->pasienId;
-        return [
+        $rules = [
             'nama'          => ['required', 'string', 'min:3', 'max:100'],
             'tempat_lahir'  => ['required', 'string', 'min:2', 'max:100'],
             'tanggal_lahir' => ['required', 'date', 'before_or_equal:today'],
@@ -148,18 +173,31 @@ class PasienForm extends Component
             'kontak.*.hubungan' => ['required_with:kontak',
                                     'in:suami,istri,ayah,ibu,anak,kakak,adik,kakek,nenek,paman,bibi,keponakan,teman,rekan_kerja,lainnya'],
         ];
+
+        if (!$this->isEdit) {
+            $rules['sumberInformasiId'] = ['required', 'exists:sumber_informasi,id'];
+            if ($this->sumberButuhKeterangan) {
+                $rules['sumberKeterangan'] = ['required', 'string', 'min:3', 'max:200'];
+            }
+        }
+
+        return $rules;
     }
 
     public function getMessages(): array
     {
         return [
-            'nik.size'           => 'NIK harus tepat 16 digit.',
-            'nik.regex'          => 'NIK hanya boleh angka.',
-            'nik.unique'         => 'NIK sudah terdaftar.',
-            'no_bpjs.size'       => 'BPJS harus tepat 13 digit.',
-            'telepon.regex'      => 'Format telepon tidak valid (08xx).',
-            'alamat.min'         => 'Alamat minimal 10 karakter.',
-            'kontak.*.nomor_hp.regex' => 'Format HP kontak tidak valid.',
+            'nik.size'                   => 'NIK harus tepat 16 digit.',
+            'nik.regex'                  => 'NIK hanya boleh angka.',
+            'nik.unique'                 => 'NIK sudah terdaftar.',
+            'no_bpjs.size'               => 'BPJS harus tepat 13 digit.',
+            'telepon.regex'              => 'Format telepon tidak valid (08xx).',
+            'alamat.min'                 => 'Alamat minimal 10 karakter.',
+            'kontak.*.nomor_hp.regex'    => 'Format HP kontak tidak valid.',
+            'sumberInformasiId.required' => 'Mohon pilih sumber informasi pasien.',
+            'sumberInformasiId.exists'   => 'Sumber informasi tidak valid.',
+            'sumberKeterangan.required'  => 'Mohon isi keterangan sumber informasi.',
+            'sumberKeterangan.min'       => 'Keterangan minimal 3 karakter.',
         ];
     }
 
@@ -186,21 +224,23 @@ class PasienForm extends Component
         }
 
         $data = [
-            'nama'           => $this->nama,
-            'tempat_lahir'   => $this->tempat_lahir,
-            'tanggal_lahir'  => $this->tanggal_lahir,
-            'jenis_kelamin'  => $this->jenis_kelamin,
-            'tipe_pasien'    => $this->tipe_pasien,
-            'nik'            => $this->nik            ?: null,
-            'no_paspor'      => $this->no_paspor      ? strtoupper($this->no_paspor) : null,
-            'negara_asal'    => $this->negara_asal     ?: null,
-            'no_bpjs'        => $this->no_bpjs         ?: null,
-            'alamat'         => $this->alamat,
-            'telepon'        => $this->telepon,
-            'email'          => $this->email           ?: null,
-            'golongan_darah' => $this->golongan_darah  ?: null,
-            'alergi'         => $this->alergi          ?: null,
-            'no_asuransi'    => $this->no_asuransi      ?: null,
+            'nama'                         => $this->nama,
+            'tempat_lahir'                 => $this->tempat_lahir,
+            'tanggal_lahir'                => $this->tanggal_lahir,
+            'jenis_kelamin'                => $this->jenis_kelamin,
+            'tipe_pasien'                  => $this->tipe_pasien,
+            'nik'                          => $this->nik            ?: null,
+            'no_paspor'                    => $this->no_paspor      ? strtoupper($this->no_paspor) : null,
+            'negara_asal'                  => $this->negara_asal     ?: null,
+            'no_bpjs'                      => $this->no_bpjs         ?: null,
+            'alamat'                       => $this->alamat,
+            'telepon'                      => $this->telepon,
+            'email'                        => $this->email           ?: null,
+            'golongan_darah'               => $this->golongan_darah  ?: null,
+            'alergi'                       => $this->alergi          ?: null,
+            'no_asuransi'                  => $this->no_asuransi      ?: null,
+            'sumber_informasi_id'          => $this->sumberInformasiId ?: null,
+            'sumber_informasi_keterangan'  => $this->sumberButuhKeterangan ? ($this->sumberKeterangan ?: null) : null,
         ];
 
         try {
@@ -232,6 +272,8 @@ class PasienForm extends Component
 
     public function render()
     {
-        return view('livewire.pasien.pasien-form');
+        return view('livewire.pasien.pasien-form', [
+            'daftarSumber' => SumberInformasi::active()->get(),
+        ]);
     }
 }

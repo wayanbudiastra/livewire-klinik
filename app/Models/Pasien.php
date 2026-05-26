@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Pasien extends Model
@@ -18,6 +19,7 @@ class Pasien extends Model
         'alamat', 'telepon', 'email',
         'golongan_darah', 'alergi',
         'no_bpjs', 'no_asuransi', 'foto', 'is_active',
+        'sumber_informasi_id', 'sumber_informasi_keterangan',
     ];
 
     protected function casts(): array
@@ -62,6 +64,11 @@ class Pasien extends Model
         return $this->hasMany(TransaksiDeposit::class);
     }
 
+    public function sumberInformasi(): BelongsTo
+    {
+        return $this->belongsTo(SumberInformasi::class, 'sumber_informasi_id');
+    }
+
     // ── Scopes ───────────────────────────────────────────────
 
     public function scopeAktif($query)
@@ -90,6 +97,18 @@ class Pasien extends Model
     public function getJenisKelaminLabelAttribute(): string
     {
         return $this->jenis_kelamin === 'L' ? 'Laki-laki' : 'Perempuan';
+    }
+
+    public function getSumberInformasiLabelAttribute(): string
+    {
+        if (!$this->sumberInformasi) {
+            return 'Tidak Tercatat';
+        }
+        $label = $this->sumberInformasi->nama;
+        if ($this->sumberInformasi->butuh_keterangan && $this->sumber_informasi_keterangan) {
+            $label .= ' (' . $this->sumber_informasi_keterangan . ')';
+        }
+        return $label;
     }
 
     public static function getHubunganOptions(): array

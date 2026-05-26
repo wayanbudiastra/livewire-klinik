@@ -4,7 +4,7 @@
     <div class="page-header">
         <div>
             <h1 class="page-title">Laporan Registrasi</h1>
-            <p class="page-subtitle">Kunjungan, Batal Registrasi, Appointment, dan Rekap Warga Negara</p>
+            <p class="page-subtitle">Kunjungan, Batal Registrasi, Appointment, Rekap WNA, dan Sumber Informasi</p>
         </div>
     </div>
 
@@ -12,10 +12,11 @@
 
         <div class="mb-6 flex flex-wrap gap-1 rounded-xl border border-gray-200 bg-gray-100 p-1" style="width: fit-content">
             @foreach([
-                'kunjungan'    => 'Kunjungan Pasien',
-                'batal'        => 'Batal Registrasi',
-                'appointment'  => 'Appointment',
-                'warga-negara' => 'Rekap WNA',
+                'kunjungan'        => 'Kunjungan Pasien',
+                'batal'            => 'Batal Registrasi',
+                'appointment'      => 'Appointment',
+                'warga-negara'     => 'Rekap WNA',
+                'sumber-informasi' => 'Sumber Informasi',
             ] as $key => $label)
             <button @click="tab = '{{ $key }}'"
                 :class="tab === '{{ $key }}'
@@ -38,6 +39,9 @@
         </div>
         <div x-show="tab === 'warga-negara'" x-cloak>
             <livewire:laporan.registrasi.rekap-warga-negara-report />
+        </div>
+        <div x-show="tab === 'sumber-informasi'" x-cloak>
+            <livewire:laporan.registrasi.sumber-informasi-report />
         </div>
 
     </div>

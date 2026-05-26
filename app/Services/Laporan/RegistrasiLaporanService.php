@@ -93,4 +93,42 @@ class RegistrasiLaporanService
             ]),
         ];
     }
+
+    public function sumberInformasi(Carbon $mulai, Carbon $akhir): array
+    {
+        $pasien = Pasien::whereBetween('created_at', [$mulai->startOfDay(), $akhir->copy()->endOfDay()])
+            ->with('sumberInformasi')
+            ->get();
+
+        $total = $pasien->count();
+
+        $perSumber = $pasien
+            ->groupBy(fn ($p) => $p->sumberInformasi?->nama ?? 'Tidak Tercatat')
+            ->map(fn ($g) => [
+                'jumlah'   => $g->count(),
+                'persen'   => $total > 0 ? round($g->count() / $total * 100, 1) : 0,
+                'icon'     => $g->first()->sumberInformasi?->icon ?? '❓',
+                'kategori' => $g->first()->sumberInformasi?->kategori ?? 'lainnya',
+            ])
+            ->sortByDesc('jumlah');
+
+        $perKategori = $pasien
+            ->groupBy(fn ($p) => $p->sumberInformasi?->kategori ?? 'lainnya')
+            ->map->count()
+            ->sortDesc();
+
+        $detailLainnya = $pasien
+            ->filter(fn ($p) => $p->sumberInformasi?->butuh_keterangan && $p->sumber_informasi_keterangan)
+            ->groupBy('sumber_informasi_keterangan')
+            ->map->count()
+            ->sortDesc();
+
+        return [
+            'total_pasien_baru' => $total,
+            'per_sumber'        => $perSumber,
+            'per_kategori'      => $perKategori,
+            'detail_lainnya'    => $detailLainnya,
+            'tidak_tercatat'    => $pasien->whereNull('sumber_informasi_id')->count(),
+        ];
+    }
 }
