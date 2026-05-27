@@ -28,6 +28,92 @@
         </div>
     </div>
 
+    {{-- Mapping Grid: Barang Terikat Supplier --}}
+    @if($showMappingGrid && !empty($barangMapping))
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h3 class="text-sm font-semibold dark:text-white">
+                    Barang Terikat Supplier
+                    <span class="badge badge-primary ml-1">{{ count($barangMapping) }} item</span>
+                </h3>
+                <p class="text-xs text-gray-400 mt-0.5">Centang barang yang ingin dipesan, isi jumlah, lalu klik tambah.</p>
+            </div>
+            <button type="button" wire:click="tambahDariMapping" class="btn-primary btn-sm"
+                @disabled(empty($selectedMapping))>
+                + Tambahkan ke PO ({{ count($selectedMapping) }})
+            </button>
+        </div>
+        <div class="card-body p-0 max-h-96 overflow-y-auto">
+            <table class="table text-sm">
+                <thead class="sticky top-0 bg-white dark:bg-gray-800 z-10">
+                    <tr>
+                        <th class="w-10"></th>
+                        <th>Barang</th>
+                        <th class="text-center">Stok</th>
+                        <th class="text-right">Harga Terakhir</th>
+                        <th class="w-28">Jumlah Pesan</th>
+                        <th class="w-32">Harga Satuan</th>
+                        <th class="w-20">Diskon%</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($barangMapping as $item)
+                    @php $dipilih = isset($selectedMapping[$item['barang_id']]); @endphp
+                    <tr class="{{ $dipilih ? 'bg-primary-50 dark:bg-blue-900/20' : '' }} cursor-pointer"
+                        wire:click="toggleMappingItem({{ $item['barang_id'] }})">
+                        <td class="text-center" wire:click.stop>
+                            <input type="checkbox"
+                                wire:click="toggleMappingItem({{ $item['barang_id'] }})"
+                                @checked($dipilih)
+                                class="form-checkbox" />
+                        </td>
+                        <td>
+                            <p class="font-medium text-gray-900 dark:text-gray-100">{{ $item['nama'] }}</p>
+                            @if($item['kode_barang_supplier'])
+                                <p class="text-xs text-gray-400">Kode supplier: {{ $item['kode_barang_supplier'] }}</p>
+                            @endif
+                        </td>
+                        <td class="text-center">
+                            <span @class(['font-semibold', 'text-red-600'=>$item['stok_saat_ini'] <= $item['stok_minimum'], 'text-gray-700 dark:text-gray-300'=>$item['stok_saat_ini'] > $item['stok_minimum']])>
+                                {{ $item['stok_saat_ini'] }} {{ $item['satuan'] }}
+                            </span>
+                        </td>
+                        <td class="text-right text-gray-600 dark:text-gray-400">
+                            Rp {{ number_format($item['harga_terakhir'], 0, ',', '.') }}
+                        </td>
+                        <td wire:click.stop>
+                            @if($dipilih)
+                            <input type="number"
+                                wire:model.live="selectedMapping.{{ $item['barang_id'] }}.jumlah"
+                                class="form-input text-sm py-1 px-2 w-full dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                                min="1" step="1" />
+                            @endif
+                        </td>
+                        <td wire:click.stop>
+                            @if($dipilih)
+                            <input type="number"
+                                wire:model.live="selectedMapping.{{ $item['barang_id'] }}.harga"
+                                class="form-input text-sm py-1 px-2 w-full dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                                min="0" step="1" />
+                            @endif
+                        </td>
+                        <td wire:click.stop>
+                            @if($dipilih)
+                            <input type="number"
+                                wire:model.live="selectedMapping.{{ $item['barang_id'] }}.diskon"
+                                class="form-input text-sm py-1 px-2 w-full dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                                min="0" max="100" step="0.1" />
+                            @endif
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
+
     {{-- Cari Barang --}}
     @if($supplierId)
     <div class="card">

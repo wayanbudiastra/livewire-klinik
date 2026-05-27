@@ -1,0 +1,92 @@
+<?php
+
+namespace App\Services\Akuntansi;
+
+use App\Models\{GoodsReceipt, PemakaianBhp, StokOpname, JurnalInventoriPending};
+
+class InventoriJurnalService
+{
+    const AKUN = [
+        'persediaan_barang' => '1-1300',
+        'hutang_dagang'     => '2-1100',
+        'hpp_farmasi'       => '5-1100',
+        'hpp_tindakan'      => '5-1200',
+        'biaya_bhp'         => '5-2100',
+        'selisih_opname'    => '8-1100',
+    ];
+
+    public function catatPembelian(GoodsReceipt $gr): void
+    {
+        foreach ($gr->items as $item) {
+            $hargaEfektif = $item->harga_satuan * (1 - ($item->diskon_persen ?? 0) / 100);
+            $nilai = $item->jumlah_terima * $hargaEfektif;
+
+            $this->simpan(
+                sumberTipe:    'goods_receipt',
+                sumberId:      $gr->id,
+                tipeTransaksi: 'masuk_pembelian',
+                tanggal:       $gr->tanggal_terima,
+                akunDebit:     self::AKUN['persediaan_barang'],
+                akunKredit:    self::AKUN['hutang_dagang'],
+                nominal:       $nilai,
+                keterangan:    "GR {$gr->nomor_gr}: {$item->barang->nama}",
+                metadata:      ['barang_id' => $item->barang_id, 'gr_item_id' => $item->id],
+            );
+        }
+    }
+
+    public function catatPemakaianBhp(PemakaianBhp $bhp): void
+    {
+        foreach ($bhp->items as $item) {
+            $this->simpan(
+                sumberTipe:    'pemakaian_bhp',
+                sumberId:      $bhp->id,
+                tipeTransaksi: 'keluar_bhp',
+                tanggal:       $bhp->tanggal_pemakaian,
+                akunDebit:     self::AKUN['biaya_bhp'],
+                akunKredit:    self::AKUN['persediaan_barang'],
+                nominal:       (float) $item->nilai_total,
+                keterangan:    "BHP {$bhp->nomor_bhp}: {$item->barang->nama}",
+                metadata:      ['barang_id' => $item->barang_id, 'bhp_item_id' => $item->id],
+            );
+        }
+    }
+
+    public function catatStokOpname(StokOpname $opname): void
+    {
+        foreach ($opname->items->where('tipe_selisih', '!=', 'sesuai') as $item) {
+            $isDrPersediaan = $item->tipe_selisih === 'lebih';
+
+            $this->simpan(
+                sumberTipe:    'stok_opname',
+                sumberId:      $opname->id,
+                tipeTransaksi: $isDrPersediaan ? 'penyesuaian_masuk' : 'penyesuaian_keluar',
+                tanggal:       $opname->tanggal_opname,
+                akunDebit:     $isDrPersediaan ? self::AKUN['persediaan_barang'] : self::AKUN['selisih_opname'],
+                akunKredit:    $isDrPersediaan ? self::AKUN['selisih_opname']    : self::AKUN['persediaan_barang'],
+                nominal:       (float) $item->nilai_selisih,
+                keterangan:    "Opname {$opname->nomor_opname}: {$item->barang->nama} ({$item->tipe_selisih})",
+                metadata:      ['barang_id' => $item->barang_id, 'opname_item_id' => $item->id],
+            );
+        }
+    }
+
+    private function simpan(
+        string $sumberTipe, int $sumberId, string $tipeTransaksi,
+        mixed $tanggal, string $akunDebit, string $akunKredit,
+        float $nominal, ?string $keterangan = null, array $metadata = []
+    ): void {
+        JurnalInventoriPending::create([
+            'sumber_tipe'       => $sumberTipe,
+            'sumber_id'         => $sumberId,
+            'tipe_transaksi'    => $tipeTransaksi,
+            'tanggal_transaksi' => $tanggal,
+            'kode_akun_debit'   => $akunDebit,
+            'kode_akun_kredit'  => $akunKredit,
+            'nominal'           => $nominal,
+            'keterangan'        => $keterangan,
+            'metadata'          => $metadata,
+            'status'            => 'pending',
+        ]);
+    }
+}

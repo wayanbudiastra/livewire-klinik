@@ -31,6 +31,7 @@ class MutasiStok extends Model
             'masuk_pembelian'    => 'Masuk — Pembelian',
             'keluar_resep'       => 'Keluar — Resep',
             'keluar_tindakan'    => 'Keluar — Tindakan',
+            'keluar_bhp'         => 'Keluar — Pemakaian BHP',
             'penyesuaian_masuk'  => 'Penyesuaian Tambah',
             'penyesuaian_keluar' => 'Penyesuaian Kurang',
             'retur_ke_supplier'  => 'Retur ke Supplier',

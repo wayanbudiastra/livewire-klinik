@@ -9,6 +9,7 @@ use App\Models\MutasiStok;
 use App\Models\PoItem;
 use App\Models\PurchaseOrder;
 use App\Models\SupplierBarang;
+use App\Services\Akuntansi\InventoriJurnalService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -77,6 +78,9 @@ class PenerimaanService
                 'status'        => 'diverifikasi',
                 'diterima_oleh' => $userId,
             ]);
+
+            // Hook akuntansi — catat jurnal pending pembelian
+            app(InventoriJurnalService::class)->catatPembelian($gr->fresh(['items.barang']));
 
             activity('inventory')
                 ->performedOn($gr)

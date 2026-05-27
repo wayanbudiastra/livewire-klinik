@@ -89,6 +89,10 @@
             <x-sidebar-item route="billing.index" icon="cash" permission="billing.view">Billing & Kasir</x-sidebar-item>
             <x-sidebar-item route="inventory.index" icon="office-building" permission="obat.view">Inventory</x-sidebar-item>
             <x-sidebar-item route="inventory.kartu-stok.index" icon="clipboard-check" permission="obat.view">Kartu Stok</x-sidebar-item>
+            @can('obat.view')
+            <x-sidebar-item route="inventory.bhp.index" icon="beaker">Pemakaian BHP</x-sidebar-item>
+            <x-sidebar-item route="inventory.opname.index" icon="clipboard-list">Stok Opname</x-sidebar-item>
+            @endcan
             @canany(['laporan.registrasi.view','laporan.pemeriksaan.view','laporan.kasir.view','laporan.pharmacy.view','laporan.view'])
             <div x-data="{ laporanOpen: {{ request()->routeIs('laporan.*') ? 'true' : 'false' }} }">
                 <button

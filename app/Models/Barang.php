@@ -77,4 +77,25 @@ class Barang extends Model
         $seq  = $last ? (int) ltrim(str_replace('BRG-', '', $last), '0') + 1 : 1;
         return 'BRG-' . str_pad($seq, 6, '0', STR_PAD_LEFT);
     }
+
+    /**
+     * Pastikan stok mencukupi sebelum transaksi keluar.
+     * Menggunakan lockForUpdate() untuk mencegah race condition.
+     *
+     * @throws \DomainException jika stok tidak cukup
+     */
+    public static function pastikanCukup(int $barangId, float $jumlah): self
+    {
+        $barang = static::lockForUpdate()->findOrFail($barangId);
+
+        if ($barang->stok < $jumlah) {
+            throw new \DomainException(
+                "Stok {$barang->nama} tidak mencukupi. " .
+                "Tersedia: {$barang->stok} {$barang->satuan}, " .
+                "Diminta: {$jumlah} {$barang->satuan}."
+            );
+        }
+
+        return $barang;
+    }
 }

@@ -161,6 +161,30 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/export-pdf',   [\App\Http\Controllers\Inventory\KartuStokController::class, 'exportPdf'])->name('export-pdf');
             Route::get('/export-excel', [\App\Http\Controllers\Inventory\KartuStokController::class, 'exportExcel'])->name('export-excel');
         });
+
+        // Pemakaian BHP
+        Route::prefix('bhp')->name('bhp.')->group(function () {
+            Route::get('/',        fn () => view('inventory.bhp.index'))->name('index');
+            Route::get('/create',  fn () => view('inventory.bhp.create'))
+                 ->name('create')
+                 ->middleware('permission:obat.edit');
+            Route::get('/{id}/edit', function ($id) {
+                $bhp = \App\Models\PemakaianBhp::findOrFail($id);
+                return view('inventory.bhp.edit', compact('bhp'));
+            })->name('edit');
+        });
+
+        // Stok Opname
+        Route::prefix('opname')->name('opname.')->group(function () {
+            Route::get('/',       fn () => view('inventory.opname.index'))->name('index');
+            Route::get('/create', fn () => view('inventory.opname.create'))
+                 ->name('create')
+                 ->middleware('permission:obat.edit');
+            Route::get('/{id}',  function ($id) {
+                $opname = \App\Models\StokOpname::with(['items.barang', 'pembuat', 'verifikator'])->findOrFail($id);
+                return view('inventory.opname.show', compact('opname'));
+            })->name('show');
+        });
     });
 
     // ── Pengaturan ──────────────────────────────────────────
