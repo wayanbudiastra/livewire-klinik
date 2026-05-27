@@ -9,7 +9,7 @@ class PemakaianAlkes extends Model
     protected $table = 'pemakaian_alkes';
 
     protected $fillable = [
-        'kunjungan_id', 'obat_id', 'jumlah', 'catatan',
+        'kunjungan_id', 'barang_id', 'jumlah', 'catatan',
     ];
 
     public function kunjungan()
@@ -17,8 +17,8 @@ class PemakaianAlkes extends Model
         return $this->belongsTo(Kunjungan::class);
     }
 
-    public function obat()
+    public function barang()
     {
-        return $this->belongsTo(Obat::class);
+        return $this->belongsTo(Barang::class);
     }
 }

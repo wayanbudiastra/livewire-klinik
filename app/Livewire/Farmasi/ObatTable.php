@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Farmasi;
 
-use App\Models\Obat;
+use App\Models\Barang;
 use App\Services\FarmasiService;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
@@ -35,14 +35,12 @@ class ObatTable extends Component
     #[Computed]
     public function obat()
     {
-        return Obat::with(['satuanBesar:id,nama', 'satuanKecil:id,nama'])
-            ->when($this->search, fn ($q, $s) => $q->search($s))
-            ->when($this->filterJenis, fn ($q, $j) => $q->where('jenis_barang', $j))
+        return Barang::whereIn('jenis', ['obat', 'alkes'])
+            ->when($this->search,       fn ($q, $s) => $q->search($s))
+            ->when($this->filterJenis,  fn ($q, $j) => $q->where('jenis', $j))
             ->when($this->filterStatus === 'aktif',    fn ($q) => $q->where('is_active', true))
             ->when($this->filterStatus === 'nonaktif', fn ($q) => $q->where('is_active', false))
-            ->when($this->filterReorder,
-                fn ($q) => $q->whereHas('stokGudang', fn ($sq) =>
-                    $sq->whereColumn('stok', '<=', 'stok_min')))
+            ->when($this->filterReorder, fn ($q) => $q->whereRaw('stok <= stok_minimum'))
             ->orderBy('nama')
             ->paginate($this->perPage);
     }

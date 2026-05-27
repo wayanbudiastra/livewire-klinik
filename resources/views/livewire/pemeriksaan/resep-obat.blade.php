@@ -78,20 +78,20 @@
                      class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg max-h-60 overflow-y-auto">
                     @forelse($this->suggestionsObat as $obat)
                     <button type="button"
-                            wire:click="addToCartObat({{ $obat->id }}, '{{ $obat->kode }}', @js($obat->nama), '{{ $obat->harga }}', @js($obat->satuan ?? ''))"
+                            wire:click="addToCartObat({{ $obat->id }}, '{{ $obat->kode }}', @js($obat->nama), '{{ $obat->harga_jual }}', @js($obat->satuan ?? ''))"
                             @click="open = false"
                             class="w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left">
                         <div>
                             <span class="font-medium text-gray-900 dark:text-gray-100">{{ $obat->nama }}</span>
-                            @if($obat->generik)
-                            <span class="ml-1 text-xs text-gray-400">({{ $obat->generik }})</span>
+                            @if($obat->nama_generik)
+                            <span class="ml-1 text-xs text-gray-400">({{ $obat->nama_generik }})</span>
                             @endif
                             <span class="ml-2 text-xs text-gray-400 font-mono">{{ $obat->kode }}</span>
                         </div>
                         <div class="flex items-center gap-3 ml-4 flex-shrink-0">
                             <span class="text-xs text-gray-500">Stok: {{ $obat->stok }}</span>
                             <span class="text-xs text-blue-600 dark:text-blue-400 font-semibold">
-                                Rp {{ number_format($obat->harga, 0, ',', '.') }}
+                                Rp {{ number_format($obat->harga_jual, 0, ',', '.') }}
                             </span>
                         </div>
                     </button>
@@ -350,22 +350,22 @@
                         @foreach($this->resep->itemResep as $item)
                         <tr wire:key="item-{{ $item->id }}">
                             <td>
-                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $item->obat?->nama }}</p>
-                                <p class="text-xs text-gray-400 font-mono">{{ $item->obat?->kode }}</p>
+                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $item->barang?->nama }}</p>
+                                <p class="text-xs text-gray-400 font-mono">{{ $item->barang?->kode }}</p>
                             </td>
                             <td class="text-sm text-gray-700 dark:text-gray-300">
-                                {{ $item->jumlah }} {{ $item->obat?->satuan }}
+                                {{ $item->jumlah }} {{ $item->barang?->satuan }}
                             </td>
                             <td class="text-sm text-gray-600 dark:text-gray-400">{{ $item->aturan_pakai ?: '—' }}</td>
                             <td class="text-sm text-gray-700 dark:text-gray-300 font-mono">
-                                Rp {{ number_format(($item->obat?->harga ?? 0) * $item->jumlah, 0, ',', '.') }}
+                                Rp {{ number_format(($item->barang?->harga_jual ?? 0) * $item->jumlah, 0, ',', '.') }}
                             </td>
                             @if(!$this->isLocked)
                             <td>
                                 <x-confirm-button
                                     :action="'batalkanItem(' . $item->id . ')'"
                                     title="Hapus Item Resep?"
-                                    :text="'Hapus ' . ($item->obat?->nama ?? 'item') . ' dari resep?'"
+                                    :text="'Hapus ' . ($item->barang?->nama ?? 'item') . ' dari resep?'"
                                     confirm="Ya, Hapus"
                                     type="danger"
                                     class="btn-danger btn-xs">
@@ -419,11 +419,11 @@
                         @foreach($racikan->bahanRacikan as $bahan)
                         <tr wire:key="bahan-{{ $bahan->id }}">
                             <td>
-                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $bahan->obat?->nama }}</p>
-                                <p class="text-xs text-gray-400 font-mono">{{ $bahan->obat?->kode }}</p>
+                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $bahan->barang?->nama }}</p>
+                                <p class="text-xs text-gray-400 font-mono">{{ $bahan->barang?->kode }}</p>
                             </td>
                             <td class="text-sm text-gray-700 dark:text-gray-300">
-                                {{ $bahan->jumlah }} {{ $bahan->satuan ?? $bahan->obat?->satuan }}
+                                {{ $bahan->jumlah }} {{ $bahan->satuan ?? $bahan->barang?->satuan }}
                             </td>
                         </tr>
                         @endforeach

@@ -18,30 +18,32 @@
                 <thead>
                     <tr>
                         <th>Obat / Alkes</th>
-                        <th>Lokasi Gudang</th>
+                        <th>Jenis</th>
                         <th>Stok</th>
-                        <th>Min</th>
+                        <th>Minimum</th>
                         <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($this->reorderList as $obat)
-                        @foreach ($obat->stokGudang->filter(fn($s) => $s->stok <= $s->stok_min) as $sg)
-                        <tr wire:key="sg-{{ $sg->id }}">
-                            <td>
-                                <p class="font-medium text-gray-900 dark:text-gray-100">{{ $obat->nama }}</p>
-                                <p class="text-xs font-mono text-gray-400">{{ $obat->kode }}</p>
-                            </td>
-                            <td class="text-sm text-gray-600 dark:text-gray-400">
-                                {{ $sg->lokasiGudang->nama }}
-                            </td>
-                            <td class="font-bold {{ $sg->stok <= 0 ? 'text-red-600' : 'text-amber-600' }}">
-                                {{ $sg->stok }}
-                            </td>
-                            <td class="text-sm text-gray-500">{{ $sg->stok_min }}</td>
-                            <td><x-stok-status :status="$sg->status_stok" /></td>
-                        </tr>
-                        @endforeach
+                    @foreach ($this->reorderList as $barang)
+                    <tr wire:key="reorder-{{ $barang->id }}">
+                        <td>
+                            <p class="font-medium text-gray-900 dark:text-gray-100">{{ $barang->nama }}</p>
+                            <p class="text-xs font-mono text-gray-400">{{ $barang->kode }}</p>
+                        </td>
+                        <td>
+                            <span @class([
+                                'badge',
+                                'badge-primary' => $barang->jenis === 'obat',
+                                'badge-info'    => $barang->jenis === 'alkes',
+                            ])>{{ ucfirst($barang->jenis) }}</span>
+                        </td>
+                        <td class="font-bold {{ $barang->stok <= 0 ? 'text-red-600' : 'text-amber-600' }}">
+                            {{ $barang->stok }} {{ $barang->satuan }}
+                        </td>
+                        <td class="text-sm text-gray-500">{{ $barang->stok_minimum }} {{ $barang->satuan }}</td>
+                        <td><x-stok-status :status="$barang->level_stok" /></td>
+                    </tr>
                     @endforeach
                 </tbody>
             </table>
@@ -91,8 +93,8 @@
                     @foreach ($this->akanExpiredList as $batch)
                     <tr wire:key="batch-{{ $batch->id }}">
                         <td>
-                            <p class="font-medium text-gray-900 dark:text-gray-100">{{ $batch->obat->nama }}</p>
-                            <p class="text-xs font-mono text-gray-400">{{ $batch->obat->kode }}</p>
+                            <p class="font-medium text-gray-900 dark:text-gray-100">{{ $batch->barang->nama }}</p>
+                            <p class="text-xs font-mono text-gray-400">{{ $batch->barang->kode }}</p>
                         </td>
                         <td class="font-mono text-sm text-gray-600 dark:text-gray-400">{{ $batch->nomor_batch }}</td>
                         <td class="text-sm">{{ $batch->tanggal_expired->format('d/m/Y') }}</td>
@@ -105,7 +107,7 @@
                             ])>{{ $batch->sisa_hari }} hari</span>
                         </td>
                         <td class="text-sm text-gray-600 dark:text-gray-400">
-                            {{ $batch->stok_batch }} {{ $batch->obat->satuan }}
+                            {{ $batch->stok_batch }} {{ $batch->barang->satuan }}
                         </td>
                         <td>
                             @php
@@ -151,13 +153,13 @@
                     @foreach ($this->sudahExpiredList as $batch)
                     <tr wire:key="exp-{{ $batch->id }}" class="bg-red-50/30 dark:bg-red-900/10">
                         <td>
-                            <p class="font-medium text-gray-900 dark:text-gray-100">{{ $batch->obat->nama }}</p>
-                            <p class="text-xs font-mono text-gray-400">{{ $batch->obat->kode }}</p>
+                            <p class="font-medium text-gray-900 dark:text-gray-100">{{ $batch->barang->nama }}</p>
+                            <p class="text-xs font-mono text-gray-400">{{ $batch->barang->kode }}</p>
                         </td>
                         <td class="font-mono text-sm text-gray-600 dark:text-gray-400">{{ $batch->nomor_batch }}</td>
                         <td class="text-sm text-red-600 font-medium">{{ $batch->tanggal_expired->format('d/m/Y') }}</td>
                         <td class="text-sm text-red-600 font-medium">
-                            {{ $batch->stok_batch }} {{ $batch->obat->satuan }}
+                            {{ $batch->stok_batch }} {{ $batch->barang->satuan }}
                         </td>
                     </tr>
                     @endforeach

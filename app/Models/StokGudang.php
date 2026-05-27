@@ -9,13 +9,13 @@ class StokGudang extends Model
     protected $table = 'stok_gudang';
 
     protected $fillable = [
-        'obat_id', 'lokasi_gudang_id',
+        'barang_id', 'lokasi_gudang_id',
         'stok', 'stok_min', 'stok_max',
     ];
 
-    public function obat()
+    public function barang()
     {
-        return $this->belongsTo(Obat::class);
+        return $this->belongsTo(Barang::class);
     }
 
     public function lokasiGudang()

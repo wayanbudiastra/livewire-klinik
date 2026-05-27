@@ -2,9 +2,9 @@
 
 namespace App\Livewire\Pemeriksaan;
 
+use App\Models\Barang;
 use App\Models\BahanRacikan;
 use App\Models\ItemResep;
-use App\Models\Obat;
 use App\Models\Racikan;
 use App\Models\Resep;
 use Livewire\Attributes\Computed;
@@ -36,15 +36,12 @@ class ResepObat extends Component
     {
         if (strlen($this->searchObat) < 2) return collect();
 
-        return Obat::aktif()
+        return Barang::aktif()
+            ->whereIn('jenis', ['obat', 'alkes'])
             ->where('stok', '>', 0)
-            ->where(function ($q) {
-                $q->where('nama',    'like', '%'.$this->searchObat.'%')
-                  ->orWhere('kode',  'like', '%'.$this->searchObat.'%')
-                  ->orWhere('generik','like', '%'.$this->searchObat.'%');
-            })
+            ->search($this->searchObat)
             ->limit(10)
-            ->get(['id', 'kode', 'nama', 'harga', 'satuan', 'satuan_kecil_id', 'stok']);
+            ->get(['id', 'kode', 'nama', 'harga_jual', 'satuan', 'stok']);
     }
 
     #[Computed]
@@ -52,20 +49,17 @@ class ResepObat extends Component
     {
         if (strlen($this->searchBahan) < 2) return collect();
 
-        return Obat::aktif()
-            ->where(function ($q) {
-                $q->where('nama',    'like', '%'.$this->searchBahan.'%')
-                  ->orWhere('kode',  'like', '%'.$this->searchBahan.'%')
-                  ->orWhere('generik','like', '%'.$this->searchBahan.'%');
-            })
+        return Barang::aktif()
+            ->whereIn('jenis', ['obat', 'alkes'])
+            ->search($this->searchBahan)
             ->limit(10)
-            ->get(['id', 'kode', 'nama', 'satuan', 'satuan_kecil_id', 'stok']);
+            ->get(['id', 'kode', 'nama', 'satuan', 'stok']);
     }
 
     #[Computed]
     public function resep()
     {
-        return Resep::with(['itemResep.obat', 'racikan.bahanRacikan.obat'])
+        return Resep::with(['itemResep.barang', 'racikan.bahanRacikan.barang'])
             ->where('kunjungan_id', $this->kunjunganId)
             ->latest()
             ->first();
@@ -111,12 +105,11 @@ class ResepObat extends Component
     {
         if (empty($this->cartObat)) return;
 
-        // Validasi stok
         foreach ($this->cartObat as $item) {
-            $obat = Obat::find($item['id']);
-            if (! $obat || $obat->stok < $item['jumlah']) {
+            $barang = Barang::find($item['id']);
+            if (! $barang || $barang->stok < $item['jumlah']) {
                 $this->dispatch('notify', type: 'error',
-                    message: "Stok {$item['nama']} tidak mencukupi (tersisa {$obat?->stok}).");
+                    message: "Stok {$item['nama']} tidak mencukupi (tersisa {$barang?->stok}).");
                 return;
             }
         }
@@ -126,7 +119,7 @@ class ResepObat extends Component
         foreach ($this->cartObat as $item) {
             ItemResep::create([
                 'resep_id'    => $resep->id,
-                'obat_id'     => $item['id'],
+                'barang_id'   => $item['id'],
                 'jumlah'      => $item['jumlah'],
                 'aturan_pakai'=> $item['signa'] ?: null,
             ]);
@@ -195,7 +188,7 @@ class ResepObat extends Component
         foreach ($this->cartBahan as $b) {
             BahanRacikan::create([
                 'racikan_id' => $racikan->id,
-                'obat_id'    => $b['id'],
+                'barang_id'  => $b['id'],
                 'jumlah'     => $b['jumlah'],
                 'satuan'     => $b['satuan'] ?: null,
             ]);

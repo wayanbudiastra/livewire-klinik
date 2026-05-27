@@ -3,26 +3,31 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Barang extends Model
 {
     protected $table = 'barang';
 
     protected $fillable = [
-        'kode', 'nama', 'nama_generik', 'jenis', 'kategori',
+        'kode', 'barcode', 'nama', 'nama_generik', 'jenis', 'kategori',
         'satuan', 'satuan_besar', 'isi_satuan_besar', 'kemasan',
         'stok', 'stok_minimum', 'stok_maksimum',
-        'harga_pokok', 'harga_jual',
-        'golongan', 'butuh_resep', 'is_active', 'supplier_utama_id',
+        'harga_pokok', 'harga_jual', 'harga_bpjs',
+        'golongan', 'butuh_resep', 'is_paten', 'is_active',
+        'expired_date', 'supplier_utama_id',
     ];
 
     protected function casts(): array
     {
         return [
             'butuh_resep'  => 'boolean',
+            'is_paten'     => 'boolean',
             'is_active'    => 'boolean',
             'harga_pokok'  => 'decimal:2',
             'harga_jual'   => 'decimal:2',
+            'harga_bpjs'   => 'decimal:2',
+            'expired_date' => 'date',
         ];
     }
 
@@ -48,9 +53,49 @@ class Barang extends Model
         return $this->hasMany(MutasiStok::class)->latest();
     }
 
+    public function stokGudang()
+    {
+        return $this->hasMany(StokGudang::class);
+    }
+
+    public function batchExpired()
+    {
+        return $this->hasMany(BatchExpired::class)->orderBy('tanggal_expired');
+    }
+
+    public function itemResep()
+    {
+        return $this->hasMany(ItemResep::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    public function scopeAktif($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeSearch($query, string $term)
+    {
+        return $query->where(function ($q) use ($term) {
+            $q->where('nama',        'like', "%{$term}%")
+              ->orWhere('kode',      'like', "%{$term}%")
+              ->orWhere('barcode',   'like', "%{$term}%")
+              ->orWhere('nama_generik', 'like', "%{$term}%");
+        });
+    }
+
+    public function getJenisLabelAttribute(): string
+    {
+        return match($this->jenis) {
+            'obat'              => 'Obat',
+            'alkes'             => 'Alkes',
+            'bahan_habis_pakai' => 'BHP',
+            default             => 'Lainnya',
+        };
     }
 
     public function scopeStokKritis($query)

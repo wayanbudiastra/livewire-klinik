@@ -89,38 +89,24 @@
                     </div>
 
                     {{-- Satuan --}}
-                    <div class="grid grid-cols-4 gap-3">
+                    <div class="grid grid-cols-3 gap-3">
                         <div class="form-group">
                             <label class="form-label dark:text-gray-300">Satuan Dasar <span class="text-red-500">*</span></label>
-                            <input wire:model="satuan" type="text" placeholder="Tablet, Botol..."
+                            <input wire:model="satuan" type="text" placeholder="Tablet, Kapsul, Botol..."
                                    class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
                             @error('satuan') <p class="form-error">{{ $message }}</p> @enderror
                         </div>
                         <div class="form-group">
                             <label class="form-label dark:text-gray-300">Satuan Besar</label>
-                            <select wire:model="satuan_besar_id"
-                                    class="form-select dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
-                                <option value="">— Pilih —</option>
-                                @foreach ($this->satuanList as $s)
-                                    <option value="{{ $s->id }}">{{ $s->nama }}</option>
-                                @endforeach
-                            </select>
+                            <input wire:model="satuan_besar" type="text" placeholder="Box, Strip... (opsional)"
+                                   class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                            <p class="form-hint">Kemasan lebih besar</p>
                         </div>
                         <div class="form-group">
-                            <label class="form-label dark:text-gray-300">Satuan Kecil</label>
-                            <select wire:model="satuan_kecil_id"
-                                    class="form-select dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
-                                <option value="">— Pilih —</option>
-                                @foreach ($this->satuanList as $s)
-                                    <option value="{{ $s->id }}">{{ $s->nama }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label dark:text-gray-300">Konversi</label>
+                            <label class="form-label dark:text-gray-300">Isi per Satuan Besar</label>
                             <input wire:model="konversi" type="number" min="1"
                                    class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
-                            <p class="form-hint">Satuan besar = N satuan kecil</p>
+                            <p class="form-hint">Satuan besar = N satuan dasar</p>
                         </div>
                     </div>
 

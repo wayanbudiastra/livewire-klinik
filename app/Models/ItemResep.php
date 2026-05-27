@@ -11,7 +11,7 @@ class ItemResep extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'resep_id', 'obat_id', 'jumlah', 'aturan_pakai', 'catatan',
+        'resep_id', 'barang_id', 'jumlah', 'aturan_pakai', 'catatan',
     ];
 
     public function resep()
@@ -19,8 +19,8 @@ class ItemResep extends Model
         return $this->belongsTo(Resep::class);
     }
 
-    public function obat()
+    public function barang()
     {
-        return $this->belongsTo(Obat::class);
+        return $this->belongsTo(Barang::class);
     }
 }

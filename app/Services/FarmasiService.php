@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\Barang;
 use App\Models\BatchExpired;
-use App\Models\Obat;
 use App\Models\StokGudang;
 use App\Repositories\ObatRepository;
 use Illuminate\Validation\ValidationException;
@@ -14,49 +14,49 @@ class FarmasiService
         private readonly ObatRepository $repo
     ) {}
 
-    // ── Master Obat ───────────────────────────────────────────
+    // ── Master Obat/Alkes (via Barang) ────────────────────────
 
-    public function createObat(array $data): Obat
+    public function createObat(array $data): Barang
     {
-        $obat = Obat::create($data);
+        $barang = Barang::create($data);
 
         activity('farmasi')
-            ->performedOn($obat)
+            ->performedOn($barang)
             ->causedBy(auth()->user())
             ->log('Obat/Alkes baru ditambahkan');
 
-        return $obat;
+        return $barang;
     }
 
-    public function updateObat(int $id, array $data): Obat
+    public function updateObat(int $id, array $data): Barang
     {
-        $obat = Obat::findOrFail($id);
-        $obat->update($data);
+        $barang = Barang::findOrFail($id);
+        $barang->update($data);
 
         activity('farmasi')
-            ->performedOn($obat)
+            ->performedOn($barang)
             ->causedBy(auth()->user())
             ->log('Data obat/alkes diupdate');
 
-        return $obat;
+        return $barang;
     }
 
-    public function toggleAktif(int $id): Obat
+    public function toggleAktif(int $id): Barang
     {
-        $obat = Obat::findOrFail($id);
-        $obat->update(['is_active' => ! $obat->is_active]);
+        $barang = Barang::findOrFail($id);
+        $barang->update(['is_active' => ! $barang->is_active]);
 
         activity('farmasi')
-            ->performedOn($obat)
+            ->performedOn($barang)
             ->causedBy(auth()->user())
-            ->log($obat->is_active ? 'Obat diaktifkan' : 'Obat dinonaktifkan');
+            ->log($barang->is_active ? 'Obat diaktifkan' : 'Obat dinonaktifkan');
 
-        return $obat;
+        return $barang;
     }
 
     // ── Stok Gudang ───────────────────────────────────────────
 
-    public function aturMinMax(int $obatId, int $lokasiId, int $stokMin, int $stokMax): StokGudang
+    public function aturMinMax(int $barangId, int $lokasiId, int $stokMin, int $stokMax): StokGudang
     {
         if ($stokMin >= $stokMax) {
             throw ValidationException::withMessages([
@@ -64,7 +64,7 @@ class FarmasiService
             ]);
         }
 
-        return $this->repo->upsertStokGudang($obatId, $lokasiId, [
+        return $this->repo->upsertStokGudang($barangId, $lokasiId, [
             'stok_min' => $stokMin,
             'stok_max' => $stokMax,
         ]);
@@ -72,9 +72,9 @@ class FarmasiService
 
     // ── Batch Expired ─────────────────────────────────────────
 
-    public function tambahBatch(int $obatId, array $data): BatchExpired
+    public function tambahBatch(int $barangId, array $data): BatchExpired
     {
-        return BatchExpired::create(array_merge($data, ['obat_id' => $obatId]));
+        return BatchExpired::create(array_merge($data, ['barang_id' => $barangId]));
     }
 
     public function hapusBatch(int $batchId): void
@@ -99,8 +99,8 @@ class FarmasiService
         return $this->repo->getBatchExpired();
     }
 
-    public function getStokTotal(int $obatId): int
+    public function getStokTotal(int $barangId): int
     {
-        return StokGudang::where('obat_id', $obatId)->sum('stok');
+        return StokGudang::where('barang_id', $barangId)->sum('stok');
     }
 }

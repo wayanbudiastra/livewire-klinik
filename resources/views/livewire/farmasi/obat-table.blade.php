@@ -70,25 +70,25 @@
                     </td>
                     <td>
                         <p class="font-medium text-gray-900 dark:text-gray-100">{{ $o->nama }}</p>
-                        @if ($o->generik)
-                        <p class="text-xs text-gray-400 italic">{{ $o->generik }}</p>
+                        @if ($o->nama_generik)
+                        <p class="text-xs text-gray-400 italic">{{ $o->nama_generik }}</p>
                         @endif
                     </td>
                     <td>
                         <span @class([
                             'badge',
-                            'badge-primary' => $o->jenis_barang === 'obat',
-                            'badge-info'    => $o->jenis_barang === 'alkes',
-                        ])>{{ ucfirst($o->jenis_barang) }}</span>
+                            'badge-primary' => $o->jenis === 'obat',
+                            'badge-info'    => $o->jenis === 'alkes',
+                        ])>{{ ucfirst($o->jenis) }}</span>
                         @if ($o->is_paten)
                         <span class="badge-warning ml-1">Paten</span>
                         @endif
                     </td>
                     <td class="text-sm text-gray-600 dark:text-gray-400">
                         {{ $o->satuan }}
-                        @if ($o->satuanBesar && $o->satuanKecil)
+                        @if ($o->satuan_besar && $o->isi_satuan_besar)
                         <p class="text-xs text-gray-400">
-                            {{ $o->satuanBesar->nama }} = {{ $o->konversi }} {{ $o->satuanKecil->nama }}
+                            {{ $o->satuan_besar }} = {{ $o->isi_satuan_besar }} {{ $o->satuan }}
                         </p>
                         @endif
                     </td>
@@ -103,7 +103,7 @@
                         @endif
                     </td>
                     <td class="text-sm text-gray-700 dark:text-gray-300">
-                        Rp {{ number_format($o->harga, 0, ',', '.') }}
+                        Rp {{ number_format($o->harga_jual, 0, ',', '.') }}
                     </td>
                     <td class="text-sm text-gray-500">
                         {{ $o->harga_bpjs ? 'Rp '.number_format($o->harga_bpjs, 0, ',', '.') : '-' }}

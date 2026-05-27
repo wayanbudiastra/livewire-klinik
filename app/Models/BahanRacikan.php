@@ -11,7 +11,7 @@ class BahanRacikan extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'racikan_id', 'obat_id', 'jumlah', 'satuan',
+        'racikan_id', 'barang_id', 'jumlah', 'satuan',
     ];
 
     public function racikan()
@@ -19,8 +19,8 @@ class BahanRacikan extends Model
         return $this->belongsTo(Racikan::class);
     }
 
-    public function obat()
+    public function barang()
     {
-        return $this->belongsTo(Obat::class);
+        return $this->belongsTo(Barang::class);
     }
 }

@@ -2,9 +2,9 @@
 
 namespace App\Livewire\Farmasi;
 
+use App\Models\Barang;
 use App\Models\BahanRacikan;
 use App\Models\ItemResep;
-use App\Models\Obat;
 use App\Models\Racikan;
 use App\Models\Resep;
 use Livewire\Attributes\Computed;
@@ -39,8 +39,8 @@ class ResepFarmasi extends Component
                 'kunjungan.pasien',
                 'kunjungan.dokter.user:id,nama',
                 'kunjungan.invoice' => fn ($q) => $q->select('billing.id', 'billing.kunjungan_id', 'billing.status'),
-                'itemResep.obat',
-                'racikan.bahanRacikan.obat',
+                'itemResep.barang',
+                'racikan.bahanRacikan.barang',
                 'locker:id,nama',
             ])
             ->when($this->statusFilter === 'menunggu', fn ($q) => $q->where('is_locked', false)->where('status', 'menunggu'))
@@ -74,10 +74,10 @@ class ResepFarmasi extends Component
         $item = ItemResep::find($this->editingItemId);
         if (! $item) return;
 
-        $obat = Obat::find($item->obat_id);
-        if ($obat && $obat->stok < $this->editJumlah) {
+        $barang = Barang::find($item->barang_id);
+        if ($barang && $barang->stok < $this->editJumlah) {
             $this->dispatch('notify', ['type' => 'error',
-                'message' => "Stok {$obat->nama} tidak mencukupi (tersisa {$obat->stok})."]);
+                'message' => "Stok {$barang->nama} tidak mencukupi (tersisa {$barang->stok})."]);
             return;
         }
 
@@ -152,32 +152,32 @@ class ResepFarmasi extends Component
     // ── Konfirmasi (lock) resep ──────────────────────────────
     public function konfirmasi(int $resepId): void
     {
-        $resep = Resep::with(['itemResep.obat', 'racikan.bahanRacikan.obat'])->find($resepId);
+        $resep = Resep::with(['itemResep.barang', 'racikan.bahanRacikan.barang'])->find($resepId);
         if (! $resep || $resep->is_locked) return;
 
-        // Potong stok obat jadi
+        // Potong stok barang jadi
         foreach ($resep->itemResep as $item) {
-            $obat = $item->obat;
-            if ($obat) {
-                if ($obat->stok < $item->jumlah) {
+            $barang = $item->barang;
+            if ($barang) {
+                if ($barang->stok < $item->jumlah) {
                     $this->dispatch('notify', ['type' => 'error',
-                        'message' => "Stok {$obat->nama} tidak mencukupi untuk konfirmasi."]);
+                        'message' => "Stok {$barang->nama} tidak mencukupi untuk konfirmasi."]);
                     return;
                 }
-                $obat->decrement('stok', $item->jumlah);
+                $barang->decrement('stok', $item->jumlah);
             }
         }
 
         // Potong stok bahan racikan
         foreach ($resep->racikan as $racikan) {
             foreach ($racikan->bahanRacikan as $bahan) {
-                $obat = $bahan->obat;
-                if ($obat && $obat->stok < $bahan->jumlah) {
+                $barang = $bahan->barang;
+                if ($barang && $barang->stok < $bahan->jumlah) {
                     $this->dispatch('notify', ['type' => 'error',
-                        'message' => "Stok bahan {$obat->nama} tidak mencukupi untuk konfirmasi."]);
+                        'message' => "Stok bahan {$barang->nama} tidak mencukupi untuk konfirmasi."]);
                     return;
                 }
-                $obat?->decrement('stok', $bahan->jumlah);
+                $barang?->decrement('stok', $bahan->jumlah);
             }
         }
 
@@ -195,29 +195,27 @@ class ResepFarmasi extends Component
     public function batalkanKonfirmasi(int $resepId): void
     {
         $resep = Resep::with([
-            'itemResep.obat',
-            'racikan.bahanRacikan.obat',
+            'itemResep.barang',
+            'racikan.bahanRacikan.barang',
             'kunjungan.invoice',
         ])->find($resepId);
 
         if (! $resep || ! $resep->is_locked) return;
 
-        // Hanya boleh dibatalkan jika invoice belum lunas
         if ($resep->kunjungan?->invoice?->status === 'lunas') {
             $this->dispatch('notify', ['type' => 'error',
                 'message' => 'Resep tidak dapat dibatalkan karena billing sudah lunas.']);
             return;
         }
 
-        // Kembalikan stok obat jadi
+        // Kembalikan stok
         foreach ($resep->itemResep as $item) {
-            $item->obat?->increment('stok', $item->jumlah);
+            $item->barang?->increment('stok', $item->jumlah);
         }
 
-        // Kembalikan stok bahan racikan
         foreach ($resep->racikan as $racikan) {
             foreach ($racikan->bahanRacikan as $bahan) {
-                $bahan->obat?->increment('stok', $bahan->jumlah);
+                $bahan->barang?->increment('stok', $bahan->jumlah);
             }
         }
 

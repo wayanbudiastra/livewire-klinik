@@ -9,7 +9,7 @@ class BatchExpired extends Model
     protected $table = 'batch_expired';
 
     protected $fillable = [
-        'obat_id', 'nomor_batch',
+        'barang_id', 'nomor_batch',
         'tanggal_expired', 'stok_batch', 'catatan',
     ];
 
@@ -18,9 +18,9 @@ class BatchExpired extends Model
         return ['tanggal_expired' => 'date'];
     }
 
-    public function obat()
+    public function barang()
     {
-        return $this->belongsTo(Obat::class);
+        return $this->belongsTo(Barang::class);
     }
 
     public function getSisaHariAttribute(): int

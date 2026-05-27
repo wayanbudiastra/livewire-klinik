@@ -92,10 +92,10 @@
                     @if($editingItemId === $item->id)
                     {{-- Edit mode --}}
                     <div class="flex-1 flex flex-wrap gap-2 items-center">
-                        <span class="text-sm font-medium text-gray-900 dark:text-gray-100 min-w-0">{{ $item->obat?->nama }}</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-gray-100 min-w-0">{{ $item->barang?->nama }}</span>
                         <input wire:model="editJumlah" type="number" min="1"
                                class="form-input w-20 text-xs py-1 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
-                        <span class="text-xs text-gray-400">{{ $item->obat?->satuan }}</span>
+                        <span class="text-xs text-gray-400">{{ $item->barang?->satuan }}</span>
                         <input wire:model="editSigna" type="text" placeholder="Signa..."
                                class="form-input text-xs py-1 w-48 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
                     </div>
@@ -105,14 +105,14 @@
                     </div>
                     @else
                     <div class="flex-1">
-                        <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $item->obat?->nama }}</span>
-                        <span class="text-xs text-gray-400 ml-2">{{ $item->jumlah }} {{ $item->obat?->satuan }}</span>
+                        <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ $item->barang?->nama }}</span>
+                        <span class="text-xs text-gray-400 ml-2">{{ $item->jumlah }} {{ $item->barang?->satuan }}</span>
                         @if($item->aturan_pakai)
                         <span class="text-xs text-blue-600 dark:text-blue-400 ml-2">· {{ $item->aturan_pakai }}</span>
                         @endif
                     </div>
                     <span class="text-xs font-mono text-gray-500 dark:text-gray-400">
-                        Rp {{ number_format(($item->obat?->harga ?? 0) * $item->jumlah, 0, ',', '.') }}
+                        Rp {{ number_format(($item->barang?->harga_jual ?? 0) * $item->jumlah, 0, ',', '.') }}
                     </span>
                     @if(!$resep->is_locked)
                     <div class="flex gap-1">
@@ -121,7 +121,7 @@
                         <x-confirm-button
                             :action="'hapusItem(' . $item->id . ')'"
                             title="Hapus Item?"
-                            :text="'Hapus ' . ($item->obat?->nama ?? 'item') . ' dari resep?'"
+                            :text="'Hapus ' . ($item->barang?->nama ?? 'item') . ' dari resep?'"
                             confirm="Ya, Hapus"
                             type="danger"
                             class="btn-danger btn-xs">
@@ -188,8 +188,8 @@
                 @foreach($racikan->bahanRacikan as $bahan)
                 <div class="text-xs text-gray-600 dark:text-gray-400 flex gap-2">
                     <span class="text-gray-400">—</span>
-                    <span>{{ $bahan->obat?->nama }}</span>
-                    <span class="font-mono">{{ $bahan->jumlah }} {{ $bahan->satuan ?? $bahan->obat?->satuan }}</span>
+                    <span>{{ $bahan->barang?->nama }}</span>
+                    <span class="font-mono">{{ $bahan->jumlah }} {{ $bahan->satuan ?? $bahan->barang?->satuan }}</span>
                 </div>
                 @endforeach
             </div>
