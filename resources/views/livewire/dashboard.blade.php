@@ -71,10 +71,12 @@
         <div class="lg:col-span-2 card"
             x-data="{
                 chart: null,
-                labels: [],
-                total:  [],
-                baru:   [],
-                lama:   [],
+
+                {{-- Data awal dari PHP via @js() — tidak bergantung event mount() --}}
+                labels: @js($chartLabels),
+                total:  @js($chartTotal),
+                baru:   @js($chartBaru),
+                lama:   @js($chartLama),
 
                 init() {
                     this.$nextTick(() => this.renderChart());

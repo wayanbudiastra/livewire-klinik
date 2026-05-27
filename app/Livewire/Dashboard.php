@@ -10,13 +10,9 @@ use Livewire\Component;
 
 class Dashboard extends Component
 {
-    public function mount(): void
-    {
-        $this->dispatchChartData();
-    }
-
     public function refreshData(): void
     {
+        // Dipanggil wire:poll.30s — dispatch chart data ke Alpine listener
         $this->dispatchChartData();
     }
 
@@ -52,7 +48,7 @@ class Dashboard extends Component
 
     // ── Chart Data (15 hari terakhir) ────────────────────────
 
-    private function buildChartData(): array
+    public function buildChartData(): array
     {
         $mulai = now()->subDays(14)->startOfDay();
         $akhir = now()->endOfDay();
@@ -102,11 +98,17 @@ class Dashboard extends Component
 
     public function render()
     {
+        $chart = $this->buildChartData();
+
         return view('livewire.dashboard', [
-            'kunjunganHariIni'     => $this->kunjunganHariIni,
-            'pasienBaruBulanIni'   => $this->pasienBaruBulanIni,
-            'menungguPemeriksaan'  => $this->menungguPemeriksaan,
-            'pendapatanHariIni'    => $this->pendapatanHariIni,
+            'kunjunganHariIni'    => $this->kunjunganHariIni,
+            'pasienBaruBulanIni'  => $this->pasienBaruBulanIni,
+            'menungguPemeriksaan' => $this->menungguPemeriksaan,
+            'pendapatanHariIni'   => $this->pendapatanHariIni,
+            'chartLabels'         => $chart['labels'],
+            'chartTotal'          => $chart['total'],
+            'chartBaru'           => $chart['baru'],
+            'chartLama'           => $chart['lama'],
         ]);
     }
 }
