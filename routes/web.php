@@ -84,6 +84,13 @@ Route::middleware(['auth', 'active'])->group(function () {
                 return view('farmasi.ritel.edit', compact('tr'));
             })->name('edit')
               ->middleware('permission:obat.create');
+
+            Route::get('/{id}/print', function ($id) {
+                $tr = \App\Models\TransaksiRitel::with(['items.barang', 'apoteker', 'kasir', 'pasien'])
+                      ->findOrFail($id);
+                abort_unless(in_array($tr->status, ['dibayar', 'selesai']), 403, 'Struk hanya tersedia untuk transaksi yang sudah dibayar.');
+                return view('farmasi.ritel.invoice-print', compact('tr'));
+            })->name('print');
         });
     });
 

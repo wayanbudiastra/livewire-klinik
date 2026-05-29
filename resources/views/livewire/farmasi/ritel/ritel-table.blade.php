@@ -106,6 +106,11 @@
 
                                 @elseif($tr->status === 'dibayar')
                                 <a href="{{ route('farmasi.ritel.show', $tr->id) }}" class="btn-xs btn-secondary">Lihat</a>
+                                <a href="{{ route('farmasi.ritel.print', $tr->id) }}" target="_blank" class="btn-xs btn-secondary" title="Cetak Struk">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                                    </svg>
+                                </a>
                                 <button wire:click="serahkanObat({{ $tr->id }})" wire:loading.attr="disabled"
                                     class="btn-xs btn-primary"
                                     onclick="return confirm('Serahkan obat dan potong stok? Tindakan ini tidak bisa dibatalkan.')">
@@ -114,6 +119,11 @@
 
                                 @else
                                 <a href="{{ route('farmasi.ritel.show', $tr->id) }}" class="btn-xs btn-secondary">Lihat</a>
+                                <a href="{{ route('farmasi.ritel.print', $tr->id) }}" target="_blank" class="btn-xs btn-secondary" title="Cetak Struk">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                                    </svg>
+                                </a>
                                 @endif
                             </div>
                         </td>
