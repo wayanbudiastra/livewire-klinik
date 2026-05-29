@@ -119,11 +119,15 @@ class ObatRitelService
             throw new \DomainException('Jumlah bayar kurang dari total harga.');
         }
 
-        // Cari sesi kas aktif milik kasir yang memproses
+        // Kasir wajib memiliki sesi kas aktif agar transaksi tercatat di laporan
         $sesiKas = SesiKas::where('user_id', $kasirId)
             ->where('status', 'buka')
             ->whereDate('tanggal', today())
             ->first();
+
+        if (!$sesiKas) {
+            throw new \DomainException('Kasir belum membuka sesi kas hari ini. Buka sesi kas terlebih dahulu sebelum memproses pembayaran ritel.');
+        }
 
         $tr->update([
             'status'       => 'dibayar',
