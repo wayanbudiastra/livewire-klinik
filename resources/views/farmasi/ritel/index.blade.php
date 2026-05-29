@@ -11,9 +11,5 @@
         @endcan
     </div>
 
-    @if(session('success'))
-    <div class="alert alert-success mb-4">{{ session('success') }}</div>
-    @endif
-
     <livewire:farmasi.ritel.ritel-table />
 </x-app-layout>

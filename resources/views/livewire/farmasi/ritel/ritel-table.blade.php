@@ -1,12 +1,5 @@
 <div class="space-y-4">
 
-    @if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-    @if(session('error'))
-    <div class="alert alert-danger">{{ session('error') }}</div>
-    @endif
-
     {{-- Filter & Search --}}
     <div class="card">
         <div class="card-body">
@@ -39,9 +32,6 @@
                     <input type="date" wire:model.live="filterSampai"
                         class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200" />
                 </div>
-                <a href="{{ route('farmasi.ritel.create') }}" class="btn-primary ml-auto">
-                    + Transaksi Baru
-                </a>
             </div>
         </div>
     </div>
