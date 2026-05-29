@@ -63,6 +63,28 @@ Route::middleware(['auth', 'active'])->group(function () {
 
         // Resep
         Route::get('/resep', fn () => view('farmasi.resep'))->name('resep.index');
+
+        // Penjualan Ritel
+        Route::prefix('ritel')->name('ritel.')->group(function () {
+            Route::get('/', fn () => view('farmasi.ritel.index'))->name('index');
+
+            Route::get('/create', fn () => view('farmasi.ritel.create'))
+                 ->name('create')
+                 ->middleware('permission:obat.create');
+
+            Route::get('/{id}', function ($id) {
+                $tr = \App\Models\TransaksiRitel::with(['items.barang', 'apoteker', 'kasir', 'pasien'])
+                        ->findOrFail($id);
+                return view('farmasi.ritel.show', compact('tr'));
+            })->name('show');
+
+            Route::get('/{id}/edit', function ($id) {
+                $tr = \App\Models\TransaksiRitel::findOrFail($id);
+                abort_unless($tr->status === 'draft', 403, 'Hanya transaksi draft yang bisa diedit.');
+                return view('farmasi.ritel.edit', compact('tr'));
+            })->name('edit')
+              ->middleware('permission:obat.create');
+        });
     });
 
     // Billing & Kasir
