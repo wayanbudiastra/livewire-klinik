@@ -1,23 +1,19 @@
-@extends('layouts.app')
+<x-app-layout>
+    <x-slot name="title">Penjualan Ritel</x-slot>
 
-@section('title', 'Penjualan Ritel')
-
-@section('content')
-<div class="page-header">
-    <div>
-        <h1 class="page-title">Penjualan Ritel</h1>
-        <p class="page-subtitle">Transaksi pembelian obat tanpa konsultasi dokter</p>
+    <div class="page-header">
+        <div>
+            <h2 class="page-title">Penjualan Ritel</h2>
+            <p class="page-subtitle">Transaksi pembelian obat tanpa konsultasi dokter</p>
+        </div>
+        @can('obat.create')
+        <a href="{{ route('farmasi.ritel.create') }}" class="btn-primary">+ Transaksi Baru</a>
+        @endcan
     </div>
-    @can('obat.create')
-    <a href="{{ route('farmasi.ritel.create') }}" class="btn-primary">
-        + Transaksi Baru
-    </a>
-    @endcan
-</div>
 
-@if(session('success'))
-<div class="alert alert-success mb-4">{{ session('success') }}</div>
-@endif
+    @if(session('success'))
+    <div class="alert alert-success mb-4">{{ session('success') }}</div>
+    @endif
 
-<livewire:farmasi.ritel.ritel-table />
-@endsection
+    <livewire:farmasi.ritel.ritel-table />
+</x-app-layout>
