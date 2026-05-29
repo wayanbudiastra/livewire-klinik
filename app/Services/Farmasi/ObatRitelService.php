@@ -67,7 +67,7 @@ class ObatRitelService
                 'nama_pembeli' => $header['nama_pembeli'],
                 'nomor_hp'     => $header['nomor_hp'] ?? null,
                 'pasien_id'    => $header['pasien_id'] ?? null,
-                'catatan'      => $header['catatan'] ?? null,
+                'catatan'      => $header['catatan']   ?? null,
             ]);
 
             $tr->items()->delete();

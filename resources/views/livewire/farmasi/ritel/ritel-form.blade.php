@@ -4,7 +4,7 @@
     <div class="alert alert-danger">{{ $message }}</div>
     @enderror
 
-    {{-- Header: Identitas Pembeli --}}
+    {{-- ── Identitas Pembeli ─────────────────────────────────────────── --}}
     <div class="card">
         <div class="card-header">
             <h3 class="text-sm font-semibold dark:text-white">
@@ -14,21 +14,81 @@
             <span class="badge badge-warning">Draft</span>
             @endif
         </div>
-        <div class="card-body grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="form-group">
-                <label class="form-label">Nama Pembeli <span class="text-red-500">*</span></label>
-                <input type="text" wire:model="namaPembeli"
-                    class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
-                    placeholder="Nama lengkap pembeli" />
-                @error('namaPembeli') <p class="form-error">{{ $message }}</p> @enderror
+        <div class="card-body space-y-4">
+
+            {{-- Cari Pasien --}}
+            <div>
+                <label class="form-label">Pasien Terdaftar (opsional)</label>
+
+                @if($pasienId)
+                {{-- Pasien sudah dipilih --}}
+                <div class="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold text-blue-800 dark:text-blue-300">{{ $pasienNama }}</p>
+                        <p class="text-xs text-blue-600 dark:text-blue-400 font-mono">RM: {{ $pasienRm }}</p>
+                    </div>
+                    <button type="button" wire:click="clearPasien"
+                        class="text-xs text-blue-500 hover:text-red-500 transition-colors underline">
+                        Ganti / Hapus
+                    </button>
+                </div>
+                @else
+                {{-- Search pasien --}}
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+                        </svg>
+                    </span>
+                    <input wire:model.live.debounce.400ms="searchPasien" type="text"
+                        placeholder="Cari nama / nomor RM pasien... (kosongkan jika pembeli umum)"
+                        class="form-input pl-9 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200" />
+                </div>
+
+                @if(!empty($hasilSearchPasien))
+                <div class="mt-1 border border-gray-200 dark:border-gray-600 rounded-xl divide-y divide-gray-100 dark:divide-gray-700 shadow-sm">
+                    @foreach($hasilSearchPasien as $p)
+                    <button type="button" wire:click="selectPasien({{ $p['id'] }})"
+                        class="w-full text-left px-4 py-2.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="font-medium text-gray-900 dark:text-gray-100">{{ $p['nama'] }}</span>
+                            <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                                <span class="font-mono">{{ $p['nomor_rm'] }}</span>
+                                <span>{{ $p['lahir'] }}</span>
+                            </div>
+                        </div>
+                    </button>
+                    @endforeach
+                </div>
+                @endif
+
+                <p class="text-xs text-gray-400 mt-1">Biarkan kosong untuk pembeli tanpa nomor RM (umum)</p>
+                @endif
             </div>
-            <div class="form-group">
-                <label class="form-label">Nomor HP</label>
-                <input type="text" wire:model="nomorHp"
-                    class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
-                    placeholder="Opsional" />
+
+            {{-- Nama + HP --}}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-group mb-0">
+                    <label class="form-label">Nama Pembeli <span class="text-red-500">*</span></label>
+                    <input type="text" wire:model="namaPembeli"
+                        class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                        placeholder="Nama lengkap pembeli"
+                        @if($pasienId) readonly @endif />
+                    @error('namaPembeli') <p class="form-error">{{ $message }}</p> @enderror
+                    @if($pasienId)
+                    <p class="text-xs text-gray-400 mt-1">Otomatis dari data pasien. Ganti pasien untuk mengubah.</p>
+                    @endif
+                </div>
+                <div class="form-group mb-0">
+                    <label class="form-label">Nomor HP</label>
+                    <input type="text" wire:model="nomorHp"
+                        class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                        placeholder="Opsional" />
+                </div>
             </div>
-            <div class="form-group md:col-span-2">
+
+            {{-- Catatan --}}
+            <div class="form-group mb-0">
                 <label class="form-label">Catatan</label>
                 <input type="text" wire:model="catatan"
                     class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
@@ -37,7 +97,7 @@
         </div>
     </div>
 
-    {{-- Cari Obat --}}
+    {{-- ── Cari Obat ────────────────────────────────────────────────────── --}}
     <div class="card">
         <div class="card-header">
             <h3 class="text-sm font-semibold dark:text-white">Tambah Obat / Alkes</h3>
@@ -84,7 +144,7 @@
         </div>
     </div>
 
-    {{-- Tabel Item Cart --}}
+    {{-- ── Tabel Item Cart ──────────────────────────────────────────────── --}}
     @if(!empty($items))
     <div class="card">
         <div class="card-header">
@@ -160,7 +220,7 @@
     </div>
     @endif
 
-    {{-- Aksi --}}
+    {{-- ── Aksi ─────────────────────────────────────────────────────────── --}}
     <div class="flex justify-end gap-3">
         <a href="{{ route('farmasi.ritel.index') }}" class="btn-secondary">Kembali</a>
         <button type="button" wire:click="simpanDraft" wire:loading.attr="disabled" class="btn-secondary">
