@@ -10,7 +10,7 @@
 
     @if($hasil)
     <div wire:loading.remove wire:target="generate">
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-5">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
             <div class="card p-4 text-center">
                 <p class="text-2xl font-bold text-blue-600">{{ number_format($hasil['total_transaksi']) }}</p>
                 <p class="text-xs text-gray-500 mt-1">Total Transaksi</p>
@@ -20,8 +20,12 @@
                 <p class="text-xs text-gray-500 mt-1">Total Nilai</p>
             </div>
             <div class="card p-4 text-center">
-                <p class="text-2xl font-bold text-purple-600">{{ $hasil['per_metode']->count() }}</p>
-                <p class="text-xs text-gray-500 mt-1">Metode Pembayaran</p>
+                <p class="text-2xl font-bold text-orange-500">{{ number_format($hasil['jumlah_ritel']) }}</p>
+                <p class="text-xs text-gray-500 mt-1">Transaksi Ritel</p>
+            </div>
+            <div class="card p-4 text-center">
+                <p class="text-2xl font-bold text-orange-600">Rp {{ number_format($hasil['total_ritel'], 0, ',', '.') }}</p>
+                <p class="text-xs text-gray-500 mt-1">Total Ritel</p>
             </div>
         </div>
 

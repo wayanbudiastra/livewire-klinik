@@ -2,7 +2,7 @@
 
 namespace App\Services\Farmasi;
 
-use App\Models\{Barang, MutasiStok, TransaksiRitel, TransaksiRitelItem};
+use App\Models\{Barang, MutasiStok, SesiKas, TransaksiRitel, TransaksiRitelItem};
 use Illuminate\Support\Facades\DB;
 
 class ObatRitelService
@@ -119,9 +119,16 @@ class ObatRitelService
             throw new \DomainException('Jumlah bayar kurang dari total harga.');
         }
 
+        // Cari sesi kas aktif milik kasir yang memproses
+        $sesiKas = SesiKas::where('user_id', $kasirId)
+            ->where('status', 'buka')
+            ->whereDate('tanggal', today())
+            ->first();
+
         $tr->update([
             'status'       => 'dibayar',
             'kasir_id'     => $kasirId,
+            'sesi_kas_id'  => $sesiKas?->id,
             'metode_bayar' => $bayarData['metode_bayar'],
             'total_bayar'  => $totalBayar,
             'kembalian'    => $bayarData['metode_bayar'] === 'tunai'

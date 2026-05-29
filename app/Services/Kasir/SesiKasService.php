@@ -2,7 +2,7 @@
 
 namespace App\Services\Kasir;
 
-use App\Models\{SesiKas, PembayaranSplit, User};
+use App\Models\{SesiKas, PembayaranSplit, TransaksiRitel, User};
 use Illuminate\Support\Facades\{DB, Hash};
 
 class SesiKasService
@@ -41,6 +41,7 @@ class SesiKasService
         }
 
         return DB::transaction(function () use ($sesi, $userId, $uangFisikAkhir, $catatan) {
+            // Rekap dari billing pasien (PembayaranSplit)
             $rekap = PembayaranSplit::where('pembayaran_split.sesi_kas_id', $sesi->id)
                 ->join('billing', 'pembayaran_split.billing_id', '=', 'billing.id')
                 ->where('billing.status', 'lunas')
@@ -54,30 +55,43 @@ class SesiKasService
                 ")
                 ->first();
 
-            $totalCash     = (float) ($rekap->total_cash ?? 0);
-            $selisih       = $uangFisikAkhir - ((float) $sesi->saldo_awal + $totalCash);
+            // Rekap dari transaksi ritel yang terkait sesi ini
+            $ritel = TransaksiRitel::where('sesi_kas_id', $sesi->id)
+                ->whereIn('status', ['dibayar', 'selesai'])
+                ->selectRaw("
+                    SUM(CASE WHEN metode_bayar = 'tunai'               THEN total_bayar ELSE 0 END) as ritel_cash,
+                    SUM(CASE WHEN metode_bayar IN ('transfer','kartu','split') THEN total_bayar ELSE 0 END) as ritel_non_cash,
+                    SUM(total_bayar) as ritel_total
+                ")
+                ->first();
+
+            $totalCash    = (float) ($rekap->total_cash    ?? 0) + (float) ($ritel->ritel_cash    ?? 0);
+            $totalNonCash = (float) ($rekap->total_non_cash ?? 0) + (float) ($ritel->ritel_non_cash ?? 0);
+            $saldoAkhir   = (float) ($rekap->saldo_akhir   ?? 0) + (float) ($ritel->ritel_total   ?? 0);
+            $selisih      = $uangFisikAkhir - ((float) $sesi->saldo_awal + $totalCash);
 
             $sesi->update([
                 'status'           => 'tutup',
                 'ditutup_pada'     => now(),
                 'ditutup_oleh'     => $userId,
-                'saldo_akhir'      => $rekap->saldo_akhir ?? 0,
+                'saldo_akhir'      => $saldoAkhir,
                 'uang_fisik_akhir' => $uangFisikAkhir,
                 'selisih'          => $selisih,
                 'total_cash'       => $totalCash,
-                'total_non_cash'   => $rekap->total_non_cash ?? 0,
-                'total_deposit'    => $rekap->total_deposit ?? 0,
-                'total_bpjs'       => $rekap->total_bpjs ?? 0,
+                'total_non_cash'   => $totalNonCash,
+                'total_deposit'    => $rekap->total_deposit  ?? 0,
+                'total_bpjs'       => $rekap->total_bpjs     ?? 0,
                 'total_asuransi'   => $rekap->total_asuransi ?? 0,
                 'catatan'          => $catatan,
             ]);
 
             AuditKasirService::log('tutup_kas', $userId, 'sesi_kas', $sesi->id, [
-                'saldo_akhir'      => $sesi->fresh()->saldo_akhir,
+                'saldo_akhir'      => $saldoAkhir,
                 'uang_fisik_akhir' => $uangFisikAkhir,
                 'selisih'          => $selisih,
                 'total_cash'       => $totalCash,
-                'total_non_cash'   => $rekap->total_non_cash ?? 0,
+                'total_non_cash'   => $totalNonCash,
+                'total_ritel'      => (float) ($ritel->ritel_total ?? 0),
             ]);
 
             return $sesi->fresh();

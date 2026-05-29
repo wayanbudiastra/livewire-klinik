@@ -43,6 +43,7 @@ class SesiKas extends Model
     public function dibukaKembaliOleh(): BelongsTo { return $this->belongsTo(User::class, 'dibuka_kembali_oleh'); }
     public function billings(): HasMany          { return $this->hasMany(Invoice::class, 'sesi_kas_id'); }
     public function pembayaranSplit(): HasMany   { return $this->hasMany(PembayaranSplit::class); }
+    public function transaksiRitel(): HasMany    { return $this->hasMany(TransaksiRitel::class); }
 
     public function scopeBuka($q)  { return $q->where('status', 'buka'); }
     public function scopeTutup($q) { return $q->where('status', 'tutup'); }

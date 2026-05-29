@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TransaksiRitel extends Model
 {
@@ -10,7 +11,7 @@ class TransaksiRitel extends Model
 
     protected $fillable = [
         'nomor_ritel', 'nama_pembeli', 'nomor_hp', 'pasien_id',
-        'apoteker_id', 'kasir_id', 'status', 'metode_bayar',
+        'apoteker_id', 'kasir_id', 'sesi_kas_id', 'status', 'metode_bayar',
         'total_harga', 'total_bayar', 'kembalian', 'catatan',
         'dibayar_at', 'diserahkan_at',
     ];
@@ -44,6 +45,11 @@ class TransaksiRitel extends Model
     public function pasien()
     {
         return $this->belongsTo(Pasien::class);
+    }
+
+    public function sesiKas()
+    {
+        return $this->belongsTo(SesiKas::class);
     }
 
     public function getStatusLabelAttribute(): string
