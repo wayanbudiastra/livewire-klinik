@@ -11,7 +11,7 @@
 set -euo pipefail
 
 # ── Konfigurasi ───────────────────────────────────────────────────────────────
-APP_DIR="/var/www/klinik"          # Sesuaikan dengan path project di VPS
+APP_DIR="/var/www/livewire-klinik"          # Sesuaikan dengan path project di VPS
 PHP_BIN="php8.4"                   # Binary PHP (php8.4 / php / php8.3)
 ARTISAN="${APP_DIR}/artisan"
 JSON_FILE="${APP_DIR}/master_icd_x.json"
