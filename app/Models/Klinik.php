@@ -26,6 +26,7 @@ class Klinik extends Model
         'jabatan_pimpinan',
         'header_struk',
         'footer_struk',
+        'bahasa_icd',
     ];
 
     /** Ambil profil klinik (baris pertama, atau instance baru jika belum ada). */

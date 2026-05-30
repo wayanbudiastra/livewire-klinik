@@ -8,7 +8,7 @@ class IcdDiagnosis extends Model
 {
     protected $table = 'icd10';
 
-    protected $fillable = ['kode', 'nama', 'kategori'];
+    protected $fillable = ['kode', 'nama', 'nama_en', 'nama_id', 'kategori'];
 
     public static function search(string $term, int $limit = 15): \Illuminate\Support\Collection
     {
@@ -17,5 +17,11 @@ class IcdDiagnosis extends Model
             ->orderByRaw("CASE WHEN kode LIKE ? THEN 0 ELSE 1 END", ["{$term}%"])
             ->limit($limit)
             ->get(['id', 'kode', 'nama', 'kategori']);
+    }
+
+    /** Bahasa aktif berdasarkan setting klinik. */
+    public static function bahasaAktif(): string
+    {
+        return \App\Models\Klinik::value('bahasa_icd') ?? 'id';
     }
 }
