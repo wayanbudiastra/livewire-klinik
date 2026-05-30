@@ -223,18 +223,5 @@
         </button>
     </div>
 
-    {{-- Toast --}}
-    <div
-        x-data="{ show: false, type: 'success', message: '' }"
-        x-on:notify.window="show = true; type = $event.detail.type; message = $event.detail.message; setTimeout(() => show = false, 3500)"
-        x-show="show" x-transition
-        x-cloak
-        :class="type === 'success' ? 'bg-emerald-600' : 'bg-red-600'"
-        class="fixed bottom-6 right-6 z-50 text-white text-sm font-medium px-5 py-3 rounded-xl shadow-lg flex items-center gap-2">
-        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-        </svg>
-        <span x-text="message"></span>
-    </div>
 
 </div>
