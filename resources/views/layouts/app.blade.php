@@ -314,6 +314,14 @@
                             'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('pengaturan.pengguna'),
                         ])
                     >Manajemen Pengguna</a>
+
+                    <a href="{{ route('pengaturan.klinik') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('pengaturan.klinik'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('pengaturan.klinik'),
+                        ])
+                    >Profil Klinik</a>
                     @endcan
                 </div>
             </div>

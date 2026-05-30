@@ -263,13 +263,10 @@ Route::middleware(['auth', 'active'])->group(function () {
               ->middleware('permission:asuransi.master.manage');
         });
 
-        // Konfigurasi Klinik (dalam pengembangan)
-        Route::get('/klinik', fn () => view('coming-soon', [
-            'modul'      => 'Konfigurasi Klinik',
-            'deskripsi'  => 'Pengaturan profil fasilitas kesehatan, logo, kontak, dan konfigurasi sistem.',
-            'progress'   => 0,
-            'roadmap'    => ['Profil klinik & logo', 'Konfigurasi tarif layanan', 'Pengaturan BPJS & asuransi', 'Jam operasional'],
-        ]))->name('klinik');
+        // Profil Klinik
+        Route::get('/klinik', fn () => view('pengaturan.klinik'))
+             ->name('klinik')
+             ->middleware('permission:pengaturan.view');
     });
 
     // ── Keuangan ────────────────────────────────────────────
