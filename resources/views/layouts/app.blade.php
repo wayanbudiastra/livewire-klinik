@@ -276,6 +276,16 @@
                     >Data Dokter</a>
                     @endcan
 
+                    @can('masterdata.view')
+                    <a href="{{ route('pengaturan.icd.index') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('pengaturan.icd.*'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('pengaturan.icd.*'),
+                        ])
+                    >Data ICD-10</a>
+                    @endcan
+
                     @can('masterdata.create')
                     <a href="{{ route('pengaturan.sumber-informasi') }}"
                         @class([

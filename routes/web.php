@@ -229,6 +229,23 @@ Route::middleware(['auth', 'active'])->group(function () {
              ->name('masterdata')
              ->middleware('permission:masterdata.view');
 
+        // Data ICD-10
+        Route::middleware('permission:masterdata.view')->prefix('icd10')->name('icd.')->group(function () {
+            Route::get('/', fn () => view('pengaturan.masterdata.icd'))->name('index');
+            Route::get('/template', function () {
+                $csv  = "kode,nama,kategori\r\n";
+                $csv .= "A00,Kolera,BAB I - Penyakit Infeksi dan Parasit Tertentu\r\n";
+                $csv .= "A00.0,Kolera akibat Vibrio cholerae 01 biotipe cholerae,BAB I - Penyakit Infeksi dan Parasit Tertentu\r\n";
+                $csv .= "A00.1,Kolera akibat Vibrio cholerae 01 biotipe eltor,BAB I - Penyakit Infeksi dan Parasit Tertentu\r\n";
+                $csv .= "A09,Gastroenteritis dan kolitis infeksi yang tidak ditentukan,BAB I - Penyakit Infeksi dan Parasit Tertentu\r\n";
+                $csv .= "Z99.9,Ketergantungan pada peralatan atau perangkat penunjang tidak ditentukan,BAB XXI - Faktor yang Mempengaruhi Status Kesehatan\r\n";
+                return response($csv, 200, [
+                    'Content-Type'        => 'text/csv; charset=UTF-8',
+                    'Content-Disposition' => 'attachment; filename="template_icd10.csv"',
+                ]);
+            })->name('template');
+        });
+
         // Data Dokter
         Route::middleware('permission:masterdata.view')->group(function () {
             Route::get('/dokter', fn () => view('pengaturan.dokter.index'))
