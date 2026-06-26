@@ -137,8 +137,8 @@ class BillingService
             ], $superAdmin->id);
 
             $billingFresh = $billing->fresh(['items', 'pembayaranSplit', 'kunjungan.dokter']);
-            app(BillingJurnalService::class)->catatPembatalan($billingFresh);
-            app(SharingFeeService::class)->catatPembatalanSharingFee($billingFresh);
+            app(BillingJurnalService::class)->catatPembatalan($billingFresh, $requestUserId);
+            app(SharingFeeService::class)->catatPembatalanSharingFee($billingFresh, $requestUserId);
 
             return $billing->fresh();
         });

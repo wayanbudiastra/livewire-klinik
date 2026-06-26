@@ -58,40 +58,18 @@ class BillingJurnalService
     }
 
     /**
-     * Catat jurnal reversal saat billing yang sudah lunas dibatalkan
-     * (dipanggil dari BillingService::batalkanBilling). Membaca ulang baris
-     * pembayaranSplit yang sudah tersimpan, lalu membalik debit/kredit-nya.
+     * Reversal jurnal pendapatan saat billing yang sudah lunas dibatalkan
+     * (dipanggil dari BillingService::batalkanBilling).
+     *
+     * TIDAK menghitung ulang alokasi -- membaca persis baris jurnal "pendapatan_billing"
+     * yang sudah tercatat untuk billing ini, lalu membalik debit/kreditnya. Kalau baris
+     * aslinya sudah diposting ke Jurnal Umum, reversal-nya juga langsung diposting
+     * (lihat JurnalService::reversal) supaya Buku Besar/Neraca Saldo/Laba Rugi tidak
+     * pernah menampilkan pendapatan dari invoice yang sudah dibatalkan.
      */
-    public function catatPembatalan(Invoice $billing): void
+    public function catatPembatalan(Invoice $billing, int $userId): void
     {
-        if ($billing->pembayaranSplit->isEmpty()) return;
-
-        $proporsiKategori = $this->hitungProporsiKategori($billing);
-        if ($proporsiKategori->isEmpty()) return;
-
-        foreach ($billing->pembayaranSplit as $split) {
-            $jumlah = (float) $split->jumlah;
-            if ($jumlah <= 0) continue;
-
-            $akunKas = $this->akunPembayaran($split->metode);
-
-            foreach ($proporsiKategori as $jenis => $proporsi) {
-                $alokasi = round($jumlah * $proporsi, 2);
-                if ($alokasi <= 0) continue;
-
-                $this->jurnal->catat(
-                    sumberTipe:    'billing',
-                    sumberId:      $billing->id,
-                    tipeTransaksi: 'pembatalan_billing',
-                    tanggal:       $billing->dibatalkan_pada ?? now(),
-                    akunDebit:     self::AKUN_PENDAPATAN[$jenis] ?? '4-1100', // reversal: pendapatan berkurang
-                    akunKredit:    $akunKas,                                   // reversal: kas/bank/deposit keluar
-                    nominal:       $alokasi,
-                    keterangan:    "Pembatalan {$billing->nomor_invoice} ({$split->metode} / {$jenis})",
-                    metadata:      ['metode' => $split->metode, 'jenis_item' => $jenis],
-                );
-            }
-        }
+        $this->jurnal->reversal('billing', $billing->id, ['pendapatan_billing'], $userId);
     }
 
     /** Proporsi subtotal per jenis item terhadap total invoice (untuk alokasi pendapatan). */

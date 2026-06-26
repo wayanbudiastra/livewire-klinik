@@ -39,25 +39,14 @@ class SharingFeeService
         );
     }
 
-    /** Reversal saat billing yang sudah lunas dibatalkan (BillingService::batalkanBilling). */
-    public function catatPembatalanSharingFee(Invoice $billing): void
+    /**
+     * Reversal saat billing yang sudah lunas dibatalkan (BillingService::batalkanBilling).
+     * Membaca persis baris jurnal "sharing_fee_dokter" yang sudah tercatat, lalu membalik
+     * debit/kreditnya -- kalau sudah diposting, reversal-nya juga langsung diposting.
+     */
+    public function catatPembatalanSharingFee(Invoice $billing, int $userId): void
     {
-        $nilaiFee = $this->hitungNilaiFee($billing);
-        if ($nilaiFee === null) return;
-
-        [$nominal, $dokterId, $persentase] = $nilaiFee;
-
-        $this->jurnal->catat(
-            sumberTipe:    'billing',
-            sumberId:      $billing->id,
-            tipeTransaksi: 'pembatalan_sharing_fee',
-            tanggal:       $billing->dibatalkan_pada ?? now(),
-            akunDebit:     self::AKUN_HUTANG_JASA_DOKTER,  // reversal
-            akunKredit:    self::AKUN_BIAYA_JASA_DOKTER,   // reversal
-            nominal:       $nominal,
-            keterangan:    "Pembatalan sharing fee dokter - {$billing->nomor_invoice}",
-            metadata:      ['dokter_id' => $dokterId, 'persentase' => $persentase],
-        );
+        $this->jurnal->reversal('billing', $billing->id, ['sharing_fee_dokter'], $userId);
     }
 
     /** @return array{0: float, 1: int, 2: float}|null [nominal, dokter_id, persentase] */

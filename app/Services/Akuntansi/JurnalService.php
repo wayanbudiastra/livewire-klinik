@@ -92,4 +92,57 @@ class JurnalService
 
         return $row;
     }
+
+    /**
+     * Batalkan seluruh jurnal yang terkait sebuah transaksi sumber (dipanggil saat
+     * transaksi sumber-nya dibatalkan/reversal — billing dibatalkan, ritel dibatalkan, dst).
+     *
+     * - Baris yang masih 'pending' -> langsung diabaikan. Belum pernah masuk buku besar,
+     *   jadi tidak perlu reversal, cukup dicoret dari antrian posting.
+     * - Baris yang sudah 'posted' -> dibuatkan jurnal reversal (debit/kredit dibalik dari
+     *   baris asli) dan LANGSUNG diposting otomatis. Ini krusial: kalau reversal dibiarkan
+     *   pending menunggu review manual, Buku Besar/Neraca Saldo/Laba Rugi akan tetap salah
+     *   (menampilkan pendapatan yang sudah dibatalkan) sampai ada yang posting manual.
+     *   Reversal murni hasil sistem dari pembatalan yang sudah disetujui (password SuperAdmin),
+     *   tidak butuh judgment call tambahan, sehingga aman diposting otomatis.
+     */
+    public function reversal(string $sumberTipe, int $sumberId, array $tipeTransaksi, int $userId): array
+    {
+        $rows = JurnalPending::where('sumber_tipe', $sumberTipe)
+            ->where('sumber_id', $sumberId)
+            ->whereIn('tipe_transaksi', $tipeTransaksi)
+            ->whereIn('status', ['pending', 'posted'])
+            ->get();
+
+        $hasilReversal = [];
+
+        DB::transaction(function () use ($rows, $userId, &$hasilReversal) {
+            foreach ($rows as $row) {
+                if ($row->status === 'pending') {
+                    $this->abaikan(
+                        $row->id,
+                        'Dibatalkan otomatis: transaksi sumber dibatalkan sebelum jurnal diposting.'
+                    );
+                    continue;
+                }
+
+                // status === 'posted' -> buat reversal dan langsung posting
+                $reversalPending = $this->catat(
+                    sumberTipe:    $row->sumber_tipe,
+                    sumberId:      $row->sumber_id,
+                    tipeTransaksi: 'pembatalan_' . $row->tipe_transaksi,
+                    tanggal:       now(),
+                    akunDebit:     $row->kode_akun_kredit, // dibalik dari baris asli
+                    akunKredit:    $row->kode_akun_debit,  // dibalik dari baris asli
+                    nominal:       (float) $row->nominal,
+                    keterangan:    "Reversal otomatis: {$row->keterangan}",
+                );
+
+                $posted = $this->posting([$reversalPending->id], $userId);
+                $hasilReversal[] = $posted[0] ?? null;
+            }
+        });
+
+        return array_values(array_filter($hasilReversal));
+    }
 }
