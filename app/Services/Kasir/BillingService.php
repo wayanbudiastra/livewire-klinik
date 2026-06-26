@@ -3,7 +3,7 @@
 namespace App\Services\Kasir;
 
 use App\Models\{Invoice, PembayaranSplit, Pasien, SesiKas};
-use App\Services\Akuntansi\BillingJurnalService;
+use App\Services\Akuntansi\{BillingJurnalService, SharingFeeService};
 use Illuminate\Support\Facades\{DB, Hash};
 
 class BillingService
@@ -76,7 +76,9 @@ class BillingService
                 'methods'       => collect($splitItems)->pluck('metode')->unique()->values(),
             ]);
 
-            app(BillingJurnalService::class)->catatPelunasan($billing->fresh(['items']), $splitItems);
+            $billingFresh = $billing->fresh(['items', 'kunjungan.dokter']);
+            app(BillingJurnalService::class)->catatPelunasan($billingFresh, $splitItems);
+            app(SharingFeeService::class)->catatSharingFee($billingFresh);
 
             return $billing->fresh(['pembayaranSplit']);
         });
@@ -131,7 +133,9 @@ class BillingService
                 'sesi_kas_id'     => $sesiKas->id,
             ], $superAdmin->id);
 
-            app(BillingJurnalService::class)->catatPembatalan($billing->fresh(['items', 'pembayaranSplit']));
+            $billingFresh = $billing->fresh(['items', 'pembayaranSplit', 'kunjungan.dokter']);
+            app(BillingJurnalService::class)->catatPembatalan($billingFresh);
+            app(SharingFeeService::class)->catatPembatalanSharingFee($billingFresh);
 
             return $billing->fresh();
         });

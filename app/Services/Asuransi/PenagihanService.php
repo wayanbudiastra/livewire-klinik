@@ -3,6 +3,7 @@
 namespace App\Services\Asuransi;
 
 use App\Models\{PenagihanAsuransi, PiutangAsuransi, PembayaranAsuransi, AuditKasir};
+use App\Services\Akuntansi\AsuransiJurnalService;
 use Illuminate\Support\Facades\DB;
 
 class PenagihanService
@@ -81,6 +82,8 @@ class PenagihanService
                     'status' => $piutang->fresh()->sisa_piutang <= 0 ? 'lunas' : 'dibayar_sebagian',
                 ]);
 
+                app(AsuransiJurnalService::class)->catatPelunasanPiutang($piutang->fresh(), $alokasi, $metode, $tanggalBayar);
+
                 $sisaBayar -= $alokasi;
 
                 if ($piutang->fresh()->status === 'lunas') {
@@ -95,6 +98,45 @@ class PenagihanService
             ]);
 
             return $pembayaran;
+        });
+    }
+
+    /**
+     * Tandai klaim sebagai ditolak asuransi & write-off sisa piutangnya.
+     * Tidak ada jalur UI yang memanggil ini saat ini — disediakan sebagai
+     * fondasi untuk fitur "Tolak Klaim" yang akan dibangun terpisah.
+     */
+    public function tolakKlaim(PiutangAsuransi $piutang, string $alasan, int $userId): PiutangAsuransi
+    {
+        if (in_array($piutang->status, ['lunas', 'ditolak'])) {
+            throw new \RuntimeException('Piutang ini sudah ' . $piutang->status . ', tidak bisa ditolak.');
+        }
+
+        return DB::transaction(function () use ($piutang, $alasan, $userId) {
+            $sisaPiutang = (float) $piutang->sisa_piutang;
+
+            $piutang->update([
+                'status'  => 'ditolak',
+                'catatan' => trim(($piutang->catatan ?? '') . " [Ditolak: {$alasan}]"),
+            ]);
+
+            if ($sisaPiutang > 0) {
+                app(AsuransiJurnalService::class)->catatWriteOff($piutang->fresh(), $sisaPiutang);
+            }
+
+            AuditKasir::create([
+                'user_id'        => $userId,
+                'aksi'           => 'batalkan_tagihan',
+                'referensi_tipe' => 'piutang_asuransi',
+                'referensi_id'   => $piutang->id,
+                'detail'         => json_encode([
+                    'nomor_piutang' => $piutang->nomor_piutang,
+                    'sisa_writeoff' => $sisaPiutang,
+                    'alasan'        => $alasan,
+                ]),
+            ]);
+
+            return $piutang->fresh();
         });
     }
 

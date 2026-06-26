@@ -3,6 +3,7 @@
 namespace App\Services\Asuransi;
 
 use App\Models\{Invoice, Asuransi, PiutangAsuransi, PembayaranSplit, SesiKas};
+use App\Services\Akuntansi\{AsuransiJurnalService, BillingJurnalService, SharingFeeService};
 use Illuminate\Support\Facades\DB;
 
 class PembayaranAsuransiService
@@ -59,8 +60,9 @@ class PembayaranAsuransiService
                 ]);
             }
 
+            $piutang = null;
             if ($totalCover > 0) {
-                PiutangAsuransi::create([
+                $piutang = PiutangAsuransi::create([
                     'nomor_piutang'       => $this->generateNomorPiutang(),
                     'billing_id'          => $billing->id,
                     'asuransi_id'         => $asuransi->id,
@@ -83,6 +85,16 @@ class PembayaranAsuransiService
                 'status'                  => 'lunas',
                 'sesi_kas_id'             => $sesiKas->id,
             ]);
+
+            $billingFresh = $billing->fresh(['items', 'kunjungan.dokter']);
+
+            if (!empty($pembayaranPasien)) {
+                app(BillingJurnalService::class)->catatPelunasan($billingFresh, $pembayaranPasien);
+            }
+            if ($piutang) {
+                app(AsuransiJurnalService::class)->catatPiutangTerbentuk($piutang);
+            }
+            app(SharingFeeService::class)->catatSharingFee($billingFresh);
 
             return $billing->fresh();
         });
