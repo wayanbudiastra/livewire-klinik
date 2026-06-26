@@ -46,7 +46,10 @@ class BhpTable extends Component
             ->when($this->filterStatus, fn ($q) => $q->where('status', $this->filterStatus))
             ->when($this->filterDari,   fn ($q) => $q->whereDate('tanggal_pemakaian', '>=', $this->filterDari))
             ->when($this->filterSampai, fn ($q) => $q->whereDate('tanggal_pemakaian', '<=', $this->filterSampai))
-            ->when($this->search, fn ($q) => $q->where('nomor_bhp', 'like', "%{$this->search}%"))
+            ->when($this->search, fn ($q) => $q->where(fn ($sq) => $sq
+                ->where('nomor_bhp', 'like', "%{$this->search}%")
+                ->orWhere('catatan', 'like', "%{$this->search}%")
+            ))
             ->orderByDesc('tanggal_pemakaian')
             ->orderByDesc('id');
 

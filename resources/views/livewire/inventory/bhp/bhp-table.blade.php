@@ -19,7 +19,7 @@
     <div class="card">
         <div class="card-header flex flex-wrap gap-3">
             <input type="text" wire:model.live.debounce.300ms="search"
-                class="form-input w-48" placeholder="Cari no. BHP..." />
+                class="form-input w-48" placeholder="Cari no. BHP atau catatan..." />
             <select wire:model.live="filterStatus" class="form-input w-40">
                 <option value="">Semua Status</option>
                 <option value="draft">Draft</option>
