@@ -357,6 +357,7 @@ class TagihanPasien extends Component
 
         unset($this->invoice, $this->activeSesi, $this->kembalian, $this->hasPendingResep);
         session()->flash('success', 'Pembayaran berhasil diproses.');
+        $this->dispatch('pembayaranBerhasil');
     }
 
     public function resetPilihan(): void

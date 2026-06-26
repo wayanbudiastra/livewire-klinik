@@ -32,6 +32,7 @@ class RiwayatPembayaran extends Component
     }
 
     #[On('billingDibatalkan')]
+    #[On('pembayaranBerhasil')]
     public function refreshList(): void
     {
         unset($this->invoices, $this->totalHariIni);
