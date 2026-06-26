@@ -48,15 +48,21 @@
                         <td class="text-sm text-gray-500">{{ $p->ditutup_pada?->format('d/m/Y H:i') ?? '-' }}</td>
                         <td class="text-center">
                             @if($p->status === 'terbuka')
-                            <x-confirm-button
-                                action="tutup({{ $p->tahun }}, {{ $p->bulan }})"
-                                title="Tutup Periode {{ $p->label }}?"
-                                text="Jurnal baru tidak akan bisa diposting lagi ke bulan ini sampai dibuka kembali."
-                                icon="warning" type="danger" confirm="Ya, Tutup"
-                                class="btn-xs btn-danger"
-                                :disabled="$row['sisa_pending'] > 0">
-                                Tutup Periode
-                            </x-confirm-button>
+                                @if($row['is_bulan_ini'])
+                                <span class="text-xs text-gray-400" title="Periode bulan berjalan tidak bisa ditutup sampai bulan ini berakhir">
+                                    Bulan berjalan
+                                </span>
+                                @else
+                                <x-confirm-button
+                                    action="tutup({{ $p->tahun }}, {{ $p->bulan }})"
+                                    title="Tutup Periode {{ $p->label }}?"
+                                    text="Jurnal baru tidak akan bisa diposting lagi ke bulan ini sampai dibuka kembali."
+                                    icon="warning" type="danger" confirm="Ya, Tutup"
+                                    class="btn-xs btn-danger"
+                                    :disabled="$row['sisa_pending'] > 0">
+                                    Tutup Periode
+                                </x-confirm-button>
+                                @endif
                             @else
                             <button wire:click="konfirmasiBukaKembali({{ $p->id }})" class="btn-xs btn-secondary">
                                 Buka Kembali

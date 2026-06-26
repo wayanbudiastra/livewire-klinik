@@ -137,6 +137,8 @@ Manfaat utama:
 
 Periode hanya bisa ditutup kalau:
 - **Tidak ada** baris `jurnal_pending` berstatus `pending` dengan `tanggal_transaksi` di bulan tersebut — semua harus sudah `posted` atau `diabaikan` terlebih dahulu.
+- **Bukan bulan yang sedang berjalan** (bulan & tahun hari ini). Periode bulan berjalan tidak bisa ditutup sama sekali, baru bisa ditutup setelah bulan itu berakhir.
+  > **Alasan krusial**: entri pembatalan/reversal jurnal (lihat `JurnalService::reversal()`, Fase 1) selalu dicatat bertanggal **hari ini**, bukan tanggal transaksi aslinya. Kalau periode bulan berjalan ikut tertutup, **seluruh pembatalan jurnal di sistem** — apa pun bulan transaksi aslinya, termasuk yang sudah lama lewat — akan ikut terblokir, karena entri reversal-nya sendiri tidak bisa diposting ke bulan yang tertutup itu. Ini bug nyata yang ditemukan saat pengujian: menutup bulan berjalan secara tidak sengaja (misal saat klik massal di tabel periode) membuat fitur "Batalkan" mati total sampai bulan itu dibuka kembali. Tombol "Tutup Periode" untuk baris bulan berjalan disembunyikan di UI (diganti label "Bulan berjalan"), dan `PeriodeAkuntansiService::tutup()` menolaknya juga di level service sebagai pertahanan kedua.
 
 Kalau masih ada sisa `pending`, tombol "Tutup Periode" nonaktif dan tampilkan jumlah + link langsung ke layar Jurnal Pending (Fase 4) terfilter bulan tersebut, supaya user tahu apa yang harus diselesaikan dulu.
 

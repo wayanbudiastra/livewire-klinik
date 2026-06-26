@@ -46,6 +46,7 @@ class PeriodeAkuntansiTable extends Component
                 'periode'       => $periode,
                 'sisa_pending'  => $periode->status === 'terbuka' ? $service->sisaPending($tahun, $bulan) : 0,
                 'lewat_tenggat' => $periode->status === 'terbuka' && $bukanBulanIni && now()->gt($tenggat),
+                'is_bulan_ini'  => ! $bukanBulanIni,
             ]);
 
             $cursor->subMonth();

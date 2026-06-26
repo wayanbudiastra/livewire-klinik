@@ -37,13 +37,27 @@ class PeriodeAkuntansiService
             ->count();
     }
 
-    /** Tutup periode -- hanya boleh kalau tidak ada jurnal pending tersisa di bulan itu. */
+    /**
+     * Tutup periode -- hanya boleh kalau tidak ada jurnal pending tersisa di bulan itu,
+     * DAN bukan bulan yang sedang berjalan (lihat catatan di bawah).
+     */
     public function tutup(int $tahun, int $bulan, int $userId): PeriodeAkuntansi
     {
         $periode = $this->getAtauBuat($tahun, $bulan);
 
         if ($periode->status === 'ditutup') {
             throw new \DomainException('Periode ini sudah ditutup.');
+        }
+
+        $sekarang = now();
+        if ($tahun === $sekarang->year && $bulan === $sekarang->month) {
+            throw new \DomainException(
+                'Periode bulan ini (sedang berjalan) tidak bisa ditutup. ' .
+                'Tutup periode dilakukan setelah bulan tersebut berakhir, paling lambat tanggal 5 ' .
+                'bulan berikutnya -- entri pembatalan/reversal jurnal selalu dicatat bertanggal hari ini, ' .
+                'jadi menutup bulan berjalan akan memblokir SEMUA pembatalan jurnal sistem (bukan hanya ' .
+                'di bulan ini), apa pun bulan transaksi aslinya.'
+            );
         }
 
         $sisa = $this->sisaPending($tahun, $bulan);
