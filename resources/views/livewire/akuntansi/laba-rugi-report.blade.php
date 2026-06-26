@@ -15,6 +15,88 @@
         </div>
     </div>
 
+    <div class="card"
+        x-data="{
+            chart: null,
+            labels: @js($this->trendYtd['labels']),
+            pendapatan: @js($this->trendYtd['pendapatan']),
+            labaBersih: @js($this->trendYtd['laba_bersih']),
+            init() {
+                this.$nextTick(() => this.renderChart());
+            },
+            renderChart() {
+                if (!window.Chart || !this.$refs.trendCanvas) return;
+                if (this.chart) { this.chart.destroy(); this.chart = null; }
+
+                const ctx = this.$refs.trendCanvas.getContext('2d');
+                this.chart = new window.Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: this.labels,
+                        datasets: [
+                            {
+                                label: 'Pendapatan',
+                                data: this.pendapatan,
+                                borderColor: '#4f46e5',
+                                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.3,
+                                fill: true,
+                                pointRadius: 3,
+                            },
+                            {
+                                label: 'Laba Bersih',
+                                data: this.labaBersih,
+                                borderColor: '#059669',
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                borderWidth: 2,
+                                tension: 0.3,
+                                fill: true,
+                                pointRadius: 3,
+                            },
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: { font: { size: 12 }, padding: 12, boxWidth: 12, boxHeight: 12 }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: (c) => ' ' + c.dataset.label + ': Rp ' + c.raw.toLocaleString('id-ID')
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    font: { size: 11 },
+                                    callback: (v) => 'Rp ' + (v / 1000) + 'rb'
+                                },
+                                grid: { color: 'rgba(0,0,0,0.05)' }
+                            }
+                        }
+                    }
+                });
+            }
+        }"
+    >
+        <div class="card-header">
+            <h3 class="text-sm font-semibold dark:text-white">Pertumbuhan Pendapatan & Laba Bersih — Year to Date {{ $this->trendYtd['tahun'] }}</h3>
+        </div>
+        <div class="card-body">
+            <div style="height: 280px; position: relative;">
+                <canvas x-ref="trendCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header">
             <h3 class="text-sm font-semibold dark:text-white">

@@ -118,6 +118,43 @@ class AkuntansiLaporanService
         ];
     }
 
+    /**
+     * Tren bulanan pendapatan & laba bersih dari Januari s/d bulan berjalan (year-to-date),
+     * untuk grafik pertumbuhan di halaman Laba Rugi.
+     */
+    public function trendLabaRugiYtd(?int $tahun = null): array
+    {
+        $tahun     = $tahun ?? (int) now()->format('Y');
+        $bulanAkhir = $tahun === (int) now()->format('Y') ? (int) now()->format('n') : 12;
+
+        $bulanNama = [
+            1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr', 5 => 'Mei', 6 => 'Jun',
+            7 => 'Jul', 8 => 'Agu', 9 => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Des',
+        ];
+
+        $labels    = [];
+        $pendapatan = [];
+        $labaBersih = [];
+
+        for ($bulan = 1; $bulan <= $bulanAkhir; $bulan++) {
+            $dari   = Carbon::create($tahun, $bulan, 1)->startOfMonth()->toDateString();
+            $sampai = Carbon::create($tahun, $bulan, 1)->endOfMonth()->toDateString();
+
+            $hasil = $this->labaRugi($dari, $sampai);
+
+            $labels[]     = $bulanNama[$bulan];
+            $pendapatan[] = round((float) $hasil['total_pendapatan'], 2);
+            $labaBersih[] = round((float) $hasil['laba_rugi'], 2);
+        }
+
+        return [
+            'tahun'       => $tahun,
+            'labels'      => $labels,
+            'pendapatan'  => $pendapatan,
+            'laba_bersih' => $labaBersih,
+        ];
+    }
+
     private function hitungSaldo(ChartOfAccount $akun, ?string $dari, string $sampai): float
     {
         return $akun->saldoSampai($sampai);

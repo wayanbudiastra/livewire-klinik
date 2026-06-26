@@ -26,6 +26,12 @@ class LabaRugiReport extends Component
         return app(AkuntansiLaporanService::class)->labaRugi($this->dari, $this->sampai);
     }
 
+    #[Computed]
+    public function trendYtd(): array
+    {
+        return app(AkuntansiLaporanService::class)->trendLabaRugiYtd();
+    }
+
     public function render()
     {
         return view('livewire.akuntansi.laba-rugi-report');
