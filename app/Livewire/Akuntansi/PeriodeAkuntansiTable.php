@@ -4,29 +4,36 @@ namespace App\Livewire\Akuntansi;
 
 use App\Models\Akuntansi\PeriodeAkuntansi;
 use App\Services\Akuntansi\PeriodeAkuntansiService;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class PeriodeAkuntansiTable extends Component
 {
+    use WithPagination;
+
     public bool   $showBukaKembali       = false;
     public ?int   $periodeIdBukaKembali  = null;
     public string $passwordBukaKembali   = '';
     public string $alasanBukaKembali     = '';
     public string $errorMsg              = '';
 
+    /** Jumlah bulan history yang ditampilkan (bulan berjalan + ke belakang). */
+    private const TOTAL_BULAN = 60; // 5 tahun, cukup panjang supaya paging bermakna
+
     #[Computed]
-    public function periodeList(): array
+    public function periodeList(): LengthAwarePaginator
     {
         $service = app(PeriodeAkuntansiService::class);
-        $rows    = [];
+        $rows    = collect();
 
-        // Bulan berjalan + 12 bulan ke belakang, terbaru di atas.
+        // Bulan berjalan + N bulan ke belakang, terbaru di atas.
         $cursor       = now()->startOfMonth();
         $bulanIniAwal = now()->startOfMonth();
 
-        for ($i = 0; $i <= 12; $i++) {
+        for ($i = 0; $i < self::TOTAL_BULAN; $i++) {
             $tahun = $cursor->year;
             $bulan = $cursor->month;
 
@@ -35,16 +42,25 @@ class PeriodeAkuntansiTable extends Component
             $bukanBulanIni = ! $cursor->isSameMonth($bulanIniAwal);
 
             $periode = $service->getAtauBuat($tahun, $bulan);
-            $rows[]  = [
+            $rows->push([
                 'periode'       => $periode,
                 'sisa_pending'  => $periode->status === 'terbuka' ? $service->sisaPending($tahun, $bulan) : 0,
                 'lewat_tenggat' => $periode->status === 'terbuka' && $bukanBulanIni && now()->gt($tenggat),
-            ];
+            ]);
 
             $cursor->subMonth();
         }
 
-        return $rows;
+        $perPage = 10;
+        $page    = $this->getPage();
+
+        return new LengthAwarePaginator(
+            $rows->slice(($page - 1) * $perPage, $perPage)->values(),
+            $rows->count(),
+            $perPage,
+            $page,
+            ['path' => request()->url(), 'pageName' => 'page']
+        );
     }
 
     public function tutup(int $tahun, int $bulan, PeriodeAkuntansiService $service): void

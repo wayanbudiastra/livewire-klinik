@@ -70,6 +70,9 @@
                 </tbody>
             </table>
         </div>
+        @if($this->periodeList->hasPages())
+        <div class="card-footer">{{ $this->periodeList->links() }}</div>
+        @endif
     </div>
 
     {{-- Modal Buka Kembali (SuperAdmin) --}}
