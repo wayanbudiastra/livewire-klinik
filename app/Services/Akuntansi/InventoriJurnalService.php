@@ -2,7 +2,7 @@
 
 namespace App\Services\Akuntansi;
 
-use App\Models\{GoodsReceipt, PemakaianBhp, StokOpname, JurnalInventoriPending};
+use App\Models\{GoodsReceipt, PemakaianBhp, StokOpname};
 
 class InventoriJurnalService
 {
@@ -15,13 +15,15 @@ class InventoriJurnalService
         'selisih_opname'    => '8-1100',
     ];
 
+    public function __construct(private JurnalService $jurnal) {}
+
     public function catatPembelian(GoodsReceipt $gr): void
     {
         foreach ($gr->items as $item) {
             $hargaEfektif = $item->harga_satuan * (1 - ($item->diskon_persen ?? 0) / 100);
             $nilai = $item->jumlah_terima * $hargaEfektif;
 
-            $this->simpan(
+            $this->jurnal->catat(
                 sumberTipe:    'goods_receipt',
                 sumberId:      $gr->id,
                 tipeTransaksi: 'masuk_pembelian',
@@ -38,7 +40,7 @@ class InventoriJurnalService
     public function catatPemakaianBhp(PemakaianBhp $bhp): void
     {
         foreach ($bhp->items as $item) {
-            $this->simpan(
+            $this->jurnal->catat(
                 sumberTipe:    'pemakaian_bhp',
                 sumberId:      $bhp->id,
                 tipeTransaksi: 'keluar_bhp',
@@ -57,7 +59,7 @@ class InventoriJurnalService
         foreach ($opname->items->where('tipe_selisih', '!=', 'sesuai') as $item) {
             $isDrPersediaan = $item->tipe_selisih === 'lebih';
 
-            $this->simpan(
+            $this->jurnal->catat(
                 sumberTipe:    'stok_opname',
                 sumberId:      $opname->id,
                 tipeTransaksi: $isDrPersediaan ? 'penyesuaian_masuk' : 'penyesuaian_keluar',
@@ -69,24 +71,5 @@ class InventoriJurnalService
                 metadata:      ['barang_id' => $item->barang_id, 'opname_item_id' => $item->id],
             );
         }
-    }
-
-    private function simpan(
-        string $sumberTipe, int $sumberId, string $tipeTransaksi,
-        mixed $tanggal, string $akunDebit, string $akunKredit,
-        float $nominal, ?string $keterangan = null, array $metadata = []
-    ): void {
-        JurnalInventoriPending::create([
-            'sumber_tipe'       => $sumberTipe,
-            'sumber_id'         => $sumberId,
-            'tipe_transaksi'    => $tipeTransaksi,
-            'tanggal_transaksi' => $tanggal,
-            'kode_akun_debit'   => $akunDebit,
-            'kode_akun_kredit'  => $akunKredit,
-            'nominal'           => $nominal,
-            'keterangan'        => $keterangan,
-            'metadata'          => $metadata,
-            'status'            => 'pending',
-        ]);
     }
 }

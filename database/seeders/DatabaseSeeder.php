@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             SumberInformasiSeeder::class,
             ConfigBpjsSeeder::class,
             AsuransiSeeder::class,
+            ChartOfAccountSeeder::class,
         ]);
     }
 }
