@@ -24,10 +24,6 @@ class BhpForm extends Component
         if ($id) {
             $this->bhp = PemakaianBhp::with('items.barang')->findOrFail($id);
 
-            if ($this->bhp->status !== 'draft') {
-                abort(403, 'Dokumen ini tidak lagi dalam status draft.');
-            }
-
             $this->tanggalPemakaian = $this->bhp->tanggal_pemakaian->format('Y-m-d');
             $this->catatan          = $this->bhp->catatan ?? '';
 
