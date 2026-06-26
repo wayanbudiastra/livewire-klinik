@@ -166,7 +166,8 @@ class InvoiceService
     {
         $invoice->load('items', 'pembayaran', 'pembayaranSplit');
 
-        $subtotalItems  = $invoice->items->sum(fn ($i) => $i->subtotal - $i->diskon_item);
+        // item.subtotal sudah net diskon_item (lihat TagihanPasien::updateDiskonItem) — jangan dipotong dua kali.
+        $subtotalItems  = $invoice->items->sum('subtotal');
         $totalTagihan   = max(0, $subtotalItems - $invoice->diskon_global);
         $totalBayar     = $invoice->pembayaran->sum('jumlah')
                         + $invoice->pembayaranSplit->sum('jumlah');
