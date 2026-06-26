@@ -200,11 +200,12 @@
                 @error('totalBayarInput') <p class="form-error">{{ $message }}</p> @enderror
             </div>
             <div class="flex items-end gap-2">
-                <button wire:click="prosesBayar" wire:loading.attr="disabled" class="btn-primary flex-1"
-                    onclick="return confirm('Konfirmasi pembayaran?')">
+                <x-confirm-button action="prosesBayar" title="Konfirmasi Pembayaran?"
+                    icon="question" type="primary" confirm="Ya, Bayar"
+                    wire:loading.attr="disabled" class="btn-primary flex-1">
                     <span wire:loading.remove wire:target="prosesBayar">Konfirmasi Bayar</span>
                     <span wire:loading wire:target="prosesBayar">Memproses...</span>
-                </button>
+                </x-confirm-button>
                 <button wire:click="$set('showPayForm', false)" class="btn-secondary">Batal</button>
             </div>
         </div>
@@ -218,11 +219,12 @@
 
         <div class="flex gap-2">
             @if($transaksi->bisaDibatalkan())
-            <button wire:click="batalkan" wire:loading.attr="disabled" class="btn-danger"
-                onclick="return confirm('Batalkan transaksi ini?')">
+            <x-confirm-button action="batalkan" title="Batalkan Transaksi Ini?"
+                icon="warning" type="danger" confirm="Ya, Batalkan"
+                wire:loading.attr="disabled" class="btn-danger">
                 <span wire:loading.remove wire:target="batalkan">Batalkan Transaksi</span>
                 <span wire:loading wire:target="batalkan">Membatalkan...</span>
-            </button>
+            </x-confirm-button>
             @endif
 
             @if(in_array($transaksi->status, ['dibayar', 'selesai']))
@@ -237,11 +239,13 @@
             @endif
 
             @if($transaksi->status === 'dibayar')
-            <button wire:click="serahkanObat" wire:loading.attr="disabled" class="btn-primary"
-                onclick="return confirm('Serahkan obat dan potong stok? Tindakan ini tidak dapat dibatalkan.')">
+            <x-confirm-button action="serahkanObat" title="Serahkan Obat & Potong Stok?"
+                text="Tindakan ini tidak dapat dibatalkan."
+                icon="warning" type="danger" confirm="Ya, Serahkan"
+                wire:loading.attr="disabled" class="btn-primary">
                 <span wire:loading.remove wire:target="serahkanObat">Serahkan Obat & Potong Stok</span>
                 <span wire:loading wire:target="serahkanObat">Memproses...</span>
-            </button>
+            </x-confirm-button>
             @endif
 
             @if($transaksi->status === 'draft')

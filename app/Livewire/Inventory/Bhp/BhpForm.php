@@ -111,6 +111,48 @@ class BhpForm extends Component
         return collect($this->items)->sum('nilai_total');
     }
 
+    /** Simpan/sync header + items sebagai draft (dokumen baru maupun yang sudah ada). */
+    private function persistDraft(PemakaianBhpService $service): PemakaianBhp
+    {
+        if ($this->bhp) {
+            // Update header saja (item sudah disimpan inline)
+            $this->bhp->update([
+                'tanggal_pemakaian' => $this->tanggalPemakaian,
+                'catatan'           => $this->catatan ?: null,
+            ]);
+            // Sync items
+            $this->bhp->items()->delete();
+            foreach ($this->items as $item) {
+                $service->tambahItem(
+                    $this->bhp,
+                    $item['barang_id'],
+                    (float) $item['jumlah'],
+                    $item['keterangan'] ?: null
+                );
+            }
+
+            return $this->bhp;
+        }
+
+        $bhp = $service->buatDraft([
+            'tanggal_pemakaian' => $this->tanggalPemakaian,
+            'catatan'           => $this->catatan ?: null,
+        ], auth()->id());
+
+        foreach ($this->items as $item) {
+            $service->tambahItem(
+                $bhp,
+                $item['barang_id'],
+                (float) $item['jumlah'],
+                $item['keterangan'] ?: null
+            );
+        }
+
+        $this->bhp = $bhp;
+
+        return $bhp;
+    }
+
     public function simpan(PemakaianBhpService $service): void
     {
         $this->validate([
@@ -123,38 +165,7 @@ class BhpForm extends Component
         ]);
 
         try {
-            if ($this->bhp) {
-                // Update header saja (item sudah disimpan inline)
-                $this->bhp->update([
-                    'tanggal_pemakaian' => $this->tanggalPemakaian,
-                    'catatan'           => $this->catatan ?: null,
-                ]);
-                // Sync items
-                $this->bhp->items()->delete();
-                foreach ($this->items as $item) {
-                    $service->tambahItem(
-                        $this->bhp,
-                        $item['barang_id'],
-                        (float) $item['jumlah'],
-                        $item['keterangan'] ?: null
-                    );
-                }
-                $bhp = $this->bhp;
-            } else {
-                $bhp = $service->buatDraft([
-                    'tanggal_pemakaian' => $this->tanggalPemakaian,
-                    'catatan'           => $this->catatan ?: null,
-                ], auth()->id());
-
-                foreach ($this->items as $item) {
-                    $service->tambahItem(
-                        $bhp,
-                        $item['barang_id'],
-                        (float) $item['jumlah'],
-                        $item['keterangan'] ?: null
-                    );
-                }
-            }
+            $bhp = $this->persistDraft($service);
 
             session()->flash('success', "Dokumen {$bhp->nomor_bhp} berhasil disimpan.");
             $this->redirect(route('inventory.bhp.index'));
@@ -165,11 +176,21 @@ class BhpForm extends Component
 
     public function verifikasi(PemakaianBhpService $service): void
     {
-        if (!$this->bhp) return;
+        $this->validate([
+            'tanggalPemakaian' => 'required|date',
+            'items'            => 'required|array|min:1',
+            'items.*.jumlah'   => 'required|numeric|min:0.01',
+        ], [
+            'items.required' => 'Minimal harus ada 1 item BHP.',
+            'items.min'      => 'Minimal harus ada 1 item BHP.',
+        ]);
 
         try {
-            $service->verifikasi($this->bhp, auth()->id());
-            session()->flash('success', "BHP {$this->bhp->nomor_bhp} diverifikasi. Stok berkurang.");
+            // Dokumen baru (belum di-"Simpan Draft") -- buat drafnya dulu, baru langsung verifikasi.
+            $bhp = $this->persistDraft($service);
+
+            $service->verifikasi($bhp, auth()->id());
+            session()->flash('success', "BHP {$bhp->nomor_bhp} diverifikasi. Stok berkurang.");
             $this->redirect(route('inventory.bhp.index'));
         } catch (\DomainException $e) {
             $this->addError('items', $e->getMessage());

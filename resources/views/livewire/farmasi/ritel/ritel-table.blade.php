@@ -94,15 +94,15 @@
                                 @if($tr->status === 'draft')
                                 <a href="{{ route('farmasi.ritel.edit', $tr->id) }}"
                                    class="btn-xs btn-secondary">Edit</a>
-                                <button wire:click="batalkan({{ $tr->id }})" wire:loading.attr="disabled"
-                                    class="btn-xs btn-danger"
-                                    onclick="return confirm('Batalkan transaksi ini?')">Batalkan</button>
+                                <x-confirm-button action="batalkan({{ $tr->id }})" title="Batalkan Transaksi Ini?"
+                                    icon="warning" type="danger" confirm="Ya, Batalkan"
+                                    wire:loading.attr="disabled" class="btn-xs btn-danger">Batalkan</x-confirm-button>
 
                                 @elseif($tr->status === 'menunggu_kasir')
                                 <a href="{{ route('farmasi.ritel.show', $tr->id) }}" class="btn-xs btn-secondary">Lihat</a>
-                                <button wire:click="batalkan({{ $tr->id }})" wire:loading.attr="disabled"
-                                    class="btn-xs btn-danger"
-                                    onclick="return confirm('Batalkan transaksi ini?')">Batalkan</button>
+                                <x-confirm-button action="batalkan({{ $tr->id }})" title="Batalkan Transaksi Ini?"
+                                    icon="warning" type="danger" confirm="Ya, Batalkan"
+                                    wire:loading.attr="disabled" class="btn-xs btn-danger">Batalkan</x-confirm-button>
 
                                 @elseif($tr->status === 'dibayar')
                                 <a href="{{ route('farmasi.ritel.show', $tr->id) }}" class="btn-xs btn-secondary">Lihat</a>
@@ -111,11 +111,12 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
                                     </svg>
                                 </a>
-                                <button wire:click="serahkanObat({{ $tr->id }})" wire:loading.attr="disabled"
-                                    class="btn-xs btn-primary"
-                                    onclick="return confirm('Serahkan obat dan potong stok? Tindakan ini tidak bisa dibatalkan.')">
+                                <x-confirm-button action="serahkanObat({{ $tr->id }})" title="Serahkan Obat?"
+                                    text="Stok akan terpotong. Tindakan ini tidak bisa dibatalkan."
+                                    icon="warning" type="danger" confirm="Ya, Serahkan"
+                                    wire:loading.attr="disabled" class="btn-xs btn-primary">
                                     Serahkan Obat
-                                </button>
+                                </x-confirm-button>
 
                                 @else
                                 <a href="{{ route('farmasi.ritel.show', $tr->id) }}" class="btn-xs btn-secondary">Lihat</a>

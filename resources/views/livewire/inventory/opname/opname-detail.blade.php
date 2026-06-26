@@ -81,12 +81,13 @@
     @if($opname->status === 'draft')
     <div class="flex justify-between items-center mb-4">
         <p class="text-sm text-gray-500">Input stok fisik pada kolom "Stok Fisik" di bawah.</p>
-        <button type="button" wire:click="submitVerifikasi" wire:loading.attr="disabled"
-            class="btn-primary"
-            onclick="return confirm('Pastikan semua item sudah diisi. Submit untuk verifikasi?')">
+        <x-confirm-button action="submitVerifikasi" title="Submit Untuk Verifikasi?"
+            text="Pastikan semua item sudah diisi."
+            icon="question" type="primary" confirm="Ya, Submit"
+            wire:loading.attr="disabled" class="btn-primary">
             <span wire:loading.remove wire:target="submitVerifikasi">Submit Untuk Verifikasi</span>
             <span wire:loading wire:target="submitVerifikasi">Memproses...</span>
-        </button>
+        </x-confirm-button>
     </div>
     @endif
 
@@ -97,12 +98,13 @@
             <p class="font-medium text-primary-700 dark:text-primary-300">Opname menunggu verifikasi</p>
             <p class="text-sm text-gray-500">Periksa selisih lalu verifikasi untuk memperbarui stok sistem.</p>
         </div>
-        <button type="button" wire:click="verifikasi" wire:loading.attr="disabled"
-            class="btn-primary"
-            onclick="return confirm('Stok sistem akan diperbarui sesuai stok fisik. Lanjutkan?')">
+        <x-confirm-button action="verifikasi" title="Verifikasi & Posting Stok?"
+            text="Stok sistem akan diperbarui sesuai stok fisik."
+            icon="warning" type="danger" confirm="Ya, Verifikasi"
+            wire:loading.attr="disabled" class="btn-primary">
             <span wire:loading.remove wire:target="verifikasi">Verifikasi & Posting Stok</span>
             <span wire:loading wire:target="verifikasi">Memproses...</span>
-        </button>
+        </x-confirm-button>
     </div>
     @endcan
     @endif
@@ -192,10 +194,11 @@
     {{-- Batalkan --}}
     @if(in_array($opname->status, ['draft', 'menunggu_verifikasi']))
     <div class="flex justify-end mt-4">
-        <button type="button" wire:click="batalkan" class="text-sm text-red-500 hover:text-red-700"
-            onclick="return confirm('Batalkan opname ini?')">
+        <x-confirm-button action="batalkan" title="Batalkan Opname Ini?"
+            icon="warning" type="danger" confirm="Ya, Batalkan"
+            class="text-sm text-red-500 hover:text-red-700">
             Batalkan Opname
-        </button>
+        </x-confirm-button>
     </div>
     @endif
 </div>

@@ -227,11 +227,13 @@
             <span wire:loading.remove wire:target="simpanDraft">Simpan Draft</span>
             <span wire:loading wire:target="simpanDraft">Menyimpan...</span>
         </button>
-        <button type="button" wire:click="submitKeKasir" wire:loading.attr="disabled" class="btn-primary"
-            onclick="return confirm('Kirim transaksi ke kasir? Setelah di-submit, tidak bisa diedit lagi.')">
+        <x-confirm-button action="submitKeKasir" title="Submit ke Kasir?"
+            text="Setelah di-submit, transaksi tidak bisa diedit lagi."
+            icon="question" type="primary" confirm="Ya, Submit"
+            wire:loading.attr="disabled" class="btn-primary">
             <span wire:loading.remove wire:target="submitKeKasir">Submit ke Kasir →</span>
             <span wire:loading wire:target="submitKeKasir">Memproses...</span>
-        </button>
+        </x-confirm-button>
     </div>
 
 </div>

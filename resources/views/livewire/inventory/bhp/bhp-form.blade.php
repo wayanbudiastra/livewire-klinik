@@ -167,11 +167,13 @@
             <span wire:loading.remove wire:target="simpan">Simpan Draft</span>
             <span wire:loading wire:target="simpan">Menyimpan...</span>
         </button>
-        <button type="button" wire:click="verifikasi" wire:loading.attr="disabled" class="btn-primary"
-            onclick="return confirm('Stok akan berkurang. Proses tidak bisa dibatalkan. Lanjutkan?')">
+        <x-confirm-button action="verifikasi" title="Verifikasi & Keluarkan Stok?"
+            text="Stok akan berkurang. Proses tidak bisa dibatalkan."
+            icon="warning" type="danger" confirm="Ya, Verifikasi"
+            wire:loading.attr="disabled" class="btn-primary">
             <span wire:loading.remove wire:target="verifikasi">Verifikasi & Keluarkan Stok</span>
             <span wire:loading wire:target="verifikasi">Memproses...</span>
-        </button>
+        </x-confirm-button>
     </div>
     @else
     <div class="flex justify-end">

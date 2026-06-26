@@ -32,11 +32,13 @@
             <strong>{{ count($selected) }}</strong> baris terpilih — total Rp {{ number_format($this->totalNominalTerpilih, 0, ',', '.') }}
         </p>
         @can('akuntansi.jurnal.posting')
-        <button wire:click="postingTerpilih" wire:loading.attr="disabled" wire:target="postingTerpilih"
-            class="btn-primary" onclick="return confirm('Posting {{ count($selected) }} baris jurnal ke buku besar? Tindakan ini tidak bisa diedit lagi setelah posting.')">
+        <x-confirm-button action="postingTerpilih" title="Posting {{ count($selected) }} Baris Jurnal?"
+            text="Tindakan ini tidak bisa diedit lagi setelah posting ke buku besar."
+            icon="warning" type="danger" confirm="Ya, Posting"
+            wire:loading.attr="disabled" wire:target="postingTerpilih" class="btn-primary">
             <span wire:loading.remove wire:target="postingTerpilih">Posting ke Jurnal Umum</span>
             <span wire:loading wire:target="postingTerpilih">Memposting...</span>
-        </button>
+        </x-confirm-button>
         @endcan
     </div>
     @endif
