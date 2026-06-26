@@ -90,12 +90,15 @@ class BillingService
         string  $alasan,
         int     $requestUserId
     ): Invoice {
-        $sesiKas = SesiKas::where('status', 'buka')
-            ->whereDate('tanggal', today())
-            ->first();
+        // Tidak dibatasi ke tanggal hari ini -- sesi kas yang dibuka kembali
+        // (lewat fitur "Buka Kas Kembali") tetap valid meski tanggalnya bukan hari ini.
+        $sesiKas = SesiKas::where('status', 'buka')->latest('tanggal')->first();
 
         if (!$sesiKas) {
-            throw new \RuntimeException('Kas sudah ditutup. Pembatalan tidak dapat dilakukan.');
+            throw new \RuntimeException(
+                'Kas sudah ditutup. Buka kembali kas terlebih dahulu di tab "Sesi Kas" ' .
+                '(menu Billing & Kasir) menggunakan password SuperAdmin, lalu coba batalkan lagi.'
+            );
         }
 
         if ($billing->status === 'dibatalkan') {

@@ -18,7 +18,13 @@
         <div class="p-4 space-y-4">
             @if($errorMsg)
             <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-                {{ $errorMsg }}
+                <p>{{ $errorMsg }}</p>
+                @if(str_contains($errorMsg, 'Kas sudah ditutup'))
+                <a href="{{ route('kasir.billing.index') }}?tab=sesi-kas"
+                   class="inline-flex items-center gap-1 mt-2 text-red-700 font-semibold underline hover:text-red-800">
+                    Buka tab Sesi Kas &rarr;
+                </a>
+                @endif
             </div>
             @endif
 
