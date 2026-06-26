@@ -38,6 +38,7 @@
                         <th>Dicatat Oleh</th>
                         <th class="text-center">Jml Item</th>
                         <th class="text-right">Total Nilai</th>
+                        <th>Catatan</th>
                         <th>Status</th>
                         <th>Aksi</th>
                     </tr>
@@ -47,10 +48,13 @@
                     <tr>
                         <td class="font-mono text-xs">{{ $bhp->nomor_bhp }}</td>
                         <td class="text-sm">{{ $bhp->tanggal_pemakaian->format('d/m/Y') }}</td>
-                        <td class="text-sm">{{ $bhp->pencatat->name ?? '-' }}</td>
+                        <td class="text-sm">{{ $bhp->pencatat->nama ?? '-' }}</td>
                         <td class="text-center text-sm">{{ $bhp->items->count() }}</td>
                         <td class="text-right text-sm font-medium">
                             Rp {{ number_format($bhp->total_nilai, 0, ',', '.') }}
+                        </td>
+                        <td class="text-sm text-gray-500 max-w-xs truncate" title="{{ $bhp->catatan }}">
+                            {{ $bhp->catatan ?: '-' }}
                         </td>
                         <td>
                             @php
@@ -75,7 +79,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="text-center text-gray-400 py-8">Belum ada dokumen BHP.</td>
+                        <td colspan="8" class="text-center text-gray-400 py-8">Belum ada dokumen BHP.</td>
                     </tr>
                     @endforelse
                 </tbody>

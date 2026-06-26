@@ -16,8 +16,17 @@ class BhpTable extends Component
     public string $filterDari   = '';
     public string $filterSampai = '';
 
-    public function updatedSearch(): void    { $this->resetPage(); }
+    public function mount(): void
+    {
+        // Default tampilan: bulan berjalan.
+        $this->filterDari   = now()->startOfMonth()->format('Y-m-d');
+        $this->filterSampai = now()->endOfMonth()->format('Y-m-d');
+    }
+
+    public function updatedSearch(): void       { $this->resetPage(); }
     public function updatedFilterStatus(): void { $this->resetPage(); }
+    public function updatedFilterDari(): void   { $this->resetPage(); }
+    public function updatedFilterSampai(): void { $this->resetPage(); }
 
     public function batalkan(int $id, PemakaianBhpService $service): void
     {
@@ -42,7 +51,7 @@ class BhpTable extends Component
             ->orderByDesc('id');
 
         return view('livewire.inventory.bhp.bhp-table', [
-            'dokumenBhp' => $query->paginate(20),
+            'dokumenBhp' => $query->paginate(10),
         ]);
     }
 }
