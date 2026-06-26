@@ -101,7 +101,7 @@ class Prosedur extends Component
     #[Computed]
     public function riwayatAlkes()
     {
-        return PemakaianAlkes::with('obat')
+        return PemakaianAlkes::with('barang')
             ->where('kunjungan_id', $this->kunjunganId)
             ->latest()
             ->get();

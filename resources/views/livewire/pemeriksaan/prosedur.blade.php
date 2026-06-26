@@ -269,12 +269,12 @@
                             'type'      => 'alkes',
                             'id'        => $a->id,
                             'waktu'     => $a->created_at,
-                            'nama'      => $a->obat?->nama ?? '—',
-                            'kode'      => $a->obat?->kode ?? '',
+                            'nama'      => $a->barang?->nama ?? '—',
+                            'kode'      => $a->barang?->kode ?? '',
                             'kategori'  => 'Alkes/BMHP',
                             'pelaksana' => '—',
                             'jumlah'    => $a->jumlah,
-                            'tarif'     => $a->obat?->harga ?? 0,
+                            'tarif'     => $a->barang?->harga_jual ?? 0,
                             'catatan'   => $a->catatan,
                         ]);
 

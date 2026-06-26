@@ -35,15 +35,15 @@ class InvoiceService
         }
 
         // 2. BMHP / Alkes consumables
-        foreach ($kunjungan->pemakaianAlkes()->with('obat')->get() as $a) {
-            $harga    = $a->obat->harga;
+        foreach ($kunjungan->pemakaianAlkes()->with('barang')->get() as $a) {
+            $harga    = $a->barang->harga_jual;
             $subtotal = $harga * $a->jumlah;
             $items[] = [
                 'jenis'        => 'alkes',
                 'ref_id'       => $a->id,
-                'nama_item'    => $a->obat->nama,
+                'nama_item'    => $a->barang->nama,
                 'qty'          => $a->jumlah,
-                'satuan'       => $a->obat->satuan,
+                'satuan'       => $a->barang->satuan,
                 'harga_satuan' => $harga,
                 'diskon_item'  => 0,
                 'subtotal'     => $subtotal,
@@ -75,19 +75,19 @@ class InvoiceService
         foreach (
             $kunjungan->resep()
                 ->where('is_locked', true)
-                ->with('itemResep.obat', 'racikan.bahanRacikan.obat')
+                ->with('itemResep.barang', 'racikan.bahanRacikan.barang')
                 ->get() as $resep
         ) {
             // Non-racikan items
             foreach ($resep->itemResep as $ir) {
-                $harga    = $isBpjs ? $ir->obat->harga_bpjs : $ir->obat->harga;
+                $harga    = $isBpjs ? $ir->barang->harga_bpjs : $ir->barang->harga_jual;
                 $subtotal = $harga * $ir->jumlah;
                 $items[] = [
                     'jenis'        => 'obat',
                     'ref_id'       => $ir->id,
-                    'nama_item'    => $ir->obat->nama,
+                    'nama_item'    => $ir->barang->nama,
                     'qty'          => $ir->jumlah,
-                    'satuan'       => $ir->obat->satuan,
+                    'satuan'       => $ir->barang->satuan,
                     'harga_satuan' => $harga,
                     'diskon_item'  => 0,
                     'subtotal'     => $subtotal,
@@ -97,7 +97,7 @@ class InvoiceService
             // Racikan — price = total cost of all bahan
             foreach ($resep->racikan as $racikan) {
                 $totalBahan = $racikan->bahanRacikan->sum(
-                    fn ($b) => $b->obat->harga * $b->jumlah
+                    fn ($b) => $b->barang->harga_jual * $b->jumlah
                 );
                 $items[] = [
                     'jenis'        => 'racikan',
