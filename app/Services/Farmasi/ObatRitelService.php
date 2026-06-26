@@ -3,6 +3,7 @@
 namespace App\Services\Farmasi;
 
 use App\Models\{Barang, MutasiStok, SesiKas, TransaksiRitel, TransaksiRitelItem};
+use App\Services\Akuntansi\RitelJurnalService;
 use Illuminate\Support\Facades\DB;
 
 class ObatRitelService
@@ -129,19 +130,24 @@ class ObatRitelService
             throw new \DomainException('Kasir belum membuka sesi kas hari ini. Buka sesi kas terlebih dahulu sebelum memproses pembayaran ritel.');
         }
 
-        $tr->update([
-            'status'       => 'dibayar',
-            'kasir_id'     => $kasirId,
-            'sesi_kas_id'  => $sesiKas?->id,
-            'metode_bayar' => $bayarData['metode_bayar'],
-            'total_bayar'  => $totalBayar,
-            'kembalian'    => $bayarData['metode_bayar'] === 'tunai'
-                              ? max(0, $totalBayar - (float) $tr->total_harga)
-                              : null,
-            'dibayar_at'   => now(),
-        ]);
+        return DB::transaction(function () use ($tr, $bayarData, $kasirId, $sesiKas, $totalBayar) {
+            $tr->update([
+                'status'       => 'dibayar',
+                'kasir_id'     => $kasirId,
+                'sesi_kas_id'  => $sesiKas?->id,
+                'metode_bayar' => $bayarData['metode_bayar'],
+                'total_bayar'  => $totalBayar,
+                'kembalian'    => $bayarData['metode_bayar'] === 'tunai'
+                                  ? max(0, $totalBayar - (float) $tr->total_harga)
+                                  : null,
+                'dibayar_at'   => now(),
+            ]);
 
-        return $tr->fresh();
+            $tr = $tr->fresh();
+            app(RitelJurnalService::class)->catatPenjualan($tr);
+
+            return $tr;
+        });
     }
 
     public function serahkanObat(TransaksiRitel $tr, int $userId): TransaksiRitel
@@ -156,6 +162,8 @@ class ObatRitelService
                 'status'        => 'selesai',
                 'diserahkan_at' => now(),
             ]);
+
+            app(RitelJurnalService::class)->catatHpp($tr->fresh(['items.barang']));
         });
 
         return $tr->fresh();
@@ -178,6 +186,7 @@ class ObatRitelService
         foreach ($tr->items as $item) {
             $barang = Barang::pastikanCukup($item->barang_id, $item->jumlah);
 
+            $hpr         = (float) $barang->harga_pokok; // HPR tidak berubah saat barang keluar
             $stokSebelum = $barang->stok;
             $barang->decrement('stok', $item->jumlah);
             $stokSesudah = $stokSebelum - $item->jumlah;
@@ -189,6 +198,8 @@ class ObatRitelService
                 'jumlah'         => $item->jumlah,
                 'stok_sebelum'   => $stokSebelum,
                 'stok_sesudah'   => $stokSesudah,
+                'hpr_sebelum'    => $hpr,
+                'hpr_sesudah'    => $hpr,
                 'referensi_tipe' => 'transaksi_ritel',
                 'referensi_id'   => $tr->id,
                 'keterangan'     => 'Ritel: ' . $tr->nomor_ritel,

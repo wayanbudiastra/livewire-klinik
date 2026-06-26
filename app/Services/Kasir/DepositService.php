@@ -3,6 +3,7 @@
 namespace App\Services\Kasir;
 
 use App\Models\{Pasien, DepositPasien, TransaksiDeposit, SesiKas};
+use App\Services\Akuntansi\DepositJurnalService;
 use Illuminate\Support\Facades\DB;
 
 class DepositService
@@ -50,6 +51,8 @@ class DepositService
                 'jumlah'        => $jumlah,
                 'saldo_sesudah' => $saldoSesudah,
             ]);
+
+            app(DepositJurnalService::class)->catatTopup($trx);
 
             return $trx;
         });
@@ -174,6 +177,8 @@ class DepositService
                 'saldo_sesudah' => $saldoSesudah,
                 'alasan'        => $keterangan,
             ]);
+
+            app(DepositJurnalService::class)->catatRefund($trx);
 
             return $trx;
         });
