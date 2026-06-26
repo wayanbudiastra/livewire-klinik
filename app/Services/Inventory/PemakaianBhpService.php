@@ -27,8 +27,8 @@ class PemakaianBhpService
 
         $barang = Barang::findOrFail($barangId);
 
-        if ($barang->jenis !== 'bahan_habis_pakai') {
-            throw new \DomainException("Barang '{$barang->nama}' bukan bahan habis pakai.");
+        if (! in_array($barang->jenis, ['bahan_habis_pakai', 'alkes'], true)) {
+            throw new \DomainException("Barang '{$barang->nama}' bukan bahan habis pakai/alkes.");
         }
 
         return $bhp->items()->create([

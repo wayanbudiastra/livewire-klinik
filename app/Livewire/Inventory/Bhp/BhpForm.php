@@ -53,7 +53,7 @@ class BhpForm extends Component
         }
 
         $this->hasilSearch = Barang::where('is_active', true)
-            ->where('jenis', 'bahan_habis_pakai')
+            ->whereIn('jenis', ['bahan_habis_pakai', 'alkes'])
             ->where(fn ($q) => $q
                 ->where('nama', 'like', "%{$this->searchBarang}%")
                 ->orWhere('kode', 'like', "%{$this->searchBarang}%")
