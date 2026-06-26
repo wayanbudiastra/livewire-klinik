@@ -109,7 +109,6 @@ class PoForm extends Component
         }
 
         $this->hasilSearch = Barang::where('is_active', true)
-            ->when($this->supplierId, fn ($q) => $q->whereHas('suppliers', fn ($sq) => $sq->where('supplier_id', $this->supplierId)))
             ->where(fn ($q) => $q->where('nama', 'like', "%{$this->searchBarang}%")->orWhere('kode', 'like', "%{$this->searchBarang}%"))
             ->with(['supplierBarang' => fn ($q) => $q->when($this->supplierId, fn ($sq) => $sq->where('supplier_id', $this->supplierId))])
             ->limit(8)
