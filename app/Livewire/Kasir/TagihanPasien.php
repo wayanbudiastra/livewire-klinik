@@ -10,6 +10,8 @@ use App\Models\MasterTindakan;
 use App\Models\PeralatanMedis;
 use App\Models\PembayaranSplit;
 use App\Models\SesiKas;
+use App\Services\Akuntansi\BillingJurnalService;
+use App\Services\Akuntansi\SharingFeeService;
 use App\Services\InvoiceService;
 use App\Services\Kasir\SesiKasService;
 use Illuminate\Support\Facades\Auth;
@@ -346,6 +348,12 @@ class TagihanPasien extends Component
 
             if ($invoice->sisa <= 0) {
                 $invoice->update(['status' => 'lunas']);
+
+                $invoiceFresh = $invoice->fresh(['items', 'kunjungan.dokter']);
+                app(BillingJurnalService::class)->catatPelunasan($invoiceFresh, [
+                    ['metode' => $metodeSplit, 'jumlah' => $jumlah],
+                ]);
+                app(SharingFeeService::class)->catatSharingFee($invoiceFresh);
             }
         });
 
