@@ -69,7 +69,13 @@ class JurnalPendingTable extends Component
         }
 
         $ids = array_map('intval', $this->selected);
-        app(JurnalService::class)->posting($ids, auth()->id());
+
+        try {
+            app(JurnalService::class)->posting($ids, auth()->id());
+        } catch (\DomainException $e) {
+            $this->dispatch('notify', type: 'error', message: $e->getMessage());
+            return;
+        }
 
         $this->selected  = [];
         $this->selectAll = false;

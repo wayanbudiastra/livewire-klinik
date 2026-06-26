@@ -222,7 +222,7 @@
                 </div>
             </div>
             @endcanany
-            @canany(['akuntansi.jurnal.view', 'akuntansi.jurnal.posting', 'akuntansi.coa.manage', 'akuntansi.laporan.view'])
+            @canany(['akuntansi.jurnal.view', 'akuntansi.jurnal.posting', 'akuntansi.coa.manage', 'akuntansi.laporan.view', 'akuntansi.periode.tutup', 'akuntansi.jurnal_manual.create'])
             <div x-data="{ akuntansiOpen: {{ request()->routeIs('akuntansi.*') ? 'true' : 'false' }} }">
                 <button
                     @click="akuntansiOpen = !akuntansiOpen"
@@ -263,6 +263,15 @@
                         ])
                     >Chart of Accounts</a>
                     @endcan
+                    @can('akuntansi.periode.tutup')
+                    <a href="{{ route('akuntansi.periode') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('akuntansi.periode'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('akuntansi.periode'),
+                        ])
+                    >Tutup Periode</a>
+                    @endcan
                     @can('akuntansi.jurnal.view')
                     <a href="{{ route('akuntansi.jurnal-pending') }}"
                         @class([
@@ -278,6 +287,13 @@
                             'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('akuntansi.jurnal-umum'),
                         ])
                     >Jurnal Umum</a>
+                    <a href="{{ route('akuntansi.jurnal-manual') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('akuntansi.jurnal-manual'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('akuntansi.jurnal-manual'),
+                        ])
+                    >Jurnal Manual</a>
                     @endcan
                     @can('akuntansi.laporan.view')
                     <a href="{{ route('akuntansi.buku-besar') }}"
@@ -301,6 +317,20 @@
                             'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('akuntansi.laba-rugi'),
                         ])
                     >Laba Rugi</a>
+                    <a href="{{ route('akuntansi.neraca') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('akuntansi.neraca'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('akuntansi.neraca'),
+                        ])
+                    >Neraca</a>
+                    <a href="{{ route('akuntansi.arus-kas') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('akuntansi.arus-kas'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('akuntansi.arus-kas'),
+                        ])
+                    >Arus Kas</a>
                     @endcan
                 </div>
             </div>

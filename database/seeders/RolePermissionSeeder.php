@@ -51,6 +51,8 @@ class RolePermissionSeeder extends Seeder
             'akuntansi.jurnal.posting',
             'akuntansi.jurnal.view',
             'akuntansi.laporan.view',
+            'akuntansi.periode.tutup',
+            'akuntansi.jurnal_manual.create',
         ];
 
         foreach ($permissions as $perm) {
@@ -115,6 +117,7 @@ class RolePermissionSeeder extends Seeder
                 'asuransi.master.view',
                 'piutang.view', 'piutang.tagih', 'piutang.lunas',
                 'akuntansi.jurnal.view', 'akuntansi.laporan.view',
+                'akuntansi.jurnal_manual.create',
             ],
             'akuntan' => [
                 'laporan.view', 'laporan.keuangan', 'laporan.export',
@@ -122,6 +125,7 @@ class RolePermissionSeeder extends Seeder
                 'akuntansi.coa.manage',
                 'akuntansi.jurnal.posting', 'akuntansi.jurnal.view',
                 'akuntansi.laporan.view',
+                'akuntansi.periode.tutup', 'akuntansi.jurnal_manual.create',
             ],
             'admin' => [
                 'pasien.view', 'pasien.create', 'pasien.edit', 'pasien.delete',
@@ -138,6 +142,7 @@ class RolePermissionSeeder extends Seeder
                 'piutang.view', 'piutang.tagih', 'piutang.lunas',
                 'akuntansi.coa.manage', 'akuntansi.jurnal.posting',
                 'akuntansi.jurnal.view', 'akuntansi.laporan.view',
+                'akuntansi.periode.tutup', 'akuntansi.jurnal_manual.create',
             ],
             'super_admin' => [],
         ];

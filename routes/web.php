@@ -306,11 +306,22 @@ Route::middleware(['auth', 'active'])->group(function () {
              ->name('coa')->middleware('permission:akuntansi.coa.manage');
         Route::get('/jurnal-pending', fn () => view('akuntansi.jurnal-pending'))->name('jurnal-pending');
         Route::get('/jurnal-umum', fn () => view('akuntansi.jurnal-umum'))->name('jurnal-umum');
+        Route::get('/jurnal-manual', fn () => view('akuntansi.jurnal-manual'))->name('jurnal-manual');
+
+        Route::middleware('permission:akuntansi.periode.tutup')->group(function () {
+            Route::get('/periode', fn () => view('akuntansi.periode'))->name('periode');
+        });
+
+        Route::middleware('permission:akuntansi.jurnal_manual.create')->group(function () {
+            Route::get('/jurnal-manual/create', fn () => view('akuntansi.jurnal-manual-create'))->name('jurnal-manual.create');
+        });
 
         Route::middleware('permission:akuntansi.laporan.view')->group(function () {
             Route::get('/buku-besar', fn () => view('akuntansi.buku-besar'))->name('buku-besar');
             Route::get('/neraca-saldo', fn () => view('akuntansi.neraca-saldo'))->name('neraca-saldo');
             Route::get('/laba-rugi', fn () => view('akuntansi.laba-rugi'))->name('laba-rugi');
+            Route::get('/neraca', fn () => view('akuntansi.neraca'))->name('neraca');
+            Route::get('/arus-kas', fn () => view('akuntansi.arus-kas'))->name('arus-kas');
         });
     });
 

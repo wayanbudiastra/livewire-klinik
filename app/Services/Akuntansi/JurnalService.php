@@ -40,13 +40,28 @@ class JurnalService
     /**
      * Posting satu atau beberapa baris jurnal_pending menjadi jurnal_umum permanen.
      * Setiap baris pending menghasilkan satu baris jurnal_umum baru.
+     *
+     * @throws \DomainException jika salah satu baris bertanggal di periode yang sudah ditutup
+     *         (lihat PeriodeAkuntansiService) -- seluruh batch dibatalkan, tidak ada yang
+     *         diposting sebagian.
      */
     public function posting(array $jurnalPendingIds, int $userId): array
     {
         $diposting = [];
+        $periodeService = app(PeriodeAkuntansiService::class);
 
-        DB::transaction(function () use ($jurnalPendingIds, $userId, &$diposting) {
+        DB::transaction(function () use ($jurnalPendingIds, $userId, $periodeService, &$diposting) {
             $rows = JurnalPending::pending()->whereIn('id', $jurnalPendingIds)->lockForUpdate()->get();
+
+            foreach ($rows as $row) {
+                if (! $periodeService->isTerbuka($row->tanggal_transaksi)) {
+                    $tgl = \Illuminate\Support\Carbon::parse($row->tanggal_transaksi);
+                    throw new \DomainException(
+                        "Periode {$tgl->translatedFormat('F Y')} sudah ditutup. " .
+                        'Buka kembali periode ini dulu jika ingin posting jurnal bertanggal di bulan tersebut.'
+                    );
+                }
+            }
 
             foreach ($rows as $row) {
                 $jurnalUmum = JurnalUmum::create([

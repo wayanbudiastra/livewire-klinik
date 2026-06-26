@@ -9,11 +9,16 @@ class ChartOfAccount extends Model
 {
     protected $table = 'chart_of_accounts';
 
-    protected $fillable = ['kode', 'nama', 'golongan', 'tipe_normal', 'is_aktif'];
+    protected $fillable = [
+        'kode', 'nama', 'golongan', 'kelompok', 'is_kas_setara_kas', 'tipe_normal', 'is_aktif',
+    ];
 
     protected function casts(): array
     {
-        return ['is_aktif' => 'boolean'];
+        return [
+            'is_aktif'          => 'boolean',
+            'is_kas_setara_kas' => 'boolean',
+        ];
     }
 
     public function scopeAktif(Builder $query): Builder
@@ -21,11 +26,22 @@ class ChartOfAccount extends Model
         return $query->where('is_aktif', true);
     }
 
-    /** Saldo akun (sisi normal) berdasarkan jurnal_umum yang sudah posted. */
+    public function scopeKasSetaraKas(Builder $query): Builder
+    {
+        return $query->where('is_kas_setara_kas', true);
+    }
+
+    /** Saldo akun (sisi normal) berdasarkan jurnal_umum yang sudah posted, sampai sekarang. */
     public function getSaldoAttribute(): float
     {
-        $debit  = JurnalUmum::where('kode_akun_debit', $this->kode)->sum('nominal');
-        $kredit = JurnalUmum::where('kode_akun_kredit', $this->kode)->sum('nominal');
+        return $this->saldoSampai(now()->toDateString());
+    }
+
+    /** Saldo akun (sisi normal) per tanggal cutoff -- dipakai Neraca & Arus Kas. */
+    public function saldoSampai(string $tanggal): float
+    {
+        $debit  = JurnalUmum::where('kode_akun_debit', $this->kode)->whereDate('tanggal', '<=', $tanggal)->sum('nominal');
+        $kredit = JurnalUmum::where('kode_akun_kredit', $this->kode)->whereDate('tanggal', '<=', $tanggal)->sum('nominal');
 
         return $this->tipe_normal === 'debit'
             ? (float) $debit - (float) $kredit

@@ -11,11 +11,13 @@ class ChartOfAccountManager extends Component
     public bool $showForm = false;
     public ?int $editId   = null;
 
-    public string $kode        = '';
-    public string $nama        = '';
-    public string $golongan    = 'aset';
-    public string $tipe_normal = 'debit';
-    public bool   $is_aktif    = true;
+    public string $kode             = '';
+    public string $nama             = '';
+    public string $golongan         = 'aset';
+    public string $tipe_normal      = 'debit';
+    public string $kelompok         = '';
+    public bool   $is_kas_setara_kas = false;
+    public bool   $is_aktif         = true;
 
     #[Computed]
     public function akunList()
@@ -29,19 +31,23 @@ class ChartOfAccountManager extends Component
 
         if ($id) {
             $akun = ChartOfAccount::findOrFail($id);
-            $this->editId      = $akun->id;
-            $this->kode        = $akun->kode;
-            $this->nama        = $akun->nama;
-            $this->golongan    = $akun->golongan;
-            $this->tipe_normal = $akun->tipe_normal;
-            $this->is_aktif    = $akun->is_aktif;
+            $this->editId           = $akun->id;
+            $this->kode             = $akun->kode;
+            $this->nama             = $akun->nama;
+            $this->golongan         = $akun->golongan;
+            $this->tipe_normal      = $akun->tipe_normal;
+            $this->kelompok         = $akun->kelompok ?? '';
+            $this->is_kas_setara_kas = $akun->is_kas_setara_kas;
+            $this->is_aktif         = $akun->is_aktif;
         } else {
-            $this->editId      = null;
-            $this->kode        = '';
-            $this->nama        = '';
-            $this->golongan    = 'aset';
-            $this->tipe_normal = 'debit';
-            $this->is_aktif    = true;
+            $this->editId           = null;
+            $this->kode             = '';
+            $this->nama             = '';
+            $this->golongan         = 'aset';
+            $this->tipe_normal      = 'debit';
+            $this->kelompok         = '';
+            $this->is_kas_setara_kas = false;
+            $this->is_aktif         = true;
         }
 
         $this->showForm = true;
@@ -54,18 +60,22 @@ class ChartOfAccountManager extends Component
             'nama'        => 'required|string|max:100',
             'golongan'    => 'required|in:aset,liabilitas,ekuitas,pendapatan,biaya,lainnya',
             'tipe_normal' => 'required|in:debit,kredit',
+            'kelompok'    => 'required_if:golongan,aset,liabilitas|nullable|in:lancar,tidak_lancar,jangka_pendek,jangka_panjang',
         ], [
-            'kode.regex' => 'Format kode harus seperti 1-1100 (angka-angka).',
+            'kode.regex'        => 'Format kode harus seperti 1-1100 (angka-angka).',
+            'kelompok.required_if' => 'Akun golongan Aset/Liabilitas wajib diisi kelompoknya (Lancar/Tidak Lancar atau Jangka Pendek/Panjang).',
         ]);
 
         ChartOfAccount::updateOrCreate(
             ['id' => $this->editId],
             [
-                'kode'        => $this->kode,
-                'nama'        => $this->nama,
-                'golongan'    => $this->golongan,
-                'tipe_normal' => $this->tipe_normal,
-                'is_aktif'    => $this->is_aktif,
+                'kode'              => $this->kode,
+                'nama'              => $this->nama,
+                'golongan'          => $this->golongan,
+                'tipe_normal'       => $this->tipe_normal,
+                'kelompok'          => $this->kelompok ?: null,
+                'is_kas_setara_kas' => $this->is_kas_setara_kas,
+                'is_aktif'          => $this->is_aktif,
             ]
         );
 

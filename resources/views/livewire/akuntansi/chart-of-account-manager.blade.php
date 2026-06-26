@@ -12,6 +12,7 @@
                         <th style="width:90px">Kode</th>
                         <th>Nama Akun</th>
                         <th>Golongan</th>
+                        <th>Kelompok</th>
                         <th class="text-center">Tipe Normal</th>
                         <th class="text-right">Saldo</th>
                         <th class="text-center">Status</th>
@@ -24,6 +25,12 @@
                         <td class="font-mono text-sm font-semibold text-[#0a3d62] dark:text-blue-400">{{ $akun->kode }}</td>
                         <td class="text-sm">{{ $akun->nama }}</td>
                         <td class="text-sm text-gray-500 capitalize">{{ $akun->golongan }}</td>
+                        <td class="text-xs text-gray-500 capitalize">
+                            {{ $akun->kelompok ? str_replace('_', ' ', $akun->kelompok) : '-' }}
+                            @if($akun->is_kas_setara_kas)
+                            <span class="badge badge-primary ml-1">Kas</span>
+                            @endif
+                        </td>
                         <td class="text-center text-xs capitalize">{{ $akun->tipe_normal }}</td>
                         <td class="text-right text-sm font-medium">Rp {{ number_format($akun->saldo, 0, ',', '.') }}</td>
                         <td class="text-center">
@@ -41,7 +48,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="7" class="empty-state py-10"><p class="empty-state-text">Belum ada akun</p></td></tr>
+                    <tr><td colspan="8" class="empty-state py-10"><p class="empty-state-text">Belum ada akun</p></td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -85,6 +92,26 @@
                     </select>
                 </div>
             </div>
+            @if(in_array($golongan, ['aset', 'liabilitas']))
+            <div class="form-group">
+                <label class="form-label">Kelompok <span class="text-red-500">*</span></label>
+                <select wire:model="kelompok" class="form-input dark:bg-gray-900 dark:border-gray-600 dark:text-gray-200">
+                    <option value="">— Pilih Kelompok —</option>
+                    @if($golongan === 'aset')
+                    <option value="lancar">Aset Lancar</option>
+                    <option value="tidak_lancar">Aset Tidak Lancar</option>
+                    @else
+                    <option value="jangka_pendek">Liabilitas Jangka Pendek</option>
+                    <option value="jangka_panjang">Liabilitas Jangka Panjang</option>
+                    @endif
+                </select>
+                @error('kelompok') <p class="form-error">{{ $message }}</p> @enderror
+            </div>
+            @endif
+            <label class="flex items-center gap-2">
+                <input type="checkbox" wire:model="is_kas_setara_kas" class="rounded text-blue-600" />
+                <span class="text-sm">Akun ini Kas/Setara Kas (dipakai di Laporan Arus Kas)</span>
+            </label>
             <label class="flex items-center gap-2">
                 <input type="checkbox" wire:model="is_aktif" class="rounded text-blue-600" />
                 <span class="text-sm">Akun aktif</span>
