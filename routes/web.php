@@ -300,6 +300,20 @@ Route::middleware(['auth', 'active'])->group(function () {
         })->name('penagihan.show');
     });
 
+    // ── Akuntansi ───────────────────────────────────────────
+    Route::prefix('akuntansi')->name('akuntansi.')->middleware('permission:akuntansi.jurnal.view')->group(function () {
+        Route::get('/coa', fn () => view('akuntansi.coa'))
+             ->name('coa')->middleware('permission:akuntansi.coa.manage');
+        Route::get('/jurnal-pending', fn () => view('akuntansi.jurnal-pending'))->name('jurnal-pending');
+        Route::get('/jurnal-umum', fn () => view('akuntansi.jurnal-umum'))->name('jurnal-umum');
+
+        Route::middleware('permission:akuntansi.laporan.view')->group(function () {
+            Route::get('/buku-besar', fn () => view('akuntansi.buku-besar'))->name('buku-besar');
+            Route::get('/neraca-saldo', fn () => view('akuntansi.neraca-saldo'))->name('neraca-saldo');
+            Route::get('/laba-rugi', fn () => view('akuntansi.laba-rugi'))->name('laba-rugi');
+        });
+    });
+
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

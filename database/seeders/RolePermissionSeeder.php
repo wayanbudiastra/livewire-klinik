@@ -45,6 +45,12 @@ class RolePermissionSeeder extends Seeder
             'asuransi.master.view', 'asuransi.master.manage',
             'asuransi.pasien.manage',
             'piutang.view', 'piutang.tagih', 'piutang.lunas',
+
+            // Akuntansi
+            'akuntansi.coa.manage',
+            'akuntansi.jurnal.posting',
+            'akuntansi.jurnal.view',
+            'akuntansi.laporan.view',
         ];
 
         foreach ($permissions as $perm) {
@@ -108,6 +114,14 @@ class RolePermissionSeeder extends Seeder
                 'laporan.kasir.view', 'laporan.export',
                 'asuransi.master.view',
                 'piutang.view', 'piutang.tagih', 'piutang.lunas',
+                'akuntansi.jurnal.view', 'akuntansi.laporan.view',
+            ],
+            'akuntan' => [
+                'laporan.view', 'laporan.keuangan', 'laporan.export',
+                'piutang.view',
+                'akuntansi.coa.manage',
+                'akuntansi.jurnal.posting', 'akuntansi.jurnal.view',
+                'akuntansi.laporan.view',
             ],
             'admin' => [
                 'pasien.view', 'pasien.create', 'pasien.edit', 'pasien.delete',
@@ -122,6 +136,8 @@ class RolePermissionSeeder extends Seeder
                 'asuransi.config_bpjs', 'asuransi.master.view', 'asuransi.master.manage',
                 'asuransi.pasien.manage',
                 'piutang.view', 'piutang.tagih', 'piutang.lunas',
+                'akuntansi.coa.manage', 'akuntansi.jurnal.posting',
+                'akuntansi.jurnal.view', 'akuntansi.laporan.view',
             ],
             'super_admin' => [],
         ];

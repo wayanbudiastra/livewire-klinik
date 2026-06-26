@@ -222,6 +222,89 @@
                 </div>
             </div>
             @endcanany
+            @canany(['akuntansi.jurnal.view', 'akuntansi.jurnal.posting', 'akuntansi.coa.manage', 'akuntansi.laporan.view'])
+            <div x-data="{ akuntansiOpen: {{ request()->routeIs('akuntansi.*') ? 'true' : 'false' }} }">
+                <button
+                    @click="akuntansiOpen = !akuntansiOpen"
+                    @class([
+                        'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150',
+                        'bg-white/10 text-white' => request()->routeIs('akuntansi.*'),
+                        'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('akuntansi.*'),
+                    ])
+                >
+                    <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m-6 4h6m-6 4h4M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/>
+                    </svg>
+                    <span class="flex-1 text-left">Akuntansi</span>
+                    <svg
+                        class="h-4 w-4 flex-shrink-0 transition-transform duration-200"
+                        :class="akuntansiOpen ? 'rotate-180' : ''"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    >
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div
+                    x-show="akuntansiOpen"
+                    x-transition:enter="transition ease-out duration-150"
+                    x-transition:enter-start="opacity-0 -translate-y-1"
+                    x-transition:enter-end="opacity-100 translate-y-0"
+                    x-transition:leave="transition ease-in duration-100"
+                    x-transition:leave-start="opacity-100 translate-y-0"
+                    x-transition:leave-end="opacity-0 -translate-y-1"
+                    class="mt-0.5 space-y-0.5 pl-9"
+                >
+                    @can('akuntansi.coa.manage')
+                    <a href="{{ route('akuntansi.coa') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('akuntansi.coa'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('akuntansi.coa'),
+                        ])
+                    >Chart of Accounts</a>
+                    @endcan
+                    @can('akuntansi.jurnal.view')
+                    <a href="{{ route('akuntansi.jurnal-pending') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('akuntansi.jurnal-pending'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('akuntansi.jurnal-pending'),
+                        ])
+                    >Jurnal Pending</a>
+                    <a href="{{ route('akuntansi.jurnal-umum') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('akuntansi.jurnal-umum'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('akuntansi.jurnal-umum'),
+                        ])
+                    >Jurnal Umum</a>
+                    @endcan
+                    @can('akuntansi.laporan.view')
+                    <a href="{{ route('akuntansi.buku-besar') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('akuntansi.buku-besar'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('akuntansi.buku-besar'),
+                        ])
+                    >Buku Besar</a>
+                    <a href="{{ route('akuntansi.neraca-saldo') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('akuntansi.neraca-saldo'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('akuntansi.neraca-saldo'),
+                        ])
+                    >Neraca Saldo</a>
+                    <a href="{{ route('akuntansi.laba-rugi') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('akuntansi.laba-rugi'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('akuntansi.laba-rugi'),
+                        ])
+                    >Laba Rugi</a>
+                    @endcan
+                </div>
+            </div>
+            @endcanany
             @canany(['masterdata.view','masterdata.create','pengaturan.view','asuransi.config_bpjs','asuransi.master.view'])
             <div x-data="{ pengaturanOpen: {{ request()->routeIs('pengaturan.*') ? 'true' : 'false' }} }">
                 <button
