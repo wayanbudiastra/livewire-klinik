@@ -64,6 +64,14 @@ Route::middleware(['auth', 'active'])->group(function () {
         // Resep
         Route::get('/resep', fn () => view('farmasi.resep'))->name('resep.index');
 
+        // Retur Resep
+        Route::prefix('retur-resep')->name('retur-resep.')->group(function () {
+            Route::get('/', fn () => view('farmasi.retur-resep-index'))->name('index');
+            Route::get('/create', fn () => view('farmasi.retur-resep-create'))
+                 ->name('create')
+                 ->middleware('permission:obat.edit');
+        });
+
         // Penjualan Ritel
         Route::prefix('ritel')->name('ritel.')->group(function () {
             Route::get('/', fn () => view('farmasi.ritel.index'))->name('index');
@@ -183,6 +191,14 @@ Route::middleware(['auth', 'active'])->group(function () {
         // GR
         Route::get('/gr', fn () => view('inventory.index', ['tab' => 'gr']))->name('gr.index');
         Route::get('/gr/create', fn () => view('inventory.gr-create'))->name('gr.create');
+
+        // Retur ke Supplier
+        Route::prefix('retur-gr')->name('retur-gr.')->group(function () {
+            Route::get('/', fn () => view('inventory.retur-gr-index'))->name('index');
+            Route::get('/create', fn () => view('inventory.retur-gr-create'))
+                 ->name('create')
+                 ->middleware('permission:obat.edit');
+        });
 
         // Kartu Stok
         Route::prefix('kartu-stok')->name('kartu-stok.')->group(function () {

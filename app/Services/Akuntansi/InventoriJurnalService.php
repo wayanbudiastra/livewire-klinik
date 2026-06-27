@@ -2,7 +2,7 @@
 
 namespace App\Services\Akuntansi;
 
-use App\Models\{GoodsReceipt, PemakaianBhp, StokOpname};
+use App\Models\{GoodsReceipt, PemakaianBhp, ReturGr, StokOpname};
 
 class InventoriJurnalService
 {
@@ -50,6 +50,24 @@ class InventoriJurnalService
                 nominal:       (float) $item->nilai_total,
                 keterangan:    "BHP {$bhp->nomor_bhp}: {$item->barang->nama}",
                 metadata:      ['barang_id' => $item->barang_id, 'bhp_item_id' => $item->id],
+            );
+        }
+    }
+
+    /** Retur barang ke supplier dari GR yang sudah diverifikasi -- kebalikan catatPembelian(). */
+    public function catatReturSupplier(ReturGr $retur): void
+    {
+        foreach ($retur->items as $item) {
+            $this->jurnal->catat(
+                sumberTipe:    'retur_gr',
+                sumberId:      $retur->id,
+                tipeTransaksi: 'retur_ke_supplier',
+                tanggal:       $retur->tanggal_retur,
+                akunDebit:     self::AKUN['hutang_dagang'],
+                akunKredit:    self::AKUN['persediaan_barang'],
+                nominal:       (float) $item->subtotal,
+                keterangan:    "Retur {$retur->nomor_retur}: {$item->barang->nama} ({$retur->alasan})",
+                metadata:      ['barang_id' => $item->barang_id, 'retur_gr_item_id' => $item->id],
             );
         }
     }

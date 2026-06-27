@@ -84,6 +84,7 @@
             <x-sidebar-item route="rawat-inap.index" icon="office-building">Rawat Inap</x-sidebar-item>
             <x-sidebar-item route="farmasi.stok.index" icon="beaker" permission="obat.view">Farmasi</x-sidebar-item>
             <x-sidebar-item route="farmasi.ritel.index" icon="shopping-bag" permission="obat.view">Penjualan Ritel</x-sidebar-item>
+            <x-sidebar-item route="farmasi.retur-resep.index" icon="clipboard-list" permission="obat.view">Retur Resep</x-sidebar-item>
 
             <p class="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/40">Administrasi</p>
 
@@ -93,6 +94,7 @@
             @can('obat.view')
             <x-sidebar-item route="inventory.bhp.index" icon="beaker">Pemakaian BHP</x-sidebar-item>
             <x-sidebar-item route="inventory.opname.index" icon="clipboard-list">Stok Opname</x-sidebar-item>
+            <x-sidebar-item route="inventory.retur-gr.index" icon="document-text">Retur ke Supplier</x-sidebar-item>
             @endcan
             @canany(['laporan.registrasi.view','laporan.pemeriksaan.view','laporan.kasir.view','laporan.pharmacy.view','laporan.view'])
             <div x-data="{ laporanOpen: {{ request()->routeIs('laporan.*') ? 'true' : 'false' }} }">
