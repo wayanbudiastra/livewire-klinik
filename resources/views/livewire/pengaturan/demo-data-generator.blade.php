@@ -21,7 +21,7 @@
             </div>
             @endif
 
-            {{-- Baris 1: Rentang Tanggal --}}
+            {{-- Rentang Tanggal --}}
             <div>
                 <label class="label">Rentang Tanggal <span class="text-slate-400 text-xs font-normal">(maks. 10 hari)</span></label>
                 <div class="flex items-center gap-3 mt-1">
@@ -43,16 +43,17 @@
                 </div>
             </div>
 
-            {{-- Baris 2: Jenis Data + Target --}}
+            {{-- Jenis Data: PO+GRN & Ritel --}}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {{-- PO + GRN --}}
-                <div class="rounded-lg border border-slate-200 p-4 space-y-3" x-data>
+                <div class="rounded-lg border border-slate-200 p-4 space-y-3">
                     <label class="flex items-center gap-3 cursor-pointer">
                         <input type="checkbox" wire:model.live="generatePoGrn"
                             class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
                         <span class="font-medium text-slate-700">Generate PO + GRN</span>
                     </label>
-                    <div x-show="{{ $generatePoGrn ? 'true' : 'false' }}" class="space-y-1">
+                    @if($generatePoGrn)
+                    <div class="space-y-1">
                         <label class="text-xs text-slate-500">Target nilai pembelian / hari</label>
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-slate-400">Rp</span>
@@ -65,6 +66,7 @@
                         </div>
                         <p class="text-xs text-slate-400">Min Rp 1 juta · Maks Rp 100 juta</p>
                     </div>
+                    @endif
                 </div>
 
                 {{-- Penjualan Ritel --}}
@@ -74,7 +76,8 @@
                             class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
                         <span class="font-medium text-slate-700">Generate Penjualan Ritel</span>
                     </label>
-                    <div x-show="{{ $generateRitel ? 'true' : 'false' }}" class="space-y-1">
+                    @if($generateRitel)
+                    <div class="space-y-1">
                         <label class="text-xs text-slate-500">Target omzet penjualan / hari</label>
                         <div class="flex items-center gap-2">
                             <span class="text-xs text-slate-400">Rp</span>
@@ -87,14 +90,78 @@
                         </div>
                         <p class="text-xs text-slate-400">Min Rp 500 rb · Maks Rp 50 juta</p>
                     </div>
+                    @endif
                 </div>
             </div>
 
-            {{-- Jurnal otomatis --}}
+            {{-- Kunjungan Pasien --}}
+            <div class="rounded-lg border border-slate-200 p-4 space-y-4">
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" wire:model.live="generateKunjungan"
+                        class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    <span class="font-medium text-slate-700">Generate Kunjungan Pasien + Billing</span>
+                </label>
+
+                @if($generateKunjungan)
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pl-7">
+                    <div class="space-y-1">
+                        <label class="text-xs text-slate-500">Jumlah kunjungan per hari</label>
+                        <input type="number" wire:model="kunjunganPerHari"
+                            min="{{ \App\Services\Demo\DemoDataGeneratorService::MIN_KUNJUNGAN }}"
+                            max="{{ \App\Services\Demo\DemoDataGeneratorService::MAX_KUNJUNGAN }}"
+                            class="input text-sm w-full"
+                            placeholder="10">
+                        <p class="text-xs text-slate-400">
+                            Min 1 · Maks 50 · 5 pola: ISPA 35%, Kronik 25%, Tindakan 15%, Anak 15%, Nebul 10%
+                        </p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-xs text-slate-500">Mix metode pembayaran (%)</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="text-xs text-slate-400">Tunai</label>
+                                <input type="number" wire:model="mixBayarTunai" min="0" max="100"
+                                    class="input text-sm w-full" placeholder="60">
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400">Transfer</label>
+                                <input type="number" wire:model="mixBayarTransfer" min="0" max="100"
+                                    class="input text-sm w-full" placeholder="30">
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400">BPJS</label>
+                                <input type="number" wire:model="mixBayarBpjs" min="0" max="100"
+                                    class="input text-sm w-full" placeholder="10">
+                            </div>
+                        </div>
+                        @php $totalMix = $mixBayarTunai + $mixBayarTransfer + $mixBayarBpjs; @endphp
+                        <p class="text-xs {{ $totalMix > 0 ? 'text-slate-400' : 'text-red-500' }}">
+                            Total: {{ $totalMix }}% {{ $totalMix > 0 ? '(dialokasikan proporsional)' : '⚠ harus > 0' }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="pl-7 flex items-center gap-6">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" wire:model="includeResepStok"
+                            class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                        <span class="text-xs text-slate-600">Kurangi stok dari penggunaan resep</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" wire:model="generateBillingJurnal"
+                            class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                        <span class="text-xs text-slate-600">Generate jurnal akuntansi billing</span>
+                    </label>
+                </div>
+                @endif
+            </div>
+
+            {{-- Jurnal PO+GRN & Ritel --}}
             <label class="flex items-center gap-3 cursor-pointer">
                 <input type="checkbox" wire:model="generateJurnal"
                     class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                <span class="text-sm text-slate-700">Generate jurnal akuntansi otomatis (double-entry)</span>
+                <span class="text-sm text-slate-700">Generate jurnal PO+GRN & Ritel otomatis (double-entry)</span>
             </label>
 
             {{-- Estimasi --}}
@@ -116,6 +183,13 @@
                         <p class="text-xs text-indigo-500">≈ Rp {{ number_format($est['total_ritel'],0,',','.') }}</p>
                     </div>
                     @endif
+                    @if($generateKunjungan)
+                    <div>
+                        <p class="text-xs text-indigo-500">Kunjungan Pasien</p>
+                        <p class="font-semibold text-indigo-800">{{ $est['jumlah_kunjungan'] }} kunjungan</p>
+                        <p class="text-xs text-indigo-500">≈ Rp {{ number_format($est['perkiraan_pendapatan'],0,',','.') }}</p>
+                    </div>
+                    @endif
                 </div>
             </div>
             @endif
@@ -130,6 +204,9 @@
                     @endif
                     @if($konflik['ritel'])
                     <p>• {{ $konflik['ritel'] }} transaksi ritel (total Rp {{ number_format($konflik['total_ritel'],0,',','.') }})</p>
+                    @endif
+                    @if(isset($konflik['kunjungan']) && $konflik['kunjungan'])
+                    <p>• {{ $konflik['kunjungan'] }} kunjungan pasien</p>
                     @endif
                 </div>
                 <p class="text-xs text-amber-700">Generate akan <strong>menghapus data tersebut</strong> dan menggantinya dengan data baru.</p>
@@ -146,9 +223,10 @@
             {{-- Tombol Generate --}}
             <div class="flex items-center gap-3">
                 @php
+                    $adaJenisData = $generatePoGrn || $generateRitel || $generateKunjungan;
+                    $mixValid     = !$generateKunjungan || ($mixBayarTunai + $mixBayarTransfer + $mixBayarBpjs) > 0;
                     $bolehGenerate = (!$konflik || !$konflik['ada_konflik'] || $konfirmasiGanti)
-                        && ($generatePoGrn || $generateRitel)
-                        && !empty($est) && $est['valid'];
+                        && $adaJenisData && !empty($est) && $est['valid'] && $mixValid;
                 @endphp
                 <button
                     wire:click="generate"
@@ -189,7 +267,7 @@
             </div>
         </div>
         <div class="card-body">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
                 {{-- PO+GRN --}}
                 <div class="rounded-lg bg-slate-50 border border-slate-200 p-4">
                     <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">📦 PO + GRN</p>
@@ -210,12 +288,30 @@
                     <p class="text-sm text-slate-400">Tidak di-generate</p>
                     @endif
                 </div>
+                {{-- Kunjungan --}}
+                <div class="rounded-lg bg-slate-50 border border-slate-200 p-4">
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">🏥 Kunjungan + Billing</p>
+                    @if($hasil['kunjungan']['jumlah_kunjungan'] > 0)
+                    <p class="text-lg font-bold text-slate-800">{{ $hasil['kunjungan']['jumlah_kunjungan'] }} kunjungan</p>
+                    <p class="text-sm text-slate-500">
+                        Tindakan: Rp {{ number_format($hasil['kunjungan']['total_tindakan'],0,',','.') }}<br>
+                        Obat: Rp {{ number_format($hasil['kunjungan']['total_obat'],0,',','.') }}
+                    </p>
+                    <p class="text-xs font-medium text-emerald-600 mt-1">Total: Rp {{ number_format($hasil['kunjungan']['total_pendapatan'],0,',','.') }}</p>
+                    @else
+                    <p class="text-sm text-slate-400">Tidak di-generate</p>
+                    @endif
+                </div>
                 {{-- Jurnal --}}
                 <div class="rounded-lg bg-slate-50 border border-slate-200 p-4">
                     <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">📒 Jurnal Akuntansi</p>
                     @if($hasil['jurnal']['total'] > 0)
                     <p class="text-lg font-bold text-slate-800">{{ $hasil['jurnal']['total'] }} entri</p>
-                    <p class="text-sm text-slate-500">GRN: {{ $hasil['jurnal']['jumlah_grn'] }} · Ritel: {{ $hasil['jurnal']['jumlah_ritel'] }}</p>
+                    <p class="text-sm text-slate-500">
+                        GRN: {{ $hasil['jurnal']['jumlah_grn'] }} ·
+                        Ritel: {{ $hasil['jurnal']['jumlah_ritel'] }} ·
+                        Billing: {{ $hasil['jurnal']['jumlah_billing'] }}
+                    </p>
                     @else
                     <p class="text-sm text-slate-400">Tidak di-generate</p>
                     @endif
@@ -226,17 +322,18 @@
             @if(count($logs) > 0)
             <div>
                 <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Log Per Hari</p>
-                <div class="rounded-lg border border-slate-200 divide-y divide-slate-100 max-h-60 overflow-y-auto text-sm">
+                <div class="rounded-lg border border-slate-200 divide-y divide-slate-100 max-h-64 overflow-y-auto text-sm">
                     @foreach(array_unique(array_column($logs, 'tanggal')) as $tgl)
                         @php
-                            $logsHari = array_filter($logs, fn($l) => $l['tanggal'] === $tgl);
-                            $poHari   = array_sum(array_column(array_filter($logsHari, fn($l) => $l['tipe'] === 'po_grn'), 'po'));
-                            $grHari   = array_sum(array_column(array_filter($logsHari, fn($l) => $l['tipe'] === 'po_grn'), 'gr'));
-                            $nilaiPo  = array_sum(array_column(array_filter($logsHari, fn($l) => $l['tipe'] === 'po_grn'), 'nilai'));
-                            $trxHari  = array_sum(array_column(array_filter($logsHari, fn($l) => $l['tipe'] === 'ritel'), 'trx'));
-                            $nilaiRit = array_sum(array_column(array_filter($logsHari, fn($l) => $l['tipe'] === 'ritel'), 'harga'));
+                            $logsHari  = array_filter($logs, fn($l) => $l['tanggal'] === $tgl);
+                            $poHari    = array_sum(array_column(array_filter($logsHari, fn($l) => $l['tipe'] === 'po_grn'), 'po'));
+                            $grHari    = array_sum(array_column(array_filter($logsHari, fn($l) => $l['tipe'] === 'po_grn'), 'gr'));
+                            $nilaiPo   = array_sum(array_column(array_filter($logsHari, fn($l) => $l['tipe'] === 'po_grn'), 'nilai'));
+                            $trxHari   = array_sum(array_column(array_filter($logsHari, fn($l) => $l['tipe'] === 'ritel'), 'trx'));
+                            $nilaiRit  = array_sum(array_column(array_filter($logsHari, fn($l) => $l['tipe'] === 'ritel'), 'harga'));
+                            $kunjHari  = array_sum(array_column(array_filter($logsHari, fn($l) => $l['tipe'] === 'kunjungan'), 'jumlah'));
                         @endphp
-                        <div class="px-4 py-2.5 flex items-center gap-4">
+                        <div class="px-4 py-2.5 flex flex-wrap items-center gap-3">
                             <span class="text-slate-500 w-28 flex-shrink-0">{{ \Carbon\Carbon::parse($tgl)->translatedFormat('d M Y') }}</span>
                             @if($poHari > 0)
                             <span class="text-indigo-600 text-xs">{{ $poHari }} PO + {{ $grHari }} GR
@@ -248,6 +345,9 @@
                                 <span class="text-slate-400">(Rp {{ number_format($nilaiRit,0,',','.') }})</span>
                             </span>
                             @endif
+                            @if($kunjHari > 0)
+                            <span class="text-blue-600 text-xs">{{ $kunjHari }} kunjungan</span>
+                            @endif
                             <svg class="w-4 h-4 text-emerald-500 ml-auto flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
@@ -258,7 +358,7 @@
             @endif
 
             {{-- Link ke Laporan --}}
-            <div class="flex items-center gap-3 mt-4 pt-4 border-t border-slate-100">
+            <div class="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-slate-100">
                 <a href="{{ route('akuntansi.laba-rugi') }}" class="btn-secondary text-sm">
                     Lihat Laporan Laba Rugi →
                 </a>
@@ -293,7 +393,7 @@
 
         <div x-show="open" x-transition class="card-body space-y-4">
             <p class="text-sm text-slate-600">
-                Hapus <strong>semua</strong> data PO, GRN, Penjualan Ritel, Mutasi Stok, dan Jurnal dalam rentang tanggal yang dipilih.
+                Hapus <strong>semua</strong> data PO, GRN, Penjualan Ritel, Kunjungan Pasien, Billing, Mutasi Stok, dan Jurnal dalam rentang tanggal yang dipilih.
                 Stok barang akan dihitung ulang otomatis setelah penghapusan.
             </p>
 
@@ -301,10 +401,13 @@
             @if($hasilHapus)
             <div class="rounded-lg bg-emerald-50 border border-emerald-200 p-4 text-sm space-y-1">
                 <p class="font-semibold text-emerald-700">Data berhasil dihapus:</p>
-                <p class="text-emerald-600">• {{ $hasilHapus['deleted_po'] }} PO + {{ $hasilHapus['deleted_gr'] }} GR</p>
-                <p class="text-emerald-600">• {{ $hasilHapus['deleted_ritel'] }} transaksi ritel</p>
-                <p class="text-emerald-600">• {{ $hasilHapus['deleted_jurnal'] }} entri jurnal</p>
-                <p class="text-emerald-600">• {{ $hasilHapus['barang_updated'] }} barang stok dihitung ulang</p>
+                @if(isset($hasilHapus['deleted_kunjungan']))
+                <p class="text-emerald-600">• {{ $hasilHapus['deleted_kunjungan'] }} kunjungan pasien + billing terkait</p>
+                @endif
+                <p class="text-emerald-600">• {{ $hasilHapus['deleted_po'] ?? 0 }} PO + {{ $hasilHapus['deleted_gr'] ?? 0 }} GR</p>
+                <p class="text-emerald-600">• {{ $hasilHapus['deleted_ritel'] ?? 0 }} transaksi ritel</p>
+                <p class="text-emerald-600">• {{ $hasilHapus['deleted_jurnal'] ?? 0 }} entri jurnal</p>
+                <p class="text-emerald-600">• {{ $hasilHapus['barang_updated'] ?? 0 }} barang stok dihitung ulang</p>
             </div>
             @endif
 

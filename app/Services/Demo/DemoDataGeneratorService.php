@@ -9,17 +9,22 @@ use Illuminate\Support\Facades\DB;
 class DemoDataGeneratorService
 {
     public function __construct(
-        private DemoPoGrnGenerator $poGrnGenerator,
-        private DemoRitelGenerator $ritelGenerator,
-        private DemoJurnalGenerator $jurnalGenerator,
-        private DemoDataResetService $resetService,
+        private DemoPoGrnGenerator       $poGrnGenerator,
+        private DemoRitelGenerator       $ritelGenerator,
+        private DemoJurnalGenerator      $jurnalGenerator,
+        private DemoKunjunganGenerator   $kunjunganGenerator,
+        private DemoBillingGenerator     $billingGenerator,
+        private DemoBillingJurnalGenerator $billingJurnalGenerator,
+        private DemoDataResetService     $resetService,
     ) {}
 
-    public const MAX_HARI          = 10;
-    public const MIN_TARGET_PO     = 1_000_000;
-    public const MAX_TARGET_PO     = 100_000_000;
-    public const MIN_TARGET_RITEL  = 500_000;
-    public const MAX_TARGET_RITEL  = 50_000_000;
+    public const MAX_HARI              = 10;
+    public const MIN_TARGET_PO        = 1_000_000;
+    public const MAX_TARGET_PO        = 100_000_000;
+    public const MIN_TARGET_RITEL     = 500_000;
+    public const MAX_TARGET_RITEL     = 50_000_000;
+    public const MIN_KUNJUNGAN        = 1;
+    public const MAX_KUNJUNGAN        = 50;
 
     /**
      * Periksa apakah rentang tanggal sudah memiliki data (untuk peringatan UI sebelum generate).
@@ -30,42 +35,70 @@ class DemoDataGeneratorService
     }
 
     /**
-     * Generate data demo (PO+GRN, Ritel, Jurnal) untuk rentang tanggal & target tertentu.
+     * Generate data demo (PO+GRN, Ritel, Kunjungan, Jurnal) untuk rentang tanggal & target tertentu.
      *
      * @param  array  $options [
-     *     'generate_po_grn'      => bool,
-     *     'generate_ritel'       => bool,
-     *     'generate_jurnal'      => bool,
-     *     'target_po_harian'     => int,
-     *     'target_ritel_harian'  => int,
+     *     'generate_po_grn'       => bool,
+     *     'generate_ritel'        => bool,
+     *     'generate_jurnal'       => bool,
+     *     'generate_kunjungan'    => bool,
+     *     'generate_billing_jurnal' => bool,
+     *     'target_po_harian'      => int,
+     *     'target_ritel_harian'   => int,
+     *     'kunjungan_per_hari'    => int,  (1–50)
+     *     'include_resep_stok'    => bool,
+     *     'mix_bayar'             => ['tunai'=>int,'transfer'=>int,'bpjs'=>int],
      * ]
      * @param  callable|null  $onProgress  dipanggil setiap satu hari data selesai dibuat
      * @return array Ringkasan hasil generate
      *
-     * @throws \InvalidArgumentException jika validasi BR-01..BR-05 gagal
+     * @throws \InvalidArgumentException jika validasi BR-01..BR-07 gagal
      */
     public function generate(Carbon $dari, Carbon $sampai, array $options, int $userId, ?callable $onProgress = null): array
     {
         $this->validasi($dari, $sampai, $options);
 
-        $generatePoGrn = $options['generate_po_grn'] ?? false;
-        $generateRitel = $options['generate_ritel'] ?? false;
-        $generateJurnal = $options['generate_jurnal'] ?? true;
+        $generatePoGrn        = $options['generate_po_grn']        ?? false;
+        $generateRitel        = $options['generate_ritel']         ?? false;
+        $generateJurnal       = $options['generate_jurnal']        ?? true;
+        $generateKunjungan    = $options['generate_kunjungan']     ?? false;
+        $generateBillingJurnal = $options['generate_billing_jurnal'] ?? true;
+        $kunjunganPerHari     = (int) ($options['kunjungan_per_hari'] ?? 10);
+        $includeResepStok     = (bool) ($options['include_resep_stok'] ?? true);
+        $mixBayar             = $options['mix_bayar'] ?? ['tunai' => 60, 'transfer' => 30, 'bpjs' => 10];
 
-        $result = DB::transaction(function () use ($dari, $sampai, $options, $userId, $onProgress, $generatePoGrn, $generateRitel, $generateJurnal) {
+        $result = DB::transaction(function () use (
+            $dari, $sampai, $options, $userId, $onProgress,
+            $generatePoGrn, $generateRitel, $generateJurnal,
+            $generateKunjungan, $generateBillingJurnal,
+            $kunjunganPerHari, $includeResepStok, $mixBayar
+        ) {
             // Stok tracking bersama, mulai dari stok aktual saat ini di DB
             $stokBerjalan = Barang::where('is_active', 1)->pluck('stok', 'id')
                 ->map(fn ($s) => (int) $s)->toArray();
 
-            $poGrnResult = ['po_ids' => [], 'gr_ids' => [], 'total_nilai' => 0.0, 'per_hari' => []];
-            $ritelResult = ['ritel_ids' => [], 'total_harga' => 0.0, 'per_hari' => []];
+            $poGrnResult     = ['po_ids' => [], 'gr_ids' => [], 'total_nilai' => 0.0, 'per_hari' => []];
+            $kunjunganResult = ['kunjungan_ids' => [], 'per_hari' => []];
+            $ritelResult     = ['ritel_ids' => [], 'total_harga' => 0.0, 'per_hari' => []];
 
+            // Urutan: PO+GRN dulu (stok masuk) → Kunjungan (resep ambil stok) → Ritel (sisa stok)
             if ($generatePoGrn) {
                 $poGrnResult = $this->poGrnGenerator->generate(
                     $dari, $sampai,
                     (int) $options['target_po_harian'],
                     $userId,
                     $stokBerjalan,
+                    $onProgress
+                );
+            }
+
+            if ($generateKunjungan) {
+                $kunjunganResult = $this->kunjunganGenerator->generate(
+                    $dari, $sampai,
+                    $kunjunganPerHari,
+                    $userId,
+                    $stokBerjalan,
+                    $includeResepStok,
                     $onProgress
                 );
             }
@@ -85,6 +118,7 @@ class DemoDataGeneratorService
                 Barang::where('id', $id)->update(['stok' => $stok]);
             }
 
+            // Jurnal PO+GRN dan Ritel
             $jurnalGrnCount   = 0;
             $jurnalRitelCount = 0;
 
@@ -94,6 +128,27 @@ class DemoDataGeneratorService
                 }
                 if (!empty($ritelResult['ritel_ids'])) {
                     $jurnalRitelCount = $this->jurnalGenerator->generateForRitel($ritelResult['ritel_ids'], $userId);
+                }
+            }
+
+            // Billing + Pembayaran + Jurnal Billing
+            $billingResult = ['billing_ids' => [], 'total_pendapatan' => 0.0, 'total_tindakan' => 0.0, 'total_obat' => 0.0];
+            $jurnalBillingCount = 0;
+
+            if ($generateKunjungan && !empty($kunjunganResult['kunjungan_ids'])) {
+                // Jika stok resep tidak ditrack, tagihkan semua item resep
+                $billingResult = $this->billingGenerator->generate(
+                    $kunjunganResult['kunjungan_ids'],
+                    $mixBayar,
+                    $userId,
+                    !$includeResepStok
+                );
+
+                if ($generateBillingJurnal && !empty($billingResult['billing_ids'])) {
+                    $jurnalBillingCount = $this->billingJurnalGenerator->generate(
+                        $billingResult['billing_ids'],
+                        $userId
+                    );
                 }
             }
 
@@ -109,10 +164,19 @@ class DemoDataGeneratorService
                     'total_harga'      => $ritelResult['total_harga'],
                     'per_hari'         => $ritelResult['per_hari'],
                 ],
+                'kunjungan' => [
+                    'jumlah_kunjungan'  => count($kunjunganResult['kunjungan_ids']),
+                    'jumlah_billing'    => count($billingResult['billing_ids']),
+                    'total_pendapatan'  => $billingResult['total_pendapatan'],
+                    'total_tindakan'    => $billingResult['total_tindakan'],
+                    'total_obat'        => $billingResult['total_obat'],
+                    'per_hari'          => $kunjunganResult['per_hari'],
+                ],
                 'jurnal' => [
-                    'jumlah_grn'   => $jurnalGrnCount,
-                    'jumlah_ritel' => $jurnalRitelCount,
-                    'total'        => $jurnalGrnCount + $jurnalRitelCount,
+                    'jumlah_grn'     => $jurnalGrnCount,
+                    'jumlah_ritel'   => $jurnalRitelCount,
+                    'jumlah_billing' => $jurnalBillingCount,
+                    'total'          => $jurnalGrnCount + $jurnalRitelCount + $jurnalBillingCount,
                 ],
             ];
         });
@@ -143,11 +207,12 @@ class DemoDataGeneratorService
             throw new \InvalidArgumentException('Tanggal tidak boleh di masa depan.');
         }
 
-        $generatePoGrn = $options['generate_po_grn'] ?? false;
-        $generateRitel = $options['generate_ritel'] ?? false;
+        $generatePoGrn     = $options['generate_po_grn']     ?? false;
+        $generateRitel     = $options['generate_ritel']      ?? false;
+        $generateKunjungan = $options['generate_kunjungan']  ?? false;
 
-        if (!$generatePoGrn && !$generateRitel) {
-            throw new \InvalidArgumentException('Minimal satu jenis data harus dipilih (PO+GRN atau Penjualan Ritel).');
+        if (!$generatePoGrn && !$generateRitel && !$generateKunjungan) {
+            throw new \InvalidArgumentException('Minimal satu jenis data harus dipilih.');
         }
 
         if ($generatePoGrn) {
@@ -166,6 +231,15 @@ class DemoDataGeneratorService
                 throw new \InvalidArgumentException(
                     'Target Penjualan Ritel per hari harus antara Rp ' . number_format(self::MIN_TARGET_RITEL, 0, ',', '.')
                     . ' dan Rp ' . number_format(self::MAX_TARGET_RITEL, 0, ',', '.') . '.'
+                );
+            }
+        }
+
+        if ($generateKunjungan) {
+            $jumlah = (int) ($options['kunjungan_per_hari'] ?? 0);
+            if ($jumlah < self::MIN_KUNJUNGAN || $jumlah > self::MAX_KUNJUNGAN) {
+                throw new \InvalidArgumentException(
+                    'Jumlah kunjungan per hari harus antara ' . self::MIN_KUNJUNGAN . ' dan ' . self::MAX_KUNJUNGAN . '.'
                 );
             }
         }

@@ -10,26 +10,35 @@ use Livewire\Component;
 class DemoDataGenerator extends Component
 {
     // ── Form Generate ─────────────────────────────────────────────
-    public string $dari            = '';
-    public string $sampai          = '';
-    public bool   $generatePoGrn   = true;
-    public bool   $generateRitel   = true;
-    public bool   $generateJurnal  = true;
-    public int    $targetPoHarian  = 10_000_000;
-    public int    $targetRitelHarian = 5_000_000;
+    public string $dari               = '';
+    public string $sampai             = '';
+    public bool   $generatePoGrn      = true;
+    public bool   $generateRitel      = true;
+    public bool   $generateJurnal     = true;
+    public int    $targetPoHarian     = 10_000_000;
+    public int    $targetRitelHarian  = 5_000_000;
+
+    // Kunjungan
+    public bool   $generateKunjungan      = true;
+    public bool   $generateBillingJurnal  = true;
+    public bool   $includeResepStok       = true;
+    public int    $kunjunganPerHari       = 10;
+    public int    $mixBayarTunai          = 60;
+    public int    $mixBayarTransfer       = 30;
+    public int    $mixBayarBpjs           = 10;
 
     // ── State ─────────────────────────────────────────────────────
-    public bool   $konfirmasiGanti = false;
-    public ?array $konflik         = null;
-    public ?array $hasil           = null;
-    public array  $logs            = [];
-    public ?string $errorMsg       = null;
+    public bool    $konfirmasiGanti = false;
+    public ?array  $konflik         = null;
+    public ?array  $hasil           = null;
+    public array   $logs            = [];
+    public ?string $errorMsg        = null;
 
     // ── Form Reset ────────────────────────────────────────────────
-    public string $resetDari       = '';
-    public string $resetSampai     = '';
-    public string $konfirmasiHapus = '';
-    public ?array $hasilHapus      = null;
+    public string  $resetDari       = '';
+    public string  $resetSampai     = '';
+    public string  $konfirmasiHapus = '';
+    public ?array  $hasilHapus      = null;
 
     public function mount(): void
     {
@@ -50,13 +59,15 @@ class DemoDataGenerator extends Component
             $hari = $d->diffInDays($s) + 1;
 
             return [
-                'hari'         => $hari,
-                'jumlah_po'    => $this->generatePoGrn  ? $hari * 2 : 0,
-                'jumlah_gr'    => $this->generatePoGrn  ? $hari * 2 : 0,
-                'total_po'     => $this->generatePoGrn  ? $hari * $this->targetPoHarian : 0,
-                'jumlah_trx'   => $this->generateRitel  ? $hari * 26 : 0,
-                'total_ritel'  => $this->generateRitel  ? $hari * $this->targetRitelHarian : 0,
-                'valid'        => $hari <= DemoDataGeneratorService::MAX_HARI,
+                'hari'                  => $hari,
+                'jumlah_po'             => $this->generatePoGrn      ? $hari * 2 : 0,
+                'jumlah_gr'             => $this->generatePoGrn      ? $hari * 2 : 0,
+                'total_po'              => $this->generatePoGrn      ? $hari * $this->targetPoHarian : 0,
+                'jumlah_trx'            => $this->generateRitel      ? $hari * 26 : 0,
+                'total_ritel'           => $this->generateRitel      ? $hari * $this->targetRitelHarian : 0,
+                'jumlah_kunjungan'      => $this->generateKunjungan  ? $hari * $this->kunjunganPerHari : 0,
+                'perkiraan_pendapatan'  => $this->generateKunjungan  ? $hari * $this->kunjunganPerHari * 200_000 : 0,
+                'valid'                 => $hari <= DemoDataGeneratorService::MAX_HARI,
             ];
         } catch (\Throwable) {
             return [];
@@ -65,17 +76,17 @@ class DemoDataGenerator extends Component
 
     public function updatedDari(): void
     {
-        $this->konflik  = null;
+        $this->konflik         = null;
         $this->konfirmasiGanti = false;
-        $this->hasil = null;
+        $this->hasil           = null;
         $this->cekKonflik();
     }
 
     public function updatedSampai(): void
     {
-        $this->konflik  = null;
+        $this->konflik         = null;
         $this->konfirmasiGanti = false;
-        $this->hasil = null;
+        $this->hasil           = null;
         $this->cekKonflik();
     }
 
@@ -101,10 +112,18 @@ class DemoDataGenerator extends Component
         $this->hasil    = null;
         $this->logs     = [];
 
-        // Validasi dasar
-        if (!$this->generatePoGrn && !$this->generateRitel) {
+        if (!$this->generatePoGrn && !$this->generateRitel && !$this->generateKunjungan) {
             $this->errorMsg = 'Pilih minimal satu jenis data yang akan di-generate.';
             return;
+        }
+
+        // Validasi mix bayar harus total > 0 jika generate kunjungan
+        if ($this->generateKunjungan) {
+            $totalMix = $this->mixBayarTunai + $this->mixBayarTransfer + $this->mixBayarBpjs;
+            if ($totalMix <= 0) {
+                $this->errorMsg = 'Total persentase mix pembayaran harus lebih dari 0.';
+                return;
+            }
         }
 
         try {
@@ -117,16 +136,25 @@ class DemoDataGenerator extends Component
 
         $logs = [];
         try {
-            $svc = app(DemoDataGeneratorService::class);
+            $svc  = app(DemoDataGeneratorService::class);
             $hasil = $svc->generate(
                 $dari,
                 $sampai,
                 [
-                    'generate_po_grn'      => $this->generatePoGrn,
-                    'generate_ritel'       => $this->generateRitel,
-                    'generate_jurnal'      => $this->generateJurnal,
-                    'target_po_harian'     => $this->targetPoHarian,
-                    'target_ritel_harian'  => $this->targetRitelHarian,
+                    'generate_po_grn'        => $this->generatePoGrn,
+                    'generate_ritel'         => $this->generateRitel,
+                    'generate_jurnal'        => $this->generateJurnal,
+                    'generate_kunjungan'     => $this->generateKunjungan,
+                    'generate_billing_jurnal'=> $this->generateBillingJurnal,
+                    'target_po_harian'       => $this->targetPoHarian,
+                    'target_ritel_harian'    => $this->targetRitelHarian,
+                    'kunjungan_per_hari'     => $this->kunjunganPerHari,
+                    'include_resep_stok'     => $this->includeResepStok,
+                    'mix_bayar'              => [
+                        'tunai'    => $this->mixBayarTunai,
+                        'transfer' => $this->mixBayarTransfer,
+                        'bpjs'     => $this->mixBayarBpjs,
+                    ],
                 ],
                 auth()->id(),
                 function (array $log) use (&$logs) {
@@ -134,10 +162,10 @@ class DemoDataGenerator extends Component
                 }
             );
 
-            $this->hasil          = $hasil;
-            $this->logs           = $logs;
+            $this->hasil           = $hasil;
+            $this->logs            = $logs;
             $this->konfirmasiGanti = false;
-            $this->konflik        = null;
+            $this->konflik         = null;
 
             $this->dispatch('notify', type: 'success', message: 'Generate data demo berhasil!');
         } catch (\InvalidArgumentException $e) {
@@ -165,7 +193,7 @@ class DemoDataGenerator extends Component
         }
 
         try {
-            $svc = app(DemoDataGeneratorService::class);
+            $svc              = app(DemoDataGeneratorService::class);
             $this->hasilHapus     = $svc->hapus($dari, $sampai);
             $this->konfirmasiHapus = '';
             $this->dispatch('notify', type: 'success', message: 'Data demo berhasil dihapus.');

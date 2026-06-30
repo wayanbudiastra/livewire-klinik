@@ -9,16 +9,19 @@ use Illuminate\Support\Facades\DB;
 class DemoDataResetService
 {
     /**
-     * Hapus semua data demo (PO+GRN, Ritel, Jurnal, Mutasi) dalam rentang tanggal.
+     * Hapus semua data demo (PO+GRN, Ritel, Jurnal, Mutasi, Kunjungan) dalam rentang tanggal.
      * Recalculate barang.stok setelah penghapusan.
      *
      * Urutan penghapusan aman terhadap foreign key:
-     *   jurnal_umum → mutasi_stok → gr_item → goods_receipt
-     *                             → po_item  → purchase_order
-     *                             → transaksi_ritel_item → transaksi_ritel
+     *   jurnal_umum (billing+gr+ritel) → pembayaran → invoice_item → billing
+     *   → mutasi_stok (keluar_resep) → tindakan → item_resep → resep
+     *   → soap_note → asesmen_perawat → kunjungan
+     *   → mutasi_stok (masuk+ritel) → gr_item → goods_receipt
+     *   → po_item → purchase_order → transaksi_ritel_item → transaksi_ritel
      *
-     * @return array ['deleted_jurnal'=>int, 'deleted_gr'=>int, 'deleted_po'=>int,
-     *                'deleted_ritel'=>int, 'barang_updated'=>int]
+     * @return array ['deleted_jurnal'=>int, 'deleted_kunjungan'=>int,
+     *                'deleted_billing'=>int, 'deleted_gr'=>int,
+     *                'deleted_po'=>int, 'deleted_ritel'=>int, 'barang_updated'=>int]
      */
     public function hapus(Carbon $dari, Carbon $sampai): array
     {
@@ -26,36 +29,120 @@ class DemoDataResetService
         $sampaiStr = $sampai->toDateString();
 
         $result = [
-            'deleted_jurnal' => 0,
-            'deleted_gr'     => 0,
-            'deleted_po'     => 0,
-            'deleted_ritel'  => 0,
-            'barang_updated' => 0,
+            'deleted_jurnal'    => 0,
+            'deleted_kunjungan' => 0,
+            'deleted_billing'   => 0,
+            'deleted_gr'        => 0,
+            'deleted_po'        => 0,
+            'deleted_ritel'     => 0,
+            'barang_updated'    => 0,
         ];
 
         DB::transaction(function () use ($dariStr, $sampaiStr, &$result) {
 
-            // 1. Hapus jurnal
-            $result['deleted_jurnal'] = DB::table('jurnal_umum')
+            // -- KUNJUNGAN cleanup --
+
+            // Kunjungan dalam rentang tanggal
+            $kunjunganIds = DB::table('kunjungan')
+                ->whereDate('tanggal', '>=', $dariStr)
+                ->whereDate('tanggal', '<=', $sampaiStr)
+                ->pluck('id');
+
+            if ($kunjunganIds->isNotEmpty()) {
+                // Billing untuk kunjungan ini
+                $billingIds = DB::table('billing')
+                    ->whereIn('kunjungan_id', $kunjunganIds)
+                    ->pluck('id');
+
+                if ($billingIds->isNotEmpty()) {
+                    // 1. Hapus jurnal billing
+                    $result['deleted_jurnal'] += DB::table('jurnal_umum')
+                        ->where('sumber_tipe', 'billing')
+                        ->whereIn('sumber_id', $billingIds)
+                        ->delete();
+
+                    // 2. Hapus pembayaran
+                    DB::table('pembayaran')
+                        ->whereIn('billing_id', $billingIds)->delete();
+
+                    // 3. Hapus invoice_item
+                    DB::table('invoice_item')
+                        ->whereIn('billing_id', $billingIds)->delete();
+
+                    // 4. Hapus billing
+                    $result['deleted_billing'] = DB::table('billing')
+                        ->whereIn('id', $billingIds)->delete();
+                }
+
+                // 5. Hapus mutasi stok keluar_resep (dari resep kunjungan ini)
+                $resepIds = DB::table('resep')
+                    ->whereIn('kunjungan_id', $kunjunganIds)
+                    ->pluck('id');
+
+                if ($resepIds->isNotEmpty()) {
+                    DB::table('mutasi_stok')
+                        ->where('tipe', 'keluar_resep')
+                        ->where('referensi_tipe', 'resep')
+                        ->whereIn('referensi_id', $resepIds)
+                        ->delete();
+
+                    // 6. Hapus item_resep
+                    DB::table('item_resep')
+                        ->whereIn('resep_id', $resepIds)->delete();
+
+                    // 7. Hapus resep
+                    DB::table('resep')
+                        ->whereIn('id', $resepIds)->delete();
+                }
+
+                // 8. Hapus tindakan
+                DB::table('tindakan')
+                    ->whereIn('kunjungan_id', $kunjunganIds)->delete();
+
+                // 9. Hapus soap_note (CASCADE — tapi dihapus eksplisit agar aman)
+                DB::table('soap_note')
+                    ->whereIn('kunjungan_id', $kunjunganIds)->delete();
+
+                // 10. Hapus asesmen_perawat (CASCADE)
+                DB::table('asesmen_perawat')
+                    ->whereIn('kunjungan_id', $kunjunganIds)->delete();
+
+                // 11. Hapus tabel lain ber-FK RESTRICT ke kunjungan
+                DB::table('permintaan_penunjang')
+                    ->whereIn('kunjungan_id', $kunjunganIds)->delete();
+                DB::table('pemakaian_alkes')
+                    ->whereIn('kunjungan_id', $kunjunganIds)->delete();
+                DB::table('retur_resep')
+                    ->whereIn('kunjungan_id', $kunjunganIds)->delete();
+
+                // 12. Hapus kunjungan
+                $result['deleted_kunjungan'] = DB::table('kunjungan')
+                    ->whereIn('id', $kunjunganIds)->delete();
+            }
+
+            // -- PO+GRN+RITEL cleanup --
+
+            // 12. Hapus jurnal GR + Ritel
+            $result['deleted_jurnal'] += DB::table('jurnal_umum')
                 ->whereIn('sumber_tipe', ['goods_receipt', 'transaksi_ritel'])
                 ->whereBetween('tanggal', [$dariStr, $sampaiStr])
                 ->delete();
 
-            // 2. Hapus mutasi stok masuk (GRN)
+            // 13. Hapus mutasi stok masuk (GRN)
             DB::table('mutasi_stok')
                 ->where('tipe', 'masuk_pembelian')
                 ->whereDate('created_at', '>=', $dariStr)
                 ->whereDate('created_at', '<=', $sampaiStr)
                 ->delete();
 
-            // 3. Hapus mutasi stok keluar (Ritel)
+            // 14. Hapus mutasi stok keluar (Ritel)
             DB::table('mutasi_stok')
                 ->where('tipe', 'keluar_ritel')
                 ->whereDate('created_at', '>=', $dariStr)
                 ->whereDate('created_at', '<=', $sampaiStr)
                 ->delete();
 
-            // 4. Hapus GR Items & GRN dalam rentang
+            // 15. Hapus GR Items & GRN dalam rentang
             $grIds = DB::table('goods_receipt')
                 ->whereBetween('tanggal_terima', [$dariStr, $sampaiStr])
                 ->pluck('id');
@@ -66,7 +153,7 @@ class DemoDataResetService
                     ->whereIn('id', $grIds)->delete();
             }
 
-            // 5. Hapus PO Items & PO dalam rentang
+            // 16. Hapus PO Items & PO dalam rentang
             $poIds = DB::table('purchase_order')
                 ->whereBetween('tanggal_po', [$dariStr, $sampaiStr])
                 ->pluck('id');
@@ -77,7 +164,7 @@ class DemoDataResetService
                     ->whereIn('id', $poIds)->delete();
             }
 
-            // 6. Hapus Transaksi Ritel Items & Transaksi dalam rentang
+            // 17. Hapus Transaksi Ritel Items & Transaksi dalam rentang
             $ritelIds = DB::table('transaksi_ritel')
                 ->whereDate('dibayar_at', '>=', $dariStr)
                 ->whereDate('dibayar_at', '<=', $sampaiStr)
@@ -90,7 +177,7 @@ class DemoDataResetService
                     ->whereIn('id', $ritelIds)->delete();
             }
 
-            // 7. Recalculate stok dari mutasi yang tersisa
+            // 18. Recalculate stok dari mutasi yang tersisa
             $result['barang_updated'] = $this->recalculateStok();
         });
 
@@ -137,7 +224,7 @@ class DemoDataResetService
     /**
      * Periksa apakah ada data yang sudah ada di rentang tanggal.
      *
-     * @return array ['po'=>int, 'gr'=>int, 'ritel'=>int, 'ada_konflik'=>bool]
+     * @return array ['po'=>int, 'gr'=>int, 'ritel'=>int, 'kunjungan'=>int, 'ada_konflik'=>bool]
      */
     public function cekKonflik(Carbon $dari, Carbon $sampai): array
     {
@@ -157,6 +244,11 @@ class DemoDataResetService
             ->whereDate('dibayar_at', '<=', $sampaiStr)
             ->count();
 
+        $countKunjungan = DB::table('kunjungan')
+            ->whereDate('tanggal', '>=', $dariStr)
+            ->whereDate('tanggal', '<=', $sampaiStr)
+            ->count();
+
         $totalPo    = DB::table('purchase_order')
             ->whereBetween('tanggal_po', [$dariStr, $sampaiStr])
             ->sum('total_nilai');
@@ -170,9 +262,10 @@ class DemoDataResetService
             'po'          => $countPo,
             'gr'          => $countGr,
             'ritel'       => $countRitel,
+            'kunjungan'   => $countKunjungan,
             'total_po'    => (float) $totalPo,
             'total_ritel' => (float) $totalRitel,
-            'ada_konflik' => ($countPo + $countGr + $countRitel) > 0,
+            'ada_konflik' => ($countPo + $countGr + $countRitel + $countKunjungan) > 0,
         ];
     }
 }
