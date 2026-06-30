@@ -60,6 +60,9 @@ class RolePermissionSeeder extends Seeder
             'harga.review',
             'harga.setujui',
             'harga.terapkan',
+
+            // Cetak Surat Pemeriksaan
+            'surat.cetak',
         ];
 
         foreach ($permissions as $perm) {
@@ -93,6 +96,7 @@ class RolePermissionSeeder extends Seeder
                 'masterdata.view',
                 'penunjang.create', 'penunjang.view',
                 'peralatan.pakai',
+                'surat.cetak',
             ],
             'perawat' => [
                 'pasien.view', 'pasien.create', 'pasien.edit',
@@ -152,6 +156,7 @@ class RolePermissionSeeder extends Seeder
                 'akuntansi.jurnal.view', 'akuntansi.laporan.view',
                 'akuntansi.periode.tutup', 'akuntansi.jurnal_manual.create',
                 'harga.lihat', 'harga.proposal', 'harga.review', 'harga.setujui', 'harga.terapkan',
+                'surat.cetak',
             ],
             'super_admin' => [],
         ];

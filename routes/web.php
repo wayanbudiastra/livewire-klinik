@@ -47,6 +47,18 @@ Route::middleware(['auth', 'active'])->group(function () {
         ->middleware('permission:asesmen.view')
         ->name('pemeriksaan.index');
 
+    // Cetak Surat
+    Route::middleware('permission:surat.cetak')->group(function () {
+        Route::get('/pemeriksaan/surat/{surat}/unduh', function (\App\Models\SuratKeterangan $surat) {
+            $output = app(\App\Services\Pemeriksaan\SuratKeteranganService::class)->pdfOutputCopy($surat);
+            return response()->streamDownload(
+                fn () => print($output),
+                $surat->nomor_surat . '-COPY.pdf',
+                ['Content-Type' => 'application/pdf']
+            );
+        })->name('pemeriksaan.surat.unduh');
+    });
+
     // Rawat Inap (dalam pengembangan)
     Route::get('/rawat-inap', fn () => view('coming-soon', [
         'modul'      => 'Rawat Inap',

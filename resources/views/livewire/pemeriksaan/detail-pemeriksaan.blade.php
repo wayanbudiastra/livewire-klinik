@@ -64,7 +64,12 @@
                 </div>
 
                 {{-- Action Buttons --}}
-                <div class="flex gap-2 flex-shrink-0">
+                <div class="flex gap-2 flex-shrink-0 flex-wrap">
+                    {{-- Cetak Surat (soap sudah final atau kunjungan selesai) --}}
+                    @if(in_array($k->status, ['dalam_pemeriksaan', 'selesai']))
+                    <livewire:pemeriksaan.cetak-surat :kunjunganId="$kunjunganId" wire:key="cetak-surat-{{ $kunjunganId }}" />
+                    @endif
+
                     @if(in_array($k->status, ['menunggu', 'dalam_pemeriksaan']))
                     <x-confirm-button
                         action="batalkanRegistrasi"
