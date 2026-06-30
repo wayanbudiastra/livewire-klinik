@@ -337,6 +337,56 @@
                 </div>
             </div>
             @endcanany
+            @canany(['harga.lihat','harga.proposal'])
+            <div x-data="{ hargaOpen: {{ request()->routeIs('harga.*') ? 'true' : 'false' }} }">
+                <button
+                    @click="hargaOpen = !hargaOpen"
+                    @class([
+                        'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150',
+                        'bg-white/10 text-white' => request()->routeIs('harga.*'),
+                        'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('harga.*'),
+                    ])
+                >
+                    <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                    </svg>
+                    <span class="flex-1 text-left">Update Harga</span>
+                    <svg class="h-4 w-4 flex-shrink-0 transition-transform duration-200"
+                         :class="hargaOpen ? 'rotate-180' : ''"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div
+                    x-show="hargaOpen"
+                    x-transition:enter="transition ease-out duration-150"
+                    x-transition:enter-start="opacity-0 -translate-y-1"
+                    x-transition:enter-end="opacity-100 translate-y-0"
+                    x-transition:leave="transition ease-in duration-100"
+                    x-transition:leave-start="opacity-100 translate-y-0"
+                    x-transition:leave-end="opacity-0 -translate-y-1"
+                    class="mt-0.5 space-y-0.5 pl-9"
+                >
+                    @can('harga.lihat')
+                    <a href="{{ route('harga.proposal.index') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('harga.proposal.*'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('harga.proposal.*'),
+                        ])
+                    >Proposal Harga</a>
+                    <a href="{{ route('harga.riwayat.index') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('harga.riwayat.*'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('harga.riwayat.*'),
+                        ])
+                    >Riwayat Harga</a>
+                    @endcan
+                </div>
+            </div>
+            @endcanany
             @canany(['masterdata.view','masterdata.create','pengaturan.view','asuransi.config_bpjs','asuransi.master.view'])
             <div x-data="{ pengaturanOpen: {{ request()->routeIs('pengaturan.*') ? 'true' : 'false' }} }">
                 <button

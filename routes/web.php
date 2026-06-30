@@ -341,6 +341,23 @@ Route::middleware(['auth', 'active'])->group(function () {
         });
     });
 
+    // ── Update Harga ─────────────────────────────────────────
+    Route::prefix('harga')->name('harga.')->middleware('permission:harga.lihat')->group(function () {
+        Route::get('/proposal', fn () => view('harga.proposal-index'))
+             ->name('proposal.index');
+
+        Route::get('/proposal/create', fn () => view('harga.proposal-create'))
+             ->name('proposal.create')
+             ->middleware('permission:harga.proposal');
+
+        Route::get('/proposal/{id}', function ($id) {
+            return view('harga.proposal-detail', ['proposalId' => (int) $id]);
+        })->name('proposal.show');
+
+        Route::get('/riwayat', fn () => view('harga.riwayat-index'))
+             ->name('riwayat.index');
+    });
+
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

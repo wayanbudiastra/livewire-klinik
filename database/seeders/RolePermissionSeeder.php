@@ -53,6 +53,13 @@ class RolePermissionSeeder extends Seeder
             'akuntansi.laporan.view',
             'akuntansi.periode.tutup',
             'akuntansi.jurnal_manual.create',
+
+            // Update Harga
+            'harga.lihat',
+            'harga.proposal',
+            'harga.review',
+            'harga.setujui',
+            'harga.terapkan',
         ];
 
         foreach ($permissions as $perm) {
@@ -118,6 +125,7 @@ class RolePermissionSeeder extends Seeder
                 'piutang.view', 'piutang.tagih', 'piutang.lunas',
                 'akuntansi.jurnal.view', 'akuntansi.laporan.view',
                 'akuntansi.jurnal_manual.create',
+                'harga.lihat', 'harga.review', 'harga.setujui', 'harga.terapkan',
             ],
             'akuntan' => [
                 'laporan.view', 'laporan.keuangan', 'laporan.export',
@@ -143,6 +151,7 @@ class RolePermissionSeeder extends Seeder
                 'akuntansi.coa.manage', 'akuntansi.jurnal.posting',
                 'akuntansi.jurnal.view', 'akuntansi.laporan.view',
                 'akuntansi.periode.tutup', 'akuntansi.jurnal_manual.create',
+                'harga.lihat', 'harga.proposal', 'harga.review', 'harga.setujui', 'harga.terapkan',
             ],
             'super_admin' => [],
         ];
