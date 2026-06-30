@@ -13,7 +13,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             KlinikSeeder::class,
             PoliSeeder::class,
-            ObatSeeder::class,
+            // ObatSeeder::class, // tabel obat sudah dihapus, digabung ke barang
             MasterdataV2Seeder::class,
             DokterV3Seeder::class,
             // PasienSeeder::class,
