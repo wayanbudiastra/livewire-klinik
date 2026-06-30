@@ -312,6 +312,11 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/klinik', fn () => view('pengaturan.klinik'))
              ->name('klinik')
              ->middleware('permission:pengaturan.view');
+
+        // Demo Data Generator — hanya super_admin
+        Route::get('/demo-generator', fn () => view('pengaturan.demo-generator'))
+             ->name('demo.generator')
+             ->middleware('role:super_admin');
     });
 
     // ── Keuangan ────────────────────────────────────────────

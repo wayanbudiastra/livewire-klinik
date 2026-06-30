@@ -498,6 +498,16 @@
                         ])
                     >Profil Klinik</a>
                     @endcan
+
+                    @if(auth()->user()?->hasRole('super_admin'))
+                    <a href="{{ route('pengaturan.demo.generator') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('pengaturan.demo.generator'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('pengaturan.demo.generator'),
+                        ])
+                    >⚡ Demo Generator</a>
+                    @endif
                 </div>
             </div>
             @endcanany
