@@ -387,7 +387,7 @@
                 </div>
             </div>
             @endcanany
-            @canany(['masterdata.view','masterdata.create','pengaturan.view','asuransi.config_bpjs','asuransi.master.view'])
+            @canany(['masterdata.view','masterdata.create','pengaturan.view','pengaturan.satusehat','asuransi.config_bpjs','asuransi.master.view'])
             <div x-data="{ pengaturanOpen: {{ request()->routeIs('pengaturan.*') ? 'true' : 'false' }} }">
                 <button
                     @click="pengaturanOpen = !pengaturanOpen"
@@ -469,6 +469,16 @@
                             'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('pengaturan.asuransi.bpjs'),
                         ])
                     >Konfigurasi BPJS</a>
+                    @endcan
+
+                    @can('pengaturan.satusehat')
+                    <a href="{{ route('pengaturan.satusehat') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('pengaturan.satusehat'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('pengaturan.satusehat'),
+                        ])
+                    >Konfigurasi SatuSehat</a>
                     @endcan
 
                     @can('asuransi.master.view')

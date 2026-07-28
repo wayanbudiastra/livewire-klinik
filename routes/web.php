@@ -313,6 +313,11 @@ Route::middleware(['auth', 'active'])->group(function () {
              ->name('klinik')
              ->middleware('permission:pengaturan.view');
 
+        // Konfigurasi SatuSehat
+        Route::get('/satusehat', fn () => view('pengaturan.satusehat'))
+             ->name('satusehat')
+             ->middleware('permission:pengaturan.satusehat');
+
         // Demo Data Generator — hanya super_admin
         Route::get('/demo-generator', fn () => view('pengaturan.demo-generator'))
              ->name('demo.generator')

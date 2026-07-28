@@ -41,6 +41,7 @@ class RolePermissionSeeder extends Seeder
             'laporan.export',
 
             // Asuransi & Piutang
+            'pengaturan.satusehat',
             'asuransi.config_bpjs',
             'asuransi.master.view', 'asuransi.master.manage',
             'asuransi.pasien.manage',
@@ -149,6 +150,7 @@ class RolePermissionSeeder extends Seeder
                 'laporan.pharmacy.view', 'laporan.export',
                 'pengaturan.view', 'pengaturan.edit',
                 'masterdata.view', 'masterdata.create', 'masterdata.edit',
+                'pengaturan.satusehat',
                 'asuransi.config_bpjs', 'asuransi.master.view', 'asuransi.master.manage',
                 'asuransi.pasien.manage',
                 'piutang.view', 'piutang.tagih', 'piutang.lunas',
