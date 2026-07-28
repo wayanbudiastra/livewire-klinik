@@ -16,12 +16,18 @@
     {{-- Tab Nav --}}
     <div class="border-b border-gray-200 dark:border-gray-700 mb-6">
         <nav class="flex gap-0 -mb-px overflow-x-auto">
-            @foreach ([
-                'profil'  => 'Profil Klinis',
-                'poli'    => 'Mapping Poli',
-                'fee'     => 'Sharing Fee',
-                'jadwal'  => 'Jadwal Praktek',
-            ] as $key => $label)
+            @php
+        $tabs = [
+            'profil'  => 'Profil Klinis',
+            'poli'    => 'Mapping Poli',
+            'fee'     => 'Sharing Fee',
+            'jadwal'  => 'Jadwal Praktek',
+        ];
+        if (\App\Models\ConfigSatuSehat::aktif()) {
+            $tabs['ihs'] = 'IHS SatuSehat';
+        }
+    @endphp
+    @foreach ($tabs as $key => $label)
             <a href="?tab={{ $key }}"
                @class([
                    'px-5 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors',
@@ -44,6 +50,9 @@
             @break
         @case('jadwal')
             <livewire:pengaturan.dokter.jadwal-praktek-manager :dokter-id="$dokter->id" />
+            @break
+        @case('ihs')
+            <livewire:pengaturan.dokter.dokter-ihs-form :dokter-id="$dokter->id" />
             @break
     @endswitch
 

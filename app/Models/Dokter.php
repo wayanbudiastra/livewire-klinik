@@ -11,6 +11,7 @@ class Dokter extends Model
     protected $fillable = [
         'user_id', 'poli_id', 'nip', 'sip', 'spesialisasi', 'jadwal_praktek',
         'nik', 'no_sip', 'tgl_expired_sip',
+        'ihs_id', 'ihs_status', 'ihs_synced_at', 'ihs_error_msg',
     ];
 
     protected function casts(): array
@@ -18,6 +19,7 @@ class Dokter extends Model
         return [
             'jadwal_praktek'  => 'array',
             'tgl_expired_sip' => 'date',
+            'ihs_synced_at'   => 'datetime',
         ];
     }
 

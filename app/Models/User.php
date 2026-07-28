@@ -40,6 +40,11 @@ class User extends Authenticatable
         return $this->hasOne(Dokter::class);
     }
 
+    public function perawat(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Perawat::class);
+    }
+
     // ── Scopes ──────────────────────────────────────────────
 
     public function scopeActive($query)

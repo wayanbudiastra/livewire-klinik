@@ -70,6 +70,8 @@ class ConfigSatuSehat extends Component
             'catatan'                => $this->catatan ?: null,
         ]);
 
+        ConfigSatuSehatModel::clearCache();
+
         $this->dispatch('notify', type: 'success', message: 'Konfigurasi SatuSehat berhasil disimpan.');
     }
 

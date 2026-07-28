@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class ConfigSatuSehat extends Model
 {
@@ -43,11 +44,18 @@ class ConfigSatuSehat extends Model
         return static::firstOrNew(['id' => 1]);
     }
 
-    /** Apakah integrasi SatuSehat aktif. */
+    /** Apakah integrasi SatuSehat aktif (di-cache 60 detik). */
     public static function aktif(): bool
     {
-        $c = static::first();
-        return $c?->is_active ?? false;
+        return Cache::remember('satusehat.aktif', 60, function () {
+            return (bool) static::value('is_active');
+        });
+    }
+
+    /** Hapus cache status aktif (dipanggil setelah config disimpan). */
+    public static function clearCache(): void
+    {
+        Cache::forget('satusehat.aktif');
     }
 
     /** Kembalikan client_id untuk environment saat ini. */

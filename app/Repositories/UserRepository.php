@@ -12,7 +12,7 @@ class UserRepository implements UserRepositoryInterface
     public function paginate(array $filters = [], int $perPage = 20): LengthAwarePaginator
     {
         return User::query()
-            ->with('roles')
+            ->with(['roles', 'perawat'])
             ->when($filters['search'] ?? null, fn ($q, $s) => $q->search($s))
             ->when($filters['role']   ?? null, fn ($q, $r) => $q->role($r))
             ->when(

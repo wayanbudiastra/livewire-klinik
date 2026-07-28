@@ -20,13 +20,15 @@ class Pasien extends Model
         'golongan_darah', 'alergi',
         'no_bpjs', 'no_asuransi', 'foto', 'is_active',
         'sumber_informasi_id', 'sumber_informasi_keterangan',
+        'ihs_id', 'ihs_status', 'ihs_synced_at', 'ihs_error_msg',
     ];
 
     protected function casts(): array
     {
         return [
-            'tanggal_lahir' => 'date',
-            'is_active'     => 'boolean',
+            'tanggal_lahir'  => 'date',
+            'is_active'      => 'boolean',
+            'ihs_synced_at'  => 'datetime',
         ];
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Pengaturan\User;
 
+use App\Models\Perawat;
 use App\Models\User;
 use App\Services\UserService;
 use Livewire\Component;
@@ -20,6 +21,7 @@ class UserForm extends Component
     public string $role      = '';
     public string $nip       = '';
     public string $telepon   = '';
+    public string $nikPerawat = '';
     public bool   $is_active = true;
 
     public function getRules(): array
@@ -33,12 +35,13 @@ class UserForm extends Component
             : 'nullable|string|max:30|unique:users,nip';
 
         $rules = [
-            'nama'     => 'required|string|min:3|max:100',
-            'email'    => "required|email|{$uniqueEmail}",
-            'role'     => 'required|string|exists:roles,name',
-            'nip'      => $uniqueNip,
-            'telepon'  => 'nullable|string|max:20',
-            'is_active'=> 'boolean',
+            'nama'       => 'required|string|min:3|max:100',
+            'email'      => "required|email|{$uniqueEmail}",
+            'role'       => 'required|string|exists:roles,name',
+            'nip'        => $uniqueNip,
+            'telepon'    => 'nullable|string|max:20',
+            'nikPerawat' => 'nullable|string|size:16|regex:/^[0-9]*$/',
+            'is_active'  => 'boolean',
         ];
 
         if (! $this->isEdit) {
@@ -52,12 +55,14 @@ class UserForm extends Component
     public function getMessages(): array
     {
         return [
-            'nama.min'        => 'Nama minimal 3 karakter.',
-            'email.unique'    => 'Email sudah terdaftar.',
-            'password.min'    => 'Password minimal 8 karakter.',
+            'nama.min'           => 'Nama minimal 3 karakter.',
+            'email.unique'       => 'Email sudah terdaftar.',
+            'password.min'       => 'Password minimal 8 karakter.',
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
-            'role.exists'     => 'Role tidak valid.',
-            'nip.unique'      => 'NIP sudah digunakan.',
+            'role.exists'        => 'Role tidak valid.',
+            'nip.unique'         => 'NIP sudah digunakan.',
+            'nikPerawat.size'    => 'NIK harus 16 digit.',
+            'nikPerawat.regex'   => 'NIK hanya boleh berisi angka.',
         ];
     }
 
@@ -65,7 +70,7 @@ class UserForm extends Component
     {
         $this->authorize('create', User::class);
         $this->reset(['userId', 'nama', 'email', 'password', 'password_confirmation',
-                      'role', 'nip', 'telepon']);
+                      'role', 'nip', 'telepon', 'nikPerawat']);
         $this->is_active = true;
         $this->isEdit    = false;
         $this->showModal = true;
@@ -74,18 +79,19 @@ class UserForm extends Component
 
     public function openEdit(int $userId): void
     {
-        $user = User::with('roles')->findOrFail($userId);
+        $user = User::with(['roles', 'perawat'])->findOrFail($userId);
         $this->authorize('update', $user);
 
-        $this->userId    = $userId;
-        $this->nama      = $user->nama;
-        $this->email     = $user->email;
-        $this->nip       = $user->nip     ?? '';
-        $this->telepon   = $user->telepon ?? '';
-        $this->role      = $user->roles->first() ? $user->roles->first()->name : '';
-        $this->is_active = $user->is_active;
-        $this->isEdit    = true;
-        $this->showModal = true;
+        $this->userId     = $userId;
+        $this->nama       = $user->nama;
+        $this->email      = $user->email;
+        $this->nip        = $user->nip     ?? '';
+        $this->telepon    = $user->telepon  ?? '';
+        $this->role       = $user->roles->first()?->name ?? '';
+        $this->nikPerawat = $user->perawat?->nik ?? '';
+        $this->is_active  = $user->is_active;
+        $this->isEdit     = true;
+        $this->showModal  = true;
         $this->resetValidation();
     }
 
@@ -97,18 +103,26 @@ class UserForm extends Component
             'nama'      => $this->nama,
             'email'     => $this->email,
             'nip'       => $this->nip     ?: null,
-            'telepon'   => $this->telepon ?: null,
+            'telepon'   => $this->telepon  ?: null,
             'is_active' => $this->is_active,
         ];
 
         try {
             if ($this->isEdit) {
-                $service->update($this->userId, $data, $this->role);
+                $user    = $service->update($this->userId, $data, $this->role);
                 $message = 'Data pengguna berhasil diupdate.';
             } else {
                 $data['password'] = $this->password;
-                $service->create($data, $this->role);
+                $user    = $service->create($data, $this->role);
                 $message = 'Pengguna baru berhasil ditambahkan.';
+            }
+
+            // Sync NIK ke perawat jika role perawat
+            if ($this->role === 'perawat') {
+                Perawat::updateOrCreate(
+                    ['user_id' => $user->id],
+                    ['nik'     => $this->nikPerawat ?: null]
+                );
             }
 
             $this->showModal = false;

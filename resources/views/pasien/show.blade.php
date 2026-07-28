@@ -125,6 +125,9 @@
                     @endforelse
                 </div>
             </div>
+            {{-- IHS SatuSehat Card --}}
+            <livewire:pasien.pasien-ihs-card :pasien-id="$pasien->id" />
+
         </div>
 
         {{-- Kolom kanan: Riwayat Kunjungan --}}

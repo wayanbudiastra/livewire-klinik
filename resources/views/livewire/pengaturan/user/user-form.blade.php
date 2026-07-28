@@ -60,7 +60,7 @@
                         <label class="form-label dark:text-gray-300">
                             Role <span class="text-red-500">*</span>
                         </label>
-                        <select wire:model="role"
+                        <select wire:model.live="role"
                                 class="form-select dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
                             <option value="">-- Pilih Role --</option>
                             @foreach ($this->rolesList as $r)
@@ -69,6 +69,21 @@
                         </select>
                         @error('role') <p class="form-error">{{ $message }}</p> @enderror
                     </div>
+
+                    {{-- NIK Perawat (hanya muncul jika role = perawat) --}}
+                    @if($role === 'perawat')
+                    <div class="form-group rounded-xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/10 p-3">
+                        <label class="form-label dark:text-gray-300">
+                            NIK Perawat
+                            <span class="ml-1 text-xs text-emerald-600 dark:text-emerald-400 font-normal">(untuk integrasi IHS SatuSehat)</span>
+                        </label>
+                        <input wire:model="nikPerawat" type="text" inputmode="numeric" maxlength="16"
+                               placeholder="16 digit NIK"
+                               class="form-input font-mono dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                        @error('nikPerawat') <p class="form-error">{{ $message }}</p> @enderror
+                        <p class="text-xs text-gray-400 mt-1">Kosongkan jika belum diketahui. Bisa diisi belakangan.</p>
+                    </div>
+                    @endif
 
                     {{-- NIP & Telepon (2 kolom) --}}
                     <div class="grid grid-cols-2 gap-4">
