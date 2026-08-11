@@ -38,17 +38,20 @@ chown -R www-data:www-data "$PROJECT_DIR/storage" "$PROJECT_DIR/bootstrap/cache"
 chmod -R 775 "$PROJECT_DIR/storage" "$PROJECT_DIR/bootstrap/cache"
 
 # ── 3. Cek koneksi database ───────────────────────────────────
-# Dicek lebih dulu supaya kalau .env belum diisi / database belum
-# dibuat, script berhenti dengan pesan jelas — bukan error mentah
-# Laravel di tengah migrate.
+# config:clear dulu supaya config cache lama (mis. dari .env.example
+# yang default-nya DB_CONNECTION=sqlite) tidak menutupi .env terbaru.
+# Baru dicek koneksinya supaya kalau .env belum diisi / database
+# belum dibuat, script berhenti dengan pesan jelas — bukan error
+# mentah Laravel di tengah migrate.
 info "STEP 3: Cek koneksi database..."
+php8.3 artisan config:clear > /dev/null 2>&1
 if php8.3 artisan db:show > /dev/null 2>&1; then
     info "Koneksi database OK."
 else
     echo -e "${RED}[ERROR]${NC} Database belum terhubung!"
     echo ""
     echo "  Kemungkinan penyebab:"
-    echo "  - .env belum diisi / salah (DB_DATABASE, DB_USERNAME, DB_PASSWORD)"
+    echo "  - .env belum diisi / salah (DB_CONNECTION, DB_DATABASE, DB_USERNAME, DB_PASSWORD)"
     echo "  - Database belum dibuat"
     echo ""
     echo "  Perbaiki lalu jalankan ulang update.sh:"
