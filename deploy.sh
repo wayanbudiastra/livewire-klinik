@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =============================================================
-#  DEPLOY SCRIPT — EMR System (Laravel 12 + PHP 8.2)
+#  DEPLOY SCRIPT — EMR System (Laravel 12 + PHP 8.3)
 #  Ubuntu 22.04 LTS — AMAN untuk VPS yang sudah ada PHP 7.4
 #
 #  CARA PAKAI:
@@ -53,7 +53,7 @@ done
 
 echo ""
 echo "╔══════════════════════════════════════════════╗"
-echo "║   Deploy EMR System — Laravel 12 + PHP 8.2   ║"
+echo "║   Deploy EMR System — Laravel 12 + PHP 8.3   ║"
 echo "╚══════════════════════════════════════════════╝"
 
 if $SKIP_DB; then
@@ -133,7 +133,7 @@ server {
     }
 
     location ~ \.php$ {
-        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+        fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
         fastcgi_param SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
         include fastcgi_params;
         fastcgi_hide_header X-Powered-By;
@@ -167,14 +167,14 @@ if $ONLY_DB; then
     info ".env database diupdate."
 
     step "Migrasi & Seed Database"
-    php8.2 artisan migrate --force
-    php8.2 artisan db:seed --force
+    php8.3 artisan migrate --force
+    php8.3 artisan db:seed --force
     info "Database berhasil dimigrate & di-seed."
 
     step "Rebuild Cache"
-    php8.2 artisan config:clear
-    php8.2 artisan config:cache
-    systemctl restart php8.2-fpm
+    php8.3 artisan config:clear
+    php8.3 artisan config:cache
+    systemctl restart php8.3-fpm
 
     echo ""
     echo "╔══════════════════════════════════════════════╗"
@@ -199,19 +199,19 @@ apt update -qq
 apt install -y software-properties-common curl git unzip > /dev/null 2>&1
 info "Tools dasar siap."
 
-step "STEP 2: Install PHP 8.2"
+step "STEP 2: Install PHP 8.3"
 add-apt-repository ppa:ondrej/php -y > /dev/null 2>&1
 apt update -qq
 apt install -y \
-    php8.2 php8.2-cli php8.2-fpm \
-    php8.2-mysql php8.2-mbstring \
-    php8.2-xml php8.2-curl \
-    php8.2-zip php8.2-bcmath \
-    php8.2-intl php8.2-gd \
-    php8.2-tokenizer php8.2-fileinfo \
-    php8.2-opcache \
+    php8.3 php8.3-cli php8.3-fpm \
+    php8.3-mysql php8.3-mbstring \
+    php8.3-xml php8.3-curl \
+    php8.3-zip php8.3-bcmath \
+    php8.3-intl php8.3-gd \
+    php8.3-tokenizer php8.3-fileinfo \
+    php8.3-opcache \
     > /dev/null 2>&1
-info "PHP 8.2: $(php8.2 -v | head -1)"
+info "PHP 8.3: $(php8.3 -v | head -1)"
 
 step "STEP 3: Install Nginx"
 if ! command -v nginx &> /dev/null; then
@@ -234,17 +234,17 @@ done
 command -v composer &> /dev/null && COMPOSER_BIN="composer"
 
 if [ -n "$COMPOSER_BIN" ]; then
-    info "Composer sudah ada, skip install: $(php8.2 $COMPOSER_BIN --version 2>&1 | head -1)"
+    info "Composer sudah ada, skip install: $(php8.3 $COMPOSER_BIN --version 2>&1 | head -1)"
     # Pastikan bisa dipanggil global
     [ "$COMPOSER_BIN" != "composer" ] && ln -sf "$COMPOSER_BIN" /usr/local/bin/composer 2>/dev/null || true
 else
     info "Download Composer via curl..."
     curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php
-    php8.2 /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer --quiet
+    php8.3 /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer --quiet
     rm -f /tmp/composer-setup.php
     command -v composer &> /dev/null \
         && info "Composer: $(composer --version 2>&1 | head -1)" \
-        || error "Gagal install Composer! Coba manual: curl -sS https://getcomposer.org/installer | php8.2 -- --install-dir=/usr/local/bin --filename=composer"
+        || error "Gagal install Composer! Coba manual: curl -sS https://getcomposer.org/installer | php8.3 -- --install-dir=/usr/local/bin --filename=composer"
 fi
 
 step "STEP 5: Install Node.js"
@@ -267,7 +267,7 @@ else
 fi
 
 step "STEP 7: Install Composer dependencies"
-php8.2 $(which composer) install \
+php8.3 $(which composer) install \
     --no-dev --optimize-autoloader --no-interaction 2>&1 | tail -3
 
 step "STEP 8: Setup .env"
@@ -292,7 +292,7 @@ else
     sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=$DB_PASS|" .env
 fi
 
-php8.2 artisan key:generate --force
+php8.3 artisan key:generate --force
 info ".env siap."
 
 step "STEP 9: Permission storage"
@@ -308,8 +308,8 @@ if ! $SKIP_DB; then
     setup_mysql
 
     step "STEP 12: Migrasi & Seed Database"
-    php8.2 artisan migrate --force
-    php8.2 artisan db:seed --force
+    php8.3 artisan migrate --force
+    php8.3 artisan db:seed --force
     info "Database siap."
 fi
 
@@ -335,7 +335,7 @@ server {
     error_page 404 /index.php;
 
     location ~ \.php$ {
-        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+        fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
         fastcgi_param SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
         include fastcgi_params;
         fastcgi_hide_header X-Powered-By;
@@ -349,17 +349,17 @@ ln -sf "$NGINX_CONF" /etc/nginx/sites-enabled/emr-klinik
 nginx -t && systemctl reload nginx
 info "Nginx EMR: $SERVER_IP:$PORT"
 
-step "Aktifkan PHP 8.2 FPM"
-systemctl enable php8.2-fpm && systemctl restart php8.2-fpm
+step "Aktifkan PHP 8.3 FPM"
+systemctl enable php8.3-fpm && systemctl restart php8.3-fpm
 
 # Buka firewall
 ufw allow "$PORT" > /dev/null 2>&1 || true
 
 # Cache Laravel
 if ! $SKIP_DB; then
-    php8.2 artisan config:cache
-    php8.2 artisan route:cache
-    php8.2 artisan view:cache
+    php8.3 artisan config:cache
+    php8.3 artisan route:cache
+    php8.3 artisan view:cache
 fi
 
 # ── Ringkasan Akhir ──────────────────────────────────────────

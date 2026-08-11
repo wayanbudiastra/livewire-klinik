@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =============================================================
-#  UPDATE SCRIPT — EMR System (Laravel 12 + PHP 8.2)
+#  UPDATE SCRIPT — EMR System (Laravel 12 + PHP 8.3)
 #  Jalankan setiap ada update dari GitHub
 #  Cara pakai: sudo bash update.sh
 # =============================================================
@@ -38,40 +38,40 @@ chmod -R 775 "$PROJECT_DIR/storage" "$PROJECT_DIR/bootstrap/cache"
 
 # ── 3. Install dependency baru (jika ada) ────────────────────
 info "STEP 3: Update Composer dependencies..."
-php8.2 $(which composer) install \
+php8.3 $(which composer) install \
   --no-dev \
   --optimize-autoloader \
   --no-interaction 2>&1 | tail -3
 
 # ── 4. Migrasi database (jika ada migration baru) ────────────
 info "STEP 4: Jalankan migrasi database..."
-php8.2 artisan migrate --force
+php8.3 artisan migrate --force
 
 # ── 4b. Seed data referensi jika belum ada ───────────────────
-ICD_COUNT=$(php8.2 artisan tinker --execute="echo App\Models\IcdDiagnosis::count();" 2>/dev/null | tail -1)
+ICD_COUNT=$(php8.3 artisan tinker --execute="echo App\Models\IcdDiagnosis::count();" 2>/dev/null | tail -1)
 if [ "$ICD_COUNT" = "0" ] || [ -z "$ICD_COUNT" ]; then
     info "STEP 4b: Seed data ICD-10 (belum ada data)..."
-    php8.2 artisan db:seed --class=Icd10Seeder --force
+    php8.3 artisan db:seed --class=Icd10Seeder --force
 else
     info "STEP 4b: ICD-10 sudah ada ($ICD_COUNT kode), skip seed."
 fi
 
-PENUNJANG_COUNT=$(php8.2 artisan tinker --execute="echo App\Models\ItemPenunjang::count();" 2>/dev/null | tail -1)
+PENUNJANG_COUNT=$(php8.3 artisan tinker --execute="echo App\Models\ItemPenunjang::count();" 2>/dev/null | tail -1)
 if [ "$PENUNJANG_COUNT" = "0" ] || [ -z "$PENUNJANG_COUNT" ]; then
     info "STEP 4b: Seed data Item Penunjang (belum ada data)..."
-    php8.2 artisan db:seed --class=PenunjangSeeder --force
+    php8.3 artisan db:seed --class=PenunjangSeeder --force
 else
     info "STEP 4b: Item Penunjang sudah ada ($PENUNJANG_COUNT item), skip seed."
 fi
 
 # ── 5. Clear & rebuild cache ─────────────────────────────────
 info "STEP 5: Rebuild cache..."
-php8.2 artisan config:clear
-php8.2 artisan route:clear
-php8.2 artisan view:clear
-php8.2 artisan config:cache
-php8.2 artisan route:cache
-php8.2 artisan view:cache
+php8.3 artisan config:clear
+php8.3 artisan route:clear
+php8.3 artisan view:clear
+php8.3 artisan config:cache
+php8.3 artisan route:cache
+php8.3 artisan view:cache
 
 # ── 6. Build frontend (jika ada perubahan CSS/JS) ────────────
 info "STEP 6: Build frontend assets..."
@@ -85,8 +85,8 @@ chown -R www-data:www-data "$PROJECT_DIR/storage" "$PROJECT_DIR/bootstrap/cache"
 chmod -R 775 "$PROJECT_DIR/storage" "$PROJECT_DIR/bootstrap/cache"
 
 # ── 8. Restart PHP FPM ───────────────────────────────────────
-info "STEP 8: Restart PHP 8.2 FPM..."
-systemctl restart php8.2-fpm
+info "STEP 8: Restart PHP 8.3 FPM..."
+systemctl restart php8.3-fpm
 
 echo ""
 echo "=============================================="
