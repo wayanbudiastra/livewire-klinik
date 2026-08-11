@@ -14,13 +14,14 @@ class PendaftaranTab extends Component
     public string $mode           = 'appointment'; // 'appointment' | 'walkin'
 
     // Mode appointment
-    public string $kodeBooking    = '';
-    public ?int   $appointmentId  = null; // simpan ID saja, bukan object
-    public string $aptPasienNama  = '';
-    public string $aptPasienRM    = '';
-    public string $aptDokterNama  = '';
-    public string $aptPoliNama    = '';
-    public string $aptJadwal      = '';
+    public string $kodeBooking      = '';
+    public string $searchAppointment= ''; // cari by nama pasien / tanggal lahir
+    public ?int   $appointmentId    = null; // simpan ID saja, bukan object
+    public string $aptPasienNama    = '';
+    public string $aptPasienRM      = '';
+    public string $aptDokterNama    = '';
+    public string $aptPoliNama      = '';
+    public string $aptJadwal        = '';
 
     // Mode walk-in
     public string $searchPasien      = '';
@@ -120,6 +121,42 @@ class PendaftaranTab extends Component
         } else {
             $this->resetValidation('kodeBooking');
         }
+    }
+
+    // ── Cari Appointment by nama pasien / tanggal lahir ──────────
+
+    #[Computed]
+    public function appointmentSuggestions()
+    {
+        $search = trim($this->searchAppointment);
+        if (strlen($search) < 2) return collect();
+
+        return Appointment::with([
+                'pasien:id,nama,nomor_rm,tanggal_lahir',
+                'dokter.user:id,nama',
+                'poli:id,nama',
+                'jadwalPraktek:id,jam_mulai,jam_selesai,hari',
+            ])
+            ->where('status', 'booked')
+            ->whereHas('pasien', function ($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%")
+                  ->orWhereRaw("DATE_FORMAT(tanggal_lahir, '%d/%m/%Y') like ?", ["%{$search}%"])
+                  ->orWhereRaw("DATE_FORMAT(tanggal_lahir, '%Y-%m-%d') like ?", ["%{$search}%"]);
+            })
+            ->latest('created_at')
+            ->limit(10)
+            ->get();
+    }
+
+    public function pilihAppointmentDariList(int $appointmentId): void
+    {
+        $apt = Appointment::find($appointmentId);
+        if (! $apt) return;
+
+        $this->kodeBooking      = $apt->kode_booking;
+        $this->searchAppointment= '';
+        $this->lookupAppointment($apt->kode_booking);
+        $this->resetValidation('kodeBooking');
     }
 
     // ── Auto-daftar (dipanggil via wire:init dari blade) ────────
@@ -250,7 +287,7 @@ class PendaftaranTab extends Component
     public function resetForm(): void
     {
         $this->reset([
-            'kodeBooking','appointmentId','aptPasienNama','aptPasienRM',
+            'kodeBooking','searchAppointment','appointmentId','aptPasienNama','aptPasienRM',
             'aptDokterNama','aptPoliNama','aptJadwal',
             'searchPasien','pasienId','namaPasien','dokterId','poliId',
             'keluhan','showHasil','nomorAntrean','namaPasienHasil','autoDaftar',

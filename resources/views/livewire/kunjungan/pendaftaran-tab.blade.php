@@ -77,6 +77,41 @@
             </div>
             @error('kodeBooking') <p class="form-error">{{ $message }}</p> @enderror
 
+            <div class="flex items-center gap-2">
+                <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>
+                <span class="text-xs text-gray-400">atau cari</span>
+                <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>
+            </div>
+
+            <div class="form-group relative">
+                <input wire:model.live.debounce.400ms="searchAppointment" type="text"
+                       placeholder="Nama pasien atau tanggal lahir (mis. 17/08/1990)..."
+                       class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
+
+                @if ($this->appointmentSuggestions->isNotEmpty())
+                <div class="absolute z-20 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-600 shadow-lg max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-600">
+                    @foreach ($this->appointmentSuggestions as $apt)
+                    <button type="button" wire:click="pilihAppointmentDariList({{ $apt->id }})"
+                            class="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-0 transition-colors">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="font-semibold text-sm text-gray-900 dark:text-gray-100">{{ $apt->pasien->nama }}</span>
+                            <span class="font-mono text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">{{ $apt->kode_booking }}</span>
+                        </div>
+                        <div class="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
+                            <span>📅 {{ \Carbon\Carbon::parse($apt->pasien->tanggal_lahir)->format('d/m/Y') }}</span>
+                            <span>👨‍⚕️ {{ $apt->dokter->user->nama ?? '-' }}</span>
+                            <span>🏥 {{ $apt->poli->nama ?? '-' }}</span>
+                        </div>
+                    </button>
+                    @endforeach
+                </div>
+                @elseif (strlen($searchAppointment) >= 2)
+                <div class="absolute z-20 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-600 shadow-lg px-4 py-3 text-sm text-gray-400">
+                    Tidak ada appointment ditemukan.
+                </div>
+                @endif
+            </div>
+
             @if ($appointmentId)
             <div class="rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20 p-4 space-y-2 text-sm">
                 <div class="flex justify-between">
