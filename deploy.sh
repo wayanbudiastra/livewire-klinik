@@ -5,9 +5,12 @@
 #  Ubuntu 22.04 LTS — AMAN untuk VPS yang sudah ada PHP 7.4
 #
 #  CARA PAKAI:
-#  Tahap 1 (tanpa database): sudo bash deploy.sh --skip-db
-#  Tahap 2 (setup database): sudo bash deploy.sh --only-db
-#  Full sekaligus          : sudo bash deploy.sh
+#  Tahap 1 (tanpa database)     : sudo bash deploy.sh --skip-db
+#  Tahap 2 (setup database)     : sudo bash deploy.sh --only-db
+#  Tahap 2b (MySQL sudah ada,
+#    hanya buat DB kosong,
+#    user/pass & migrate manual): sudo bash deploy.sh --create-db
+#  Full sekaligus                : sudo bash deploy.sh
 # =============================================================
 
 set -e
@@ -43,11 +46,13 @@ error()   { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 # ── Parse argumen ────────────────────────────────────────────
 SKIP_DB=false
 ONLY_DB=false
+CREATE_DB=false
 
 for arg in "$@"; do
     case $arg in
         --skip-db) SKIP_DB=true ;;
         --only-db) ONLY_DB=true ;;
+        --create-db) CREATE_DB=true ;;
     esac
 done
 
@@ -60,6 +65,8 @@ if $SKIP_DB; then
     echo -e "  Mode: ${YELLOW}Tahap 1 — Tanpa Database${NC}"
 elif $ONLY_DB; then
     echo -e "  Mode: ${YELLOW}Tahap 2 — Setup Database Saja${NC}"
+elif $CREATE_DB; then
+    echo -e "  Mode: ${YELLOW}Buat Database Saja (MySQL sudah ada)${NC}"
 else
     echo -e "  Mode: ${GREEN}Full Deploy${NC}"
 fi
@@ -150,6 +157,37 @@ ADMINERCONF
     ufw allow "$ADMINER_PORT" > /dev/null 2>&1 || true
     info "Adminer tersedia di http://${SERVER_IP}:${ADMINER_PORT}/adminer.php"
 }
+
+# ════════════════════════════════════════════════════════════
+#  MODE: --create-db  (MySQL sudah terpasang di VPS — hanya
+#  buat database kosong. User/password & migrate dilakukan
+#  manual: isi .env sendiri lalu jalankan sudo bash update.sh)
+# ════════════════════════════════════════════════════════════
+if $CREATE_DB; then
+    step "Buat Database '${DB_NAME}'"
+    mysql -u root -e "
+        CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`
+            CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    " || error "Gagal buat database via 'mysql -u root' (root butuh password?). Coba manual: mysql -u root -p -e \"CREATE DATABASE IF NOT EXISTS \\\`${DB_NAME}\\\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;\""
+    info "Database '${DB_NAME}' siap."
+
+    echo ""
+    echo "╔══════════════════════════════════════════════╗"
+    echo -e "║        ${GREEN}DATABASE DIBUAT!${NC}                       ║"
+    echo "╚══════════════════════════════════════════════╝"
+    echo ""
+    echo "  Langkah selanjutnya (manual):"
+    echo "  1. Isi $PROJECT_DIR/.env dengan kredensial MySQL kamu:"
+    echo "       DB_CONNECTION=mysql"
+    echo "       DB_HOST=127.0.0.1"
+    echo "       DB_DATABASE=${DB_NAME}"
+    echo "       DB_USERNAME=<user MySQL kamu>"
+    echo "       DB_PASSWORD=<password MySQL kamu>"
+    echo "  2. Jalankan migrate & seed via:"
+    echo "       sudo bash $PROJECT_DIR/update.sh"
+    echo ""
+    exit 0
+fi
 
 # ════════════════════════════════════════════════════════════
 #  MODE: --only-db
