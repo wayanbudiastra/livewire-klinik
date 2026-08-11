@@ -10,6 +10,12 @@ set -e
 
 PROJECT_DIR="/var/www/livewire-klinik"
 
+# Dipakai HANYA saat auto-provisioning database (STEP 3), yaitu ketika
+# koneksi ke .env yang ada gagal. Kalau .env sudah benar & terhubung,
+# nilai di bawah ini tidak dipakai sama sekali.
+DB_NAME="emr_db"
+DB_USER="emr_user"
+
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
@@ -37,29 +43,60 @@ info "STEP 2: Fix permission storage & cache..."
 chown -R www-data:www-data "$PROJECT_DIR/storage" "$PROJECT_DIR/bootstrap/cache"
 chmod -R 775 "$PROJECT_DIR/storage" "$PROJECT_DIR/bootstrap/cache"
 
-# ── 3. Cek koneksi database ───────────────────────────────────
+# ── 3. Cek koneksi database (auto-provision kalau belum nyambung) ──
 # config:clear dulu supaya config cache lama (mis. dari .env.example
 # yang default-nya DB_CONNECTION=sqlite) tidak menutupi .env terbaru.
-# Baru dicek koneksinya supaya kalau .env belum diisi / database
-# belum dibuat, script berhenti dengan pesan jelas — bukan error
-# mentah Laravel di tengah migrate.
 info "STEP 3: Cek koneksi database..."
 php8.3 artisan config:clear > /dev/null 2>&1
+
 if php8.3 artisan db:show > /dev/null 2>&1; then
     info "Koneksi database OK."
 else
-    echo -e "${RED}[ERROR]${NC} Database belum terhubung!"
-    echo ""
-    echo "  Kemungkinan penyebab:"
-    echo "  - .env belum diisi / salah (DB_CONNECTION, DB_DATABASE, DB_USERNAME, DB_PASSWORD)"
-    echo "  - Database belum dibuat"
-    echo ""
-    echo "  Perbaiki lalu jalankan ulang update.sh:"
-    echo "    1. nano $PROJECT_DIR/.env"
-    echo "    2. sudo bash $PROJECT_DIR/deploy.sh --create-db   (kalau database belum ada)"
-    echo "    3. sudo bash $PROJECT_DIR/update.sh"
-    echo ""
-    exit 1
+    warning "Database belum terhubung. Membuat database, user & password baru otomatis..."
+
+    DB_PASS_NEW=$(openssl rand -base64 32 | tr -dc 'A-Za-z0-9' | head -c 24)
+
+    if mysql -u root -e "
+        CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`
+            CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+        CREATE USER IF NOT EXISTS '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASS_NEW}';
+        CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS_NEW}';
+        ALTER USER '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASS_NEW}';
+        ALTER USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS_NEW}';
+        GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'127.0.0.1';
+        GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
+        FLUSH PRIVILEGES;
+    " 2>/dev/null; then
+        sed -i "s|DB_CONNECTION=.*|DB_CONNECTION=mysql|" .env
+        sed -i "s|DB_HOST=.*|DB_HOST=127.0.0.1|" .env
+        sed -i "s|DB_DATABASE=.*|DB_DATABASE=${DB_NAME}|" .env
+        sed -i "s|DB_USERNAME=.*|DB_USERNAME=${DB_USER}|" .env
+        sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=${DB_PASS_NEW}|" .env
+        php8.3 artisan config:clear > /dev/null 2>&1
+
+        if php8.3 artisan db:show > /dev/null 2>&1; then
+            info "Database '${DB_NAME}' & user '${DB_USER}' siap, .env sudah diupdate."
+            echo -e "  ${YELLOW}Password database (baru digenerate)${NC}: ${DB_PASS_NEW}"
+            echo "  (sudah otomatis tersimpan di .env, catat juga untuk jaga-jaga)"
+        else
+            echo -e "${RED}[ERROR]${NC} Database & user berhasil dibuat, tapi koneksi masih gagal."
+            echo "  Cek manual: cd $PROJECT_DIR && php8.3 artisan db:show"
+            exit 1
+        fi
+    else
+        echo -e "${RED}[ERROR]${NC} Gagal membuat database/user otomatis via 'mysql -u root'."
+        echo ""
+        echo "  Kemungkinan penyebab: root MySQL butuh password (bukan auth_socket)."
+        echo "  Buat manual lalu jalankan ulang update.sh:"
+        echo "    sudo mysql -u root -p"
+        echo "    CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`;"
+        echo "    CREATE USER '${DB_USER}'@'127.0.0.1' IDENTIFIED BY 'password_kamu';"
+        echo "    GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'127.0.0.1';"
+        echo "    FLUSH PRIVILEGES;"
+        echo "  Lalu isi .env manual & jalankan: sudo bash $PROJECT_DIR/update.sh"
+        echo ""
+        exit 1
+    fi
 fi
 
 # ── 4. Install dependency baru (jika ada) ─────────────────────
