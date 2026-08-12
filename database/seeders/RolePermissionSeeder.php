@@ -89,6 +89,7 @@ class RolePermissionSeeder extends Seeder
             'dokter' => [
                 'pasien.view',
                 'kunjungan.view', 'kunjungan.edit',
+                'asesmen.view', 'asesmen.create', 'asesmen.edit',
                 'soap.view', 'soap.create', 'soap.edit',
                 'resep.view', 'resep.create', 'resep.edit',
                 'tindakan.view', 'tindakan.create',
