@@ -15,7 +15,11 @@ class HargaWna extends Component
 
     public function mount(): void
     {
-        $this->authorize('masterdata.view');
+        // Halaman ini khusus super_admin — bukan permission masterdata biasa,
+        // supaya role lain (mis. admin/staff) yang punya masterdata.view/edit
+        // tetap tidak bisa mengubah markup harga WNA.
+        abort_unless(auth()->user()?->hasRole('super_admin'), 403);
+
         $this->markupPersen = (string) KonfigurasiHargaWna::config()->markup_persen;
     }
 
@@ -40,7 +44,7 @@ class HargaWna extends Component
 
     public function simpanMarkup(): void
     {
-        $this->authorize('masterdata.edit');
+        abort_unless(auth()->user()?->hasRole('super_admin'), 403);
 
         $this->validate([
             'markupPersen' => ['required', 'numeric', 'min:0', 'max:1000'],
@@ -63,7 +67,7 @@ class HargaWna extends Component
      */
     public function terapkanKeSemua(): void
     {
-        $this->authorize('masterdata.edit');
+        abort_unless(auth()->user()?->hasRole('super_admin'), 403);
 
         $markup = (float) KonfigurasiHargaWna::config()->markup_persen;
         $faktor = 1 + ($markup / 100);

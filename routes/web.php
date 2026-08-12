@@ -290,10 +290,10 @@ Route::middleware(['auth', 'active'])->group(function () {
              ->name('sumber-informasi')
              ->middleware('permission:masterdata.create');
 
-        // Markup Harga WNA
+        // Markup Harga WNA — hanya super_admin
         Route::get('/harga-wna', fn () => view('pengaturan.harga-wna'))
              ->name('harga-wna')
-             ->middleware('permission:masterdata.view');
+             ->middleware('role:super_admin');
 
         // Asuransi & Penjamin
         Route::prefix('asuransi')->name('asuransi.')->group(function () {
