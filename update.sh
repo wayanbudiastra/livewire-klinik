@@ -128,13 +128,19 @@ else
 fi
 
 # ── 6. Clear & rebuild cache ───────────────────────────────────
+# event:clear/cache disertakan supaya listener baru (mis. LogSuccessfulLogin)
+# langsung terdeteksi — tanpa ini, Laravel bisa pakai daftar event lama
+# yang di-cache sebelumnya (php artisan optimize) dan listener baru
+# jadi tidak pernah ke-trigger walau kodenya sudah ter-deploy.
 info "STEP 6: Rebuild cache..."
 php8.3 artisan config:clear
 php8.3 artisan route:clear
 php8.3 artisan view:clear
+php8.3 artisan event:clear
 php8.3 artisan config:cache
 php8.3 artisan route:cache
 php8.3 artisan view:cache
+php8.3 artisan event:cache
 
 # ── 7. Build frontend (jika ada perubahan CSS/JS) ─────────────
 info "STEP 7: Build frontend assets..."

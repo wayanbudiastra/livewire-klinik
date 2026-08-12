@@ -398,6 +398,7 @@ if ! $SKIP_DB; then
     php8.3 artisan config:cache
     php8.3 artisan route:cache
     php8.3 artisan view:cache
+    php8.3 artisan event:cache
 fi
 
 # ── Ringkasan Akhir ──────────────────────────────────────────
