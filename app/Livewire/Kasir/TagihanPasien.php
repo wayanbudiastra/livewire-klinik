@@ -12,6 +12,7 @@ use App\Models\PembayaranSplit;
 use App\Models\SesiKas;
 use App\Services\Akuntansi\BillingJurnalService;
 use App\Services\Akuntansi\SharingFeeService;
+use App\Services\Harga\TarifResolver;
 use App\Services\InvoiceService;
 use App\Services\Kasir\SesiKasService;
 use Illuminate\Support\Facades\Auth;
@@ -386,7 +387,8 @@ class TagihanPasien extends Component
     #[Computed]
     public function komponenList(): array
     {
-        $q = strlen($this->searchKomponen) >= 2 ? $this->searchKomponen : null;
+        $q     = strlen($this->searchKomponen) >= 2 ? $this->searchKomponen : null;
+        $isWna = $this->kunjungan?->pasien?->tipe_pasien === 'WNA';
 
         return match ($this->komponenTab) {
             'prosedur' => MasterTindakan::aktif()
@@ -397,7 +399,13 @@ class TagihanPasien extends Component
                 ->map(fn ($i) => [
                     'id'     => $i->id,
                     'nama'   => $i->nama,
-                    'harga'  => (float) $i->tarif,
+                    'harga'  => TarifResolver::pilih(
+                        (float) $i->tarif,
+                        null,
+                        $i->tarif_wna !== null ? (float) $i->tarif_wna : null,
+                        false,
+                        $isWna,
+                    ),
                     'satuan' => 'tindakan',
                     'info'   => $i->kategori ?? '',
                 ])
@@ -427,7 +435,13 @@ class TagihanPasien extends Component
                 ->map(fn ($i) => [
                     'id'     => $i->id,
                     'nama'   => $i->nama,
-                    'harga'  => (float) $i->tarif,
+                    'harga'  => TarifResolver::pilih(
+                        (float) $i->tarif,
+                        null,
+                        $i->tarif_wna !== null ? (float) $i->tarif_wna : null,
+                        false,
+                        $isWna,
+                    ),
                     'satuan' => 'pemeriksaan',
                     'info'   => '',
                 ])
@@ -442,7 +456,13 @@ class TagihanPasien extends Component
                 ->map(fn ($i) => [
                     'id'     => $i->id,
                     'nama'   => $i->nama,
-                    'harga'  => (float) $i->tarif,
+                    'harga'  => TarifResolver::pilih(
+                        (float) $i->tarif,
+                        null,
+                        $i->tarif_wna !== null ? (float) $i->tarif_wna : null,
+                        false,
+                        $isWna,
+                    ),
                     'satuan' => 'pemeriksaan',
                     'info'   => '',
                 ])

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Invoice;
 use App\Models\Kunjungan;
 use App\Models\SesiKas;
+use App\Services\Harga\TarifResolver;
 
 class InvoiceService
 {
@@ -14,13 +15,18 @@ class InvoiceService
     public function buildItems(Kunjungan $kunjungan): array
     {
         $isBpjs = $kunjungan->tipe_pembayaran === 'bpjs';
+        $isWna  = $kunjungan->pasien?->tipe_pasien === 'WNA';
         $items  = [];
 
         // 1. Tindakan (procedures)
         foreach ($kunjungan->tindakan()->with('masterTindakan')->get() as $t) {
-            $tarif = $isBpjs
-                ? $t->masterTindakan->tarif_bpjs
-                : $t->masterTindakan->tarif;
+            $tarif = TarifResolver::pilih(
+                (float) $t->masterTindakan->tarif,
+                $t->masterTindakan->tarif_bpjs !== null ? (float) $t->masterTindakan->tarif_bpjs : null,
+                $t->masterTindakan->tarif_wna !== null ? (float) $t->masterTindakan->tarif_wna : null,
+                $isBpjs,
+                $isWna,
+            );
             $subtotal = $tarif * $t->jumlah;
             $items[] = [
                 'jenis'        => 'tindakan',
@@ -36,7 +42,13 @@ class InvoiceService
 
         // 2. BMHP / Alkes consumables
         foreach ($kunjungan->pemakaianAlkes()->with('barang')->get() as $a) {
-            $harga    = $a->barang->harga_jual;
+            $harga = TarifResolver::pilih(
+                (float) $a->barang->harga_jual,
+                null, // alkes tidak dibedakan BPJS/umum (mengikuti logic lama)
+                $a->barang->harga_wna !== null ? (float) $a->barang->harga_wna : null,
+                false,
+                $isWna,
+            );
             $subtotal = $harga * $a->jumlah;
             $items[] = [
                 'jenis'        => 'alkes',
@@ -57,7 +69,13 @@ class InvoiceService
                 ->where('status', 'selesai')
                 ->get() as $p
         ) {
-            $tarif    = $isBpjs ? $p->itemPenunjang->tarif_bpjs : $p->itemPenunjang->tarif;
+            $tarif = TarifResolver::pilih(
+                (float) $p->itemPenunjang->tarif,
+                $p->itemPenunjang->tarif_bpjs !== null ? (float) $p->itemPenunjang->tarif_bpjs : null,
+                $p->itemPenunjang->tarif_wna !== null ? (float) $p->itemPenunjang->tarif_wna : null,
+                $isBpjs,
+                $isWna,
+            );
             $subtotal = $tarif * $p->jumlah;
             $items[] = [
                 'jenis'        => 'penunjang',
@@ -80,7 +98,13 @@ class InvoiceService
         ) {
             // Non-racikan items
             foreach ($resep->itemResep as $ir) {
-                $harga    = $isBpjs ? $ir->barang->harga_bpjs : $ir->barang->harga_jual;
+                $harga = TarifResolver::pilih(
+                    (float) $ir->barang->harga_jual,
+                    $ir->barang->harga_bpjs !== null ? (float) $ir->barang->harga_bpjs : null,
+                    $ir->barang->harga_wna !== null ? (float) $ir->barang->harga_wna : null,
+                    $isBpjs,
+                    $isWna,
+                );
                 $subtotal = $harga * $ir->jumlah;
                 $items[] = [
                     'jenis'        => 'obat',
@@ -96,9 +120,16 @@ class InvoiceService
 
             // Racikan — price = total cost of all bahan
             foreach ($resep->racikan as $racikan) {
-                $totalBahan = $racikan->bahanRacikan->sum(
-                    fn ($b) => $b->barang->harga_jual * $b->jumlah
-                );
+                $totalBahan = $racikan->bahanRacikan->sum(function ($b) use ($isWna) {
+                    $harga = TarifResolver::pilih(
+                        (float) $b->barang->harga_jual,
+                        null, // racikan tidak dibedakan BPJS/umum (mengikuti logic lama)
+                        $b->barang->harga_wna !== null ? (float) $b->barang->harga_wna : null,
+                        false,
+                        $isWna,
+                    );
+                    return $harga * $b->jumlah;
+                });
                 $items[] = [
                     'jenis'        => 'racikan',
                     'ref_id'       => $racikan->id,

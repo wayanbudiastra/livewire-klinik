@@ -3,6 +3,7 @@
 namespace App\Livewire\Farmasi;
 
 use App\Models\Barang;
+use App\Models\KonfigurasiHargaWna;
 use App\Services\FarmasiService;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
@@ -27,6 +28,7 @@ class ObatForm extends Component
     public string $harga           = '';    // → harga_jual
     public string $harga_beli      = '';    // → harga_pokok
     public string $harga_bpjs      = '';
+    public string $harga_wna       = '';
     public string $kategori        = '';
     public string $expired_date    = '';
     public bool   $is_active       = true;
@@ -50,9 +52,25 @@ class ObatForm extends Component
             'harga'       => ['required', 'numeric', 'min:0'],
             'harga_beli'  => ['nullable', 'numeric', 'min:0'],
             'harga_bpjs'  => ['nullable', 'numeric', 'min:0'],
+            'harga_wna'   => ['nullable', 'numeric', 'min:0'],
             'kategori'    => ['nullable', 'string'],
             'expired_date'=> ['nullable', 'date'],
         ];
+    }
+
+    /** Markup WNA saat ini, dipakai tombol "Generate" di blade. */
+    public function getMarkupWnaPersenProperty(): float
+    {
+        return KonfigurasiHargaWna::markupPersen();
+    }
+
+    /** Isi harga_wna dari harga jual × markup (masih bisa diedit manual sebelum simpan). */
+    public function generateHargaWna(): void
+    {
+        if ($this->harga === '' || ! is_numeric($this->harga)) return;
+
+        $markup = KonfigurasiHargaWna::markupPersen();
+        $this->harga_wna = (string) round(((float) $this->harga) * (1 + $markup / 100));
     }
 
     public function getMessages(): array
@@ -67,7 +85,7 @@ class ObatForm extends Component
     {
         $this->authorize('obat.create');
         $this->reset(['obatId', 'kode', 'barcode', 'nama', 'generik',
-                      'harga', 'harga_beli', 'harga_bpjs', 'kategori',
+                      'harga', 'harga_beli', 'harga_bpjs', 'harga_wna', 'kategori',
                       'expired_date', 'satuan_besar']);
         $this->jenis_barang = 'obat';
         $this->is_paten     = false;
@@ -97,6 +115,7 @@ class ObatForm extends Component
         $this->harga        = (string) $b->harga_jual;
         $this->harga_beli   = $b->harga_pokok  ? (string) $b->harga_pokok  : '';
         $this->harga_bpjs   = $b->harga_bpjs   ? (string) $b->harga_bpjs   : '';
+        $this->harga_wna    = $b->harga_wna    ? (string) $b->harga_wna    : '';
         $this->kategori     = $b->kategori     ?? '';
         $this->expired_date = $b->expired_date ? $b->expired_date->format('Y-m-d') : '';
         $this->is_active    = (bool) $b->is_active;
@@ -123,6 +142,7 @@ class ObatForm extends Component
             'harga_jual'       => (float) $this->harga,
             'harga_pokok'      => $this->harga_beli  ? (float) $this->harga_beli  : 0,
             'harga_bpjs'       => $this->harga_bpjs  ? (float) $this->harga_bpjs  : null,
+            'harga_wna'        => $this->harga_wna   ? (float) $this->harga_wna   : null,
             'kategori'         => $this->kategori    ?: null,
             'expired_date'     => $this->expired_date ?: null,
             'is_active'        => $this->is_active,

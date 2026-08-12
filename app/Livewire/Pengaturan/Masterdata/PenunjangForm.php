@@ -3,6 +3,7 @@
 namespace App\Livewire\Pengaturan\Masterdata;
 
 use App\Models\ItemPenunjang;
+use App\Models\KonfigurasiHargaWna;
 use App\Services\MasterdataService;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
@@ -19,6 +20,7 @@ class PenunjangForm extends Component
     public string $kategori     = 'lab';
     public string $tarif        = '';
     public string $tarif_bpjs   = '';
+    public string $tarif_wna    = '';
     public string $deskripsi    = '';
     public string $satuan_waktu = '';
     public bool   $is_active    = true;
@@ -35,15 +37,31 @@ class PenunjangForm extends Component
             'kategori'     => ['required', 'in:lab,radiologi'],
             'tarif'        => ['required', 'numeric', 'min:0'],
             'tarif_bpjs'   => ['nullable', 'numeric', 'min:0'],
+            'tarif_wna'    => ['nullable', 'numeric', 'min:0'],
             'deskripsi'    => ['nullable', 'string'],
             'satuan_waktu' => ['nullable', 'string'],
         ];
     }
 
+    /** Markup WNA saat ini, dipakai tombol "Generate" di blade. */
+    public function getMarkupWnaPersenProperty(): float
+    {
+        return KonfigurasiHargaWna::markupPersen();
+    }
+
+    /** Isi tarif_wna dari tarif umum × markup (masih bisa diedit manual sebelum simpan). */
+    public function generateTarifWna(): void
+    {
+        if ($this->tarif === '' || ! is_numeric($this->tarif)) return;
+
+        $markup = KonfigurasiHargaWna::markupPersen();
+        $this->tarif_wna = (string) round(((float) $this->tarif) * (1 + $markup / 100));
+    }
+
     public function openCreate(string $kategori = 'lab'): void
     {
         $this->authorize('masterdata.create');
-        $this->reset(['penunjangId','kode','nama','tarif','tarif_bpjs','deskripsi','satuan_waktu']);
+        $this->reset(['penunjangId','kode','nama','tarif','tarif_bpjs','tarif_wna','deskripsi','satuan_waktu']);
         $this->kategori  = $kategori;
         $this->is_active = true;
         $this->isEdit    = false;
@@ -61,6 +79,7 @@ class PenunjangForm extends Component
         $this->kategori     = $item->kategori;
         $this->tarif        = (string) $item->tarif;
         $this->tarif_bpjs   = $item->tarif_bpjs ? (string) $item->tarif_bpjs : '';
+        $this->tarif_wna    = $item->tarif_wna  ? (string) $item->tarif_wna  : '';
         $this->deskripsi    = $item->deskripsi ?? '';
         $this->satuan_waktu = $item->satuan_waktu ?? '';
         $this->is_active    = $item->is_active;
@@ -79,6 +98,7 @@ class PenunjangForm extends Component
             'kategori'     => $this->kategori,
             'tarif'        => (float) $this->tarif,
             'tarif_bpjs'   => $this->tarif_bpjs ? (float) $this->tarif_bpjs : null,
+            'tarif_wna'    => $this->tarif_wna  ? (float) $this->tarif_wna  : null,
             'deskripsi'    => $this->deskripsi    ?: null,
             'satuan_waktu' => $this->satuan_waktu ?: null,
             'is_active'    => $this->is_active,

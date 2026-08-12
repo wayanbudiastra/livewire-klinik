@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Pengaturan\Masterdata;
 
+use App\Models\KonfigurasiHargaWna;
 use App\Models\MasterTindakan;
 use App\Models\Poli;
 use App\Services\MasterdataService;
@@ -19,6 +20,7 @@ class TindakanForm extends Component
     public string $deskripsi  = '';
     public string $tarif      = '';
     public string $tarif_bpjs = '';
+    public string $tarif_wna  = '';
     public bool   $is_active  = true;
     public array  $poli_ids   = [];
 
@@ -34,10 +36,26 @@ class TindakanForm extends Component
             'deskripsi'  => ['nullable', 'string'],
             'tarif'      => ['required', 'numeric', 'min:0'],
             'tarif_bpjs' => ['nullable', 'numeric', 'min:0'],
+            'tarif_wna'  => ['nullable', 'numeric', 'min:0'],
             'poli_ids'   => ['required', 'array', 'min:1'],
             'poli_ids.*' => ['integer', 'exists:poli,id'],
             'is_active'  => ['boolean'],
         ];
+    }
+
+    /** Markup WNA saat ini, dipakai tombol "Generate" di blade. */
+    public function getMarkupWnaPersenProperty(): float
+    {
+        return KonfigurasiHargaWna::markupPersen();
+    }
+
+    /** Isi tarif_wna dari tarif umum × markup (masih bisa diedit manual sebelum simpan). */
+    public function generateTarifWna(): void
+    {
+        if ($this->tarif === '' || ! is_numeric($this->tarif)) return;
+
+        $markup = KonfigurasiHargaWna::markupPersen();
+        $this->tarif_wna = (string) round(((float) $this->tarif) * (1 + $markup / 100));
     }
 
     public function getMessages(): array
@@ -52,7 +70,7 @@ class TindakanForm extends Component
     public function openCreate(): void
     {
         $this->authorize('masterdata.create');
-        $this->reset(['tindakanId','kode','nama','deskripsi','tarif','tarif_bpjs','poli_ids']);
+        $this->reset(['tindakanId','kode','nama','deskripsi','tarif','tarif_bpjs','tarif_wna','poli_ids']);
         $this->is_active = true;
         $this->isEdit    = false;
         $this->showModal = true;
@@ -69,6 +87,7 @@ class TindakanForm extends Component
         $this->deskripsi   = $item->deskripsi ?? '';
         $this->tarif       = (string) $item->tarif;
         $this->tarif_bpjs  = $item->tarif_bpjs ? (string) $item->tarif_bpjs : '';
+        $this->tarif_wna   = $item->tarif_wna  ? (string) $item->tarif_wna  : '';
         $this->is_active   = (bool) $item->is_active;
         $this->poli_ids    = $item->poli->pluck('id')->toArray();
         $this->isEdit      = true;
@@ -86,6 +105,7 @@ class TindakanForm extends Component
             'deskripsi'  => $this->deskripsi ?: null,
             'tarif'      => (float) $this->tarif,
             'tarif_bpjs' => $this->tarif_bpjs ? (float) $this->tarif_bpjs : null,
+            'tarif_wna'  => $this->tarif_wna  ? (float) $this->tarif_wna  : null,
             'is_active'  => $this->is_active,
         ];
 

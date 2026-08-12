@@ -9,7 +9,7 @@ class MasterTindakan extends Model
     protected $table = 'master_tindakan';
 
     protected $fillable = [
-        'kode', 'nama', 'deskripsi', 'tarif', 'tarif_bpjs',
+        'kode', 'nama', 'deskripsi', 'tarif', 'tarif_bpjs', 'tarif_wna',
         'kategori', 'is_active',
     ];
 
@@ -18,6 +18,7 @@ class MasterTindakan extends Model
         return [
             'tarif'      => 'decimal:2',
             'tarif_bpjs' => 'decimal:2',
+            'tarif_wna'  => 'decimal:2',
             'is_active'  => 'boolean',
         ];
     }

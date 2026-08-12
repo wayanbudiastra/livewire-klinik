@@ -78,6 +78,19 @@
                         </div>
                     </div>
 
+                    <div class="form-group">
+                        <label class="form-label dark:text-gray-300 flex items-center justify-between">
+                            <span>Tarif WNA (Rp)</span>
+                            <button type="button" wire:click="generateTarifWna"
+                                    class="text-xs font-normal text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                                ⚡ Generate ({{ rtrim(rtrim(number_format($this->markupWnaPersen, 2), '0'), '.') }}% dari tarif umum)
+                            </button>
+                        </label>
+                        <input wire:model="tarif_wna" type="number" min="0" step="1000" placeholder="Kosongkan = pakai tarif umum"
+                               class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                        @error('tarif_wna') <p class="form-error">{{ $message }}</p> @enderror
+                    </div>
+
                     {{-- Poli Mapping --}}
                     <div class="form-group">
                         <label class="form-label dark:text-gray-300">

@@ -13,7 +13,7 @@ class Barang extends Model
         'kode', 'barcode', 'nama', 'nama_generik', 'jenis', 'kategori',
         'satuan', 'satuan_besar', 'isi_satuan_besar', 'kemasan',
         'stok', 'stok_minimum', 'stok_maksimum',
-        'harga_pokok', 'harga_jual', 'harga_bpjs',
+        'harga_pokok', 'harga_jual', 'harga_bpjs', 'harga_wna',
         'golongan', 'butuh_resep', 'is_paten', 'is_active',
         'expired_date', 'supplier_utama_id',
     ];
@@ -27,6 +27,7 @@ class Barang extends Model
             'harga_pokok'  => 'decimal:2',
             'harga_jual'   => 'decimal:2',
             'harga_bpjs'   => 'decimal:2',
+            'harga_wna'    => 'decimal:2',
             'expired_date' => 'date',
         ];
     }

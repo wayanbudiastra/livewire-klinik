@@ -30,6 +30,7 @@
                     <th>Nama Item</th>
                     <th>Tarif</th>
                     <th>Tarif BPJS</th>
+                    <th>Tarif WNA</th>
                     <th>Waktu</th>
                     <th>Status</th>
                     <th>Aksi</th>
@@ -48,6 +49,9 @@
                     <td>Rp {{ number_format($item->tarif, 0, ',', '.') }}</td>
                     <td class="text-gray-500">
                         {{ $item->tarif_bpjs ? 'Rp '.number_format($item->tarif_bpjs, 0, ',', '.') : '-' }}
+                    </td>
+                    <td class="text-gray-500">
+                        {{ $item->tarif_wna ? 'Rp '.number_format($item->tarif_wna, 0, ',', '.') : '-' }}
                     </td>
                     <td class="text-xs text-gray-500">{{ $item->satuan_waktu ?? '-' }}</td>
                     <td>
@@ -82,7 +86,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="7">
+                    <td colspan="8">
                         <div class="empty-state">
                             <p class="empty-state-text">Belum ada item {{ $kategori === 'lab' ? 'laboratorium' : 'radiologi' }}</p>
                         </div>

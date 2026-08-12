@@ -290,6 +290,11 @@ Route::middleware(['auth', 'active'])->group(function () {
              ->name('sumber-informasi')
              ->middleware('permission:masterdata.create');
 
+        // Markup Harga WNA
+        Route::get('/harga-wna', fn () => view('pengaturan.harga-wna'))
+             ->name('harga-wna')
+             ->middleware('permission:masterdata.view');
+
         // Asuransi & Penjamin
         Route::prefix('asuransi')->name('asuransi.')->group(function () {
             Route::get('/bpjs', fn () => view('pengaturan.asuransi.bpjs'))

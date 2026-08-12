@@ -55,6 +55,7 @@
                     <th>Stok</th>
                     <th>Harga Umum</th>
                     <th>Harga BPJS</th>
+                    <th>Harga WNA</th>
                     <th>Status</th>
                     <th>Aksi</th>
                 </tr>
@@ -108,6 +109,9 @@
                     <td class="text-sm text-gray-500">
                         {{ $o->harga_bpjs ? 'Rp '.number_format($o->harga_bpjs, 0, ',', '.') : '-' }}
                     </td>
+                    <td class="text-sm text-gray-500">
+                        {{ $o->harga_wna ? 'Rp '.number_format($o->harga_wna, 0, ',', '.') : '-' }}
+                    </td>
                     <td>
                         @can('obat.edit')
                         <x-confirm-button
@@ -136,7 +140,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="9">
+                    <td colspan="10">
                         <div class="empty-state">
                             <svg class="empty-state-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"

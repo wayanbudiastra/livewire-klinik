@@ -135,6 +135,19 @@
                         </div>
                     </div>
 
+                    <div class="form-group">
+                        <label class="form-label dark:text-gray-300 flex items-center justify-between">
+                            <span>Harga WNA (Rp)</span>
+                            <button type="button" wire:click="generateHargaWna"
+                                    class="text-xs font-normal text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                                ⚡ Generate ({{ rtrim(rtrim(number_format($this->markupWnaPersen, 2), '0'), '.') }}% dari harga umum)
+                            </button>
+                        </label>
+                        <input wire:model="harga_wna" type="number" min="0" step="100" placeholder="Kosongkan = pakai harga umum"
+                               class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                        @error('harga_wna') <p class="form-error">{{ $message }}</p> @enderror
+                    </div>
+
                     {{-- Kategori & Expired --}}
                     <div class="grid grid-cols-2 gap-4">
                         <div class="form-group">
