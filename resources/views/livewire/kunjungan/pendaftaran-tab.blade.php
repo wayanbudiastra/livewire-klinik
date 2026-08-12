@@ -1,4 +1,4 @@
-<div class="max-w-2xl mx-auto space-y-5" wire:init="prosesAutoDaftar">
+<div class="w-full space-y-5" wire:init="prosesAutoDaftar">
 
     {{-- Hasil Pendaftaran --}}
     @if ($showHasil)
