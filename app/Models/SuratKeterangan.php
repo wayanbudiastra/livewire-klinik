@@ -43,6 +43,7 @@ class SuratKeterangan extends Model
             'keterangan_sakit' => 'Keterangan Sakit',
             'rujukan'          => 'Rujukan',
             'kontrol'          => 'Kontrol',
+            'resume_medis'     => 'Resume Medis',
             default            => $this->tipe,
         };
     }
@@ -55,6 +56,7 @@ class SuratKeterangan extends Model
             'keterangan_sakit' => 'SKT',
             'rujukan'          => 'RJK',
             'kontrol'          => 'KTR',
+            'resume_medis'     => 'RSM',
             default            => 'SKT',
         };
 

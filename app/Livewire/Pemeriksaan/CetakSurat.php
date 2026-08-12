@@ -36,6 +36,13 @@ class CetakSurat extends Component
     public string $tanggalKontrol = '';
     public string $instruksi      = '';
 
+    // Resume Medis
+    public string $bahasaResume     = 'id';
+    public string $escorted         = '';
+    public string $flight           = '';
+    public string $recommendation   = '';
+    public string $fasilitasBandara = '';
+
     public ?string $errorMsg = null;
 
     public function mount(int $kunjunganId): void
@@ -71,8 +78,10 @@ class CetakSurat extends Component
     public function buka(string $tipe): void
     {
         $this->reset(['errorMsg', 'keperluan', 'tujuanFasilitas', 'tujuanDokter',
-                      'indikasi', 'instruksi', 'tampilkanDiagnosa', 'sertakanPenunjang']);
+                      'indikasi', 'instruksi', 'tampilkanDiagnosa', 'sertakanPenunjang',
+                      'escorted', 'flight', 'recommendation', 'fasilitasBandara']);
 
+        $this->bahasaResume   = 'id';
         $this->tipe           = $tipe;
         $this->lamaHari       = 1;
         $this->tanggalMulai   = now()->toDateString();
@@ -106,6 +115,9 @@ class CetakSurat extends Component
             'kontrol' => $rules += [
                 'tanggalKontrol' => 'required|date|after:today',
             ],
+            'resume_medis' => $rules += [
+                'bahasaResume' => 'required|in:id,en',
+            ],
             default => null,
         };
 
@@ -134,6 +146,11 @@ class CetakSurat extends Component
             'sertakan_penunjang'  => $this->sertakanPenunjang,
             'tanggal_kontrol'     => $this->tanggalKontrol,
             'instruksi'           => $this->instruksi,
+            'bahasa'              => $this->bahasaResume,
+            'escorted'            => $this->escorted,
+            'flight'              => $this->flight,
+            'recommendation'      => $this->recommendation,
+            'fasilitas_bandara'   => $this->fasilitasBandara,
         ];
 
         $surat = match ($this->tipe) {
@@ -141,6 +158,7 @@ class CetakSurat extends Component
             'keterangan_sakit' => $service->simpanSakit($kunjungan, $input, auth()->id()),
             'rujukan'          => $service->simpanRujukan($kunjungan, $input, auth()->id()),
             'kontrol'          => $service->simpanKontrol($kunjungan, $input, auth()->id()),
+            'resume_medis'     => $service->simpanResumeMedis($kunjungan, $input, auth()->id()),
         };
 
         $pdfOutput = $service->pdfOutput($surat);

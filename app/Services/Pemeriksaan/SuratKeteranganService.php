@@ -98,6 +98,82 @@ class SuratKeteranganService
         return $this->simpan($kunjungan, 'kontrol', (int) $input['dokter_id'], $data, $userId);
     }
 
+    public function simpanResumeMedis(Kunjungan $kunjungan, array $input, int $userId): SuratKeterangan
+    {
+        $this->assertSoapFinal($kunjungan);
+
+        $kunjungan->loadMissing([
+            'asesmenPerawat',
+            'soapNote',
+            'tindakan.masterTindakan',
+            'permintaanPenunjang.itemPenunjang',
+            'resep.itemResep.barang',
+            'resep.racikan.bahanRacikan.barang',
+        ]);
+
+        $asesmen = $kunjungan->asesmenPerawat;
+        $soap    = $kunjungan->soapNote;
+
+        $tindakanSnapshot = $kunjungan->tindakan->map(fn ($t) => [
+            'nama'   => $t->masterTindakan->nama ?? '-',
+            'jumlah' => $t->jumlah,
+        ])->toArray();
+
+        $penunjangSnapshot = $kunjungan->permintaanPenunjang->map(fn ($p) => [
+            'nama'   => $p->itemPenunjang->nama ?? '-',
+            'status' => $p->status,
+        ])->toArray();
+
+        $resepSnapshot = [];
+        foreach ($kunjungan->resep->where('is_locked', true) as $resep) {
+            foreach ($resep->itemResep as $ir) {
+                $resepSnapshot[] = [
+                    'kode'         => $ir->barang->kode ?? '-',
+                    'nama'         => $ir->barang->nama ?? '-',
+                    'aturan_pakai' => $ir->aturan_pakai ?? '-',
+                    'jumlah'       => $ir->jumlah,
+                    'satuan'       => $ir->barang->satuan ?? '-',
+                ];
+            }
+            foreach ($resep->racikan as $racikan) {
+                $resepSnapshot[] = [
+                    'kode'         => '-',
+                    'nama'         => $racikan->nama_racikan . ' (racikan)',
+                    'aturan_pakai' => $racikan->aturan_pakai ?? '-',
+                    'jumlah'       => 1,
+                    'satuan'       => 'racikan',
+                ];
+            }
+        }
+
+        $data = [
+            'bahasa'                    => in_array($input['bahasa'] ?? 'id', ['id', 'en']) ? $input['bahasa'] : 'id',
+            'vitals_snapshot'           => $asesmen ? [
+                'tekanan_darah' => $asesmen->tekanan_darah,
+                'nadi'          => $asesmen->nadi,
+                'suhu'          => $asesmen->suhu,
+                'saturasi'      => $asesmen->saturasi,
+                'berat_badan'   => $asesmen->berat_badan,
+                'tinggi_badan'  => $asesmen->tinggi_badan,
+                'bmi'           => $asesmen->bmi,
+            ] : null,
+            'anamnesis_snapshot'        => $asesmen?->anamnesis_awal,
+            'subjektif_snapshot'        => $soap->subjektif ?? $soap->s_cc_hpi ?? null,
+            'objektif_snapshot'         => $soap->objektif ?? $soap->o_physical_exam ?? null,
+            'plan_snapshot'             => $soap->plan ?? $soap->p_advice ?? null,
+            'diagnosa_snapshot'         => $soap->icd_codes ?? [],
+            'tindakan_snapshot'         => $tindakanSnapshot,
+            'penunjang_snapshot'        => $penunjangSnapshot,
+            'resep_snapshot'            => $resepSnapshot,
+            'escorted'                  => trim($input['escorted'] ?? ''),
+            'flight'                    => trim($input['flight'] ?? ''),
+            'recommendation'            => trim($input['recommendation'] ?? ''),
+            'fasilitas_bandara'         => trim($input['fasilitas_bandara'] ?? ''),
+        ];
+
+        return $this->simpan($kunjungan, 'resume_medis', (int) $input['dokter_id'], $data, $userId);
+    }
+
     // ── Public: render PDF dari surat yang sudah tersimpan ───
 
     public function pdfOutput(SuratKeterangan $surat): string

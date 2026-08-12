@@ -26,6 +26,7 @@
                 ['tipe' => 'keterangan_sakit', 'label' => 'Keterangan Sakit',  'icon' => 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z', 'color' => 'text-red-500'],
                 ['tipe' => 'rujukan',          'label' => 'Surat Rujukan',      'icon' => 'M17 8l4 4m0 0l-4 4m4-4H3', 'color' => 'text-blue-600'],
                 ['tipe' => 'kontrol',          'label' => 'Jadwal Kontrol',     'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', 'color' => 'text-amber-600'],
+                ['tipe' => 'resume_medis',     'label' => 'Resume Medis',       'icon' => 'M9 12h6m-6 4h6m2-13H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-6-5z', 'color' => 'text-purple-600'],
             ] as $item)
             <button type="button"
                     wire:click="buka('{{ $item['tipe'] }}')"
@@ -58,6 +59,7 @@
                             'keterangan_sakit' => 'Surat Keterangan Sakit',
                             'rujukan'          => 'Surat Rujukan',
                             'kontrol'          => 'Surat Jadwal Kontrol',
+                            'resume_medis'     => 'Resume Medis',
                             default            => 'Cetak Surat',
                         } }}
                     </h3>
@@ -178,6 +180,45 @@
                     <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Instruksi/Pesan <span class="text-gray-400 text-xs font-normal">(opsional)</span></label>
                     <textarea wire:model="instruksi" rows="3" placeholder="Instruksi atau pesan dokter untuk pasien..."
                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm focus:ring-[#0a3d62] focus:border-[#0a3d62]"></textarea>
+                </div>
+
+                @elseif($tipe === 'resume_medis')
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Bahasa Dokumen <span class="text-red-500">*</span></label>
+                    <div class="flex gap-4">
+                        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                            <input type="radio" wire:model="bahasaResume" value="id" class="text-[#0a3d62] focus:ring-[#0a3d62]">
+                            Bahasa Indonesia
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                            <input type="radio" wire:model="bahasaResume" value="en" class="text-[#0a3d62] focus:ring-[#0a3d62]">
+                            English
+                        </label>
+                    </div>
+                    @error('bahasaResume') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <p class="text-xs text-gray-400">Resume otomatis disusun dari data SOAP, tanda vital, diagnosis, tindakan, dan resep pada kunjungan ini. Field di bawah opsional — relevan untuk pasien yang butuh dokumen perjalanan/penerbangan.</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Escorted / Pendamping <span class="text-gray-400 text-xs font-normal">(opsional)</span></label>
+                        <input type="text" wire:model="escorted" placeholder="mis. -"
+                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm focus:ring-[#0a3d62] focus:border-[#0a3d62]">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Flight / Penerbangan <span class="text-gray-400 text-xs font-normal">(opsional)</span></label>
+                        <input type="text" wire:model="flight" placeholder="mis. -"
+                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm focus:ring-[#0a3d62] focus:border-[#0a3d62]">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Recommendation / Rekomendasi <span class="text-gray-400 text-xs font-normal">(opsional)</span></label>
+                    <input type="text" wire:model="recommendation" placeholder="mis. Fit to fly"
+                           class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm focus:ring-[#0a3d62] focus:border-[#0a3d62]">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Medical Facilities at the Airport <span class="text-gray-400 text-xs font-normal">(opsional)</span></label>
+                    <input type="text" wire:model="fasilitasBandara"
+                           class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm focus:ring-[#0a3d62] focus:border-[#0a3d62]">
                 </div>
                 @endif
 
