@@ -527,6 +527,14 @@
                             'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('pengaturan.demo.generator'),
                         ])
                     >⚡ Demo Generator</a>
+
+                    <a href="{{ route('pengaturan.log-login') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('pengaturan.log-login'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('pengaturan.log-login'),
+                        ])
+                    >🔐 Log Login User</a>
                     @endif
                 </div>
             </div>

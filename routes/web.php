@@ -327,6 +327,11 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/demo-generator', fn () => view('pengaturan.demo-generator'))
              ->name('demo.generator')
              ->middleware('role:super_admin');
+
+        // Log Login User — hanya super_admin
+        Route::get('/log-login', fn () => view('pengaturan.login-log'))
+             ->name('log-login')
+             ->middleware('role:super_admin');
     });
 
     // ── Keuangan ────────────────────────────────────────────
