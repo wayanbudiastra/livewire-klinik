@@ -13,6 +13,7 @@ class UserRepository implements UserRepositoryInterface
     {
         return User::query()
             ->with(['roles', 'perawat'])
+            ->withCount('permissions') // hak akses tambahan di luar role, lihat UserForm::extraPermissions
             ->when($filters['search'] ?? null, fn ($q, $s) => $q->search($s))
             ->when($filters['role']   ?? null, fn ($q, $r) => $q->role($r))
             ->when(

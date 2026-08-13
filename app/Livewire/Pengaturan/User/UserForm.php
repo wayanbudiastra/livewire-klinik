@@ -24,6 +24,11 @@ class UserForm extends Component
     public string $nikPerawat = '';
     public bool   $is_active = true;
 
+    // Hak Akses Tambahan (langsung ke user, di luar role) -- hanya
+    // relevan & terlihat kalau yang login super_admin. Lihat §Fase 3
+    // di prd/roles_permissions_sod_audit.md untuk konteksnya.
+    public array $extraPermissions = [];
+
     public function getRules(): array
     {
         $uniqueEmail = $this->isEdit
@@ -70,7 +75,7 @@ class UserForm extends Component
     {
         $this->authorize('create', User::class);
         $this->reset(['userId', 'nama', 'email', 'password', 'password_confirmation',
-                      'role', 'nip', 'telepon', 'nikPerawat']);
+                      'role', 'nip', 'telepon', 'nikPerawat', 'extraPermissions']);
         $this->is_active = true;
         $this->isEdit    = false;
         $this->showModal = true;
@@ -90,6 +95,15 @@ class UserForm extends Component
         $this->role       = $user->roles->first()?->name ?? '';
         $this->nikPerawat = $user->perawat?->nik ?? '';
         $this->is_active  = $user->is_active;
+
+        // Hak akses tambahan cuma diambil kalau yang login super_admin --
+        // supaya admin biasa yang buka form ini tidak ikut mengosongkan
+        // pengecualian yang sudah diberikan super_admin sebelumnya (field-nya
+        // tidak dikirim balik saat submit kalau memang tidak dimuat di sini).
+        $this->extraPermissions = auth()->user()?->hasRole('super_admin')
+            ? $user->getDirectPermissions()->pluck('name')->toArray()
+            : [];
+
         $this->isEdit     = true;
         $this->showModal  = true;
         $this->resetValidation();
@@ -125,6 +139,16 @@ class UserForm extends Component
                 );
             }
 
+            // Hak akses tambahan -- HANYA diproses kalau yang login super_admin.
+            // Backend-enforced di sini (bukan cuma disembunyikan di Blade),
+            // supaya admin biasa tidak bisa memberi dirinya sendiri/orang lain
+            // permission ekstra lewat form yang sama (lihat temuan F1-F3 di
+            // prd/roles_permissions_sod_audit.md -- pola yang sama sengaja
+            // dihindari di sini sejak awal).
+            if (auth()->user()?->hasRole('super_admin')) {
+                $service->syncExtraPermissions($user->id, $this->extraPermissions, auth()->user());
+            }
+
             $this->showModal = false;
             $this->dispatch('user-saved');
             $this->dispatch('notify', type: 'success', message: $message);
@@ -144,6 +168,24 @@ class UserForm extends Component
         return Role::whereNotIn('name', ['super_admin', 'pasien'])
             ->orderBy('name')
             ->pluck('name');
+    }
+
+    /** Semua permission yang ada, dikelompokkan per modul (prefix sebelum titik) untuk checklist. */
+    public function getPermissionGroupsProperty(): array
+    {
+        return \Spatie\Permission\Models\Permission::orderBy('name')
+            ->pluck('name')
+            ->groupBy(fn (string $name) => str($name)->before('.')->toString())
+            ->toArray();
+    }
+
+    /** Permission yang sudah otomatis didapat dari role yang sedang dipilih di form -- supaya tidak dobel dicentang sebagai "tambahan". */
+    public function getPermissionDariRoleProperty(): array
+    {
+        if (! $this->role) return [];
+
+        return Role::where('name', $this->role)->first()
+            ?->permissions->pluck('name')->toArray() ?? [];
     }
 
     public function render()

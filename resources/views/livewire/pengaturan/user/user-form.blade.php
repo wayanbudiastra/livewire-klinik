@@ -122,6 +122,40 @@
                     </div>
                     @endif
 
+                    {{-- Hak Akses Tambahan (super_admin saja, & hanya saat edit) --}}
+                    @if ($isEdit && auth()->user()?->hasRole('super_admin'))
+                    <div class="form-group rounded-xl border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/10 p-3">
+                        <label class="form-label dark:text-gray-300 flex items-center gap-1.5">
+                            Hak Akses Tambahan
+                            <span class="text-xs text-amber-600 dark:text-amber-400 font-normal">(di luar role — untuk staf yang merangkap tugas)</span>
+                        </label>
+                        <p class="text-xs text-gray-400 mb-2">
+                            Permission bertanda <span class="italic">"dari role"</span> sudah otomatis didapat dan tidak perlu dicentang manual — hanya centang yang benar-benar tambahan.
+                        </p>
+                        <div class="max-h-56 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 dark:bg-gray-800/50 p-2 space-y-2">
+                            @foreach ($this->permissionGroups as $modul => $permsInModul)
+                            <div>
+                                <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">{{ str_replace('_', ' ', $modul) }}</p>
+                                <div class="grid grid-cols-2 gap-1">
+                                    @foreach ($permsInModul as $perm)
+                                        @php $dariRole = in_array($perm, $this->permissionDariRole); @endphp
+                                        <label class="flex items-center gap-1.5 text-xs {{ $dariRole ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-300 cursor-pointer' }}">
+                                            <input type="checkbox"
+                                                   value="{{ $perm }}"
+                                                   wire:model="extraPermissions"
+                                                   @if($dariRole) checked disabled @endif
+                                                   class="form-checkbox h-3.5 w-3.5"/>
+                                            {{ $perm }}
+                                            @if($dariRole)<span class="italic">(dari role)</span>@endif
+                                        </label>
+                                    @endforeach
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+
                     {{-- Status Aktif --}}
                     <div class="flex items-center gap-3">
                         <button type="button" wire:click="$set('is_active', !{{ $is_active ? 'true' : 'false' }})"

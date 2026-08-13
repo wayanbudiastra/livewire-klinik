@@ -138,6 +138,7 @@ Pasangan kewenangan berikut dianggap konflik SoD kalau dipegang **role yang sama
 | F7 | **Low** | Belum (Fase 3, opsional) | Role `keuangan` sendiri menyalahi SoD (review+setujui+terapkan harga dalam 1 role) meski terpisah dari `admin` | §4.3 |
 | F8 (positif) | — | — | `BatalkanBillingModal` dan `UserPolicy` sudah menerapkan kontrol kompensasi yang baik (re-auth password, larangan self-service pada akun super_admin) | §3 |
 | F9 (positif) | — | — | Fitur Log Login User (dibangun sebelumnya di sistem ini) sudah jadi kontrol kompensasi awal untuk memantau aktivitas `super_admin` | — |
+| F10 (kapabilitas baru) | — | ✅ Selesai | "Hak Akses Tambahan" per-user (direct permission, khusus super_admin) — mengakomodasi staf yang merangkap tugas lebih dari role standarnya, tanpa mencemari definisi role standar | §6.3 (FR-8) |
 
 ---
 
@@ -171,9 +172,10 @@ Pasangan kewenangan berikut dianggap konflik SoD kalau dipegang **role yang sama
 
 **FR-4 — Pemisahan role harga (opsional per klinik)**
 - Sediakan role baru `harga_reviewer` (permission: `harga.lihat`, `harga.review`) terpisah dari `harga_approver` (permission: `harga.lihat`, `harga.setujui`, `harga.terapkan`), sebagai **opsi** yang bisa diassign kalau klinik punya ≥2 staf finance/manajemen. Role `admin`/`keuangan` existing tidak perlu dihapus permission-nya — ini strictly opsi tambahan, bukan migrasi paksa (klinik kecil dengan 1 admin tetap bisa pakai role lama).
+- **Catatan setelah FR-8 dikerjakan:** urgensi FR-4 berkurang untuk klinik kecil — kalau memang cuma 1 orang yang pegang siklus harga, memisah role tidak menyelesaikan apa-apa (orang yang sama akan diberi kedua role split itu juga). FR-4 baru relevan kalau klinik **benar-benar punya ≥2 orang berbeda** yang bisa saling meng-cross-check.
 
 **FR-5 — Pemisahan tagih vs lunas piutang (opsional)**
-- Sama seperti FR-4: sediakan opsi role `piutang_kolektor` (`piutang.tagih`) terpisah dari `piutang_verifikator` (`piutang.lunas`) untuk klinik yang butuh.
+- Sama seperti FR-4: sediakan opsi role `piutang_kolektor` (`piutang.tagih`) terpisah dari `piutang_verifikator` (`piutang.lunas`) untuk klinik yang butuh. Catatan yang sama seperti FR-4 berlaku di sini.
 
 **FR-6 — Audit trail pada aksi sensitif** ✅ **Selesai 13 Agustus 2026**
 - Pastikan setiap aksi F1–F3 (setujui/tolak/terapkan harga, posting jurnal, catat lunas piutang) tercatat di `activity_log` (paket `spatie/laravel-activitylog` sudah dipakai di sistem ini untuk audit masterdata & login — tinggal diperluas cakupannya) dengan `causedBy()` user yang benar-benar melakukan aksi. Ini melengkapi F6 kalau suatu saat perlu investigasi "siapa yang approve harga X tanggal Y".
@@ -181,6 +183,16 @@ Pasangan kewenangan berikut dianggap konflik SoD kalau dipegang **role yang sama
 
 **FR-7 — Verifikasi status role tanpa akun**
 - Tim project mengonfirmasi status 5 role di F6: aktif dipakai (buat dokumentasi & akun demo seperti 6 role lain), direncanakan (biarkan, tandai "planned" di seeder komentar), atau tidak relevan lagi (hapus dari `RolePermissionSeeder.php` supaya tidak jadi permission menumpuk tanpa pemilik jelas).
+
+**FR-8 — Hak Akses Tambahan per-user (di luar role)** ✅ **Selesai 13 Agustus 2026**
+- Latar belakang: masukan langsung dari pemilik sistem — di lapangan, klinik kecil sering punya staf yang merangkap tugas lebih dari role standarnya (mis. perawat yang juga jadi kasir/FO/farmasi). Investigasi menemukan sistem **belum mendukung** ini sama sekali di 3 lapis sekaligus: `UserForm::$role` bertipe `string` tunggal (bukan array), validasi `'role' => 'required|string|exists:roles,name'`, dan `UserService::update()` memanggil `syncRoles([$role])` yang secara eksplisit menghapus role lain. Memaksakan Fase 3 (pemisahan role lebih granular) di atas keterbatasan ini justru **memperparah** masalah, bukan membantu.
+- Solusi yang dipilih (bukan multi-role assignment, tapi **direct permission per-user**) — memakai fitur bawaan `spatie/laravel-permission` (`HasPermissions` trait, sudah otomatis ada di `User` model lewat `HasRoles`) yang memberi permission langsung ke satu user, independen dari role-nya:
+  - `UserService::syncExtraPermissions()` — sinkronkan direct permission user, log ke `activity_log` (log_name `user`) kalau ada perubahan.
+  - `UserForm.php` — section "Hak Akses Tambahan", checklist permission dikelompokkan per modul, permission yang sudah didapat dari role yang dipilih ditandai `(dari role)` dan tidak bisa dicentang dobel.
+  - **Otorisasi dibatasi hanya `super_admin`** (keputusan eksplisit pemilik sistem, konsisten dengan pola reset password & hapus user yang juga super_admin-only) — dan **ditegakkan di backend** (`UserForm::save()`), bukan cuma disembunyikan di Blade, supaya tidak mengulang pola gap F1–F3.
+  - Badge "+N" di tabel Manajemen Pengguna supaya siapa yang punya pengecualian kelihatan sekilas tanpa buka satu-satu — penting untuk review SoD berkala.
+- Kenapa ini lebih baik untuk SoD dibanding bikin role gabungan permanen (`perawat_kasir_fo`): (1) kelihatan jelas siapa & apa pengecualiannya per-orang, bukan tersembunyi dalam nama role generik; (2) tidak bikin katalog role meledak jadi puluhan kombinasi; (3) role standar tetap bersih sebagai baseline audit.
+- Diverifikasi lewat test (`tests/Feature/ExtraPermissionTest.php`): super_admin bisa memberi & itu benar-benar menambah kemampuan user (tanpa menghapus permission dari role aslinya), tercatat di activity_log, **dan admin biasa (bukan super_admin) tidak bisa melakukannya meski memanipulasi state Livewire langsung** (bukan cuma tombolnya disembunyikan).
 
 ### 6.4 Non-Functional Requirements
 - Perubahan FR-1–3 tidak boleh mengubah *default* behavior untuk role yang sudah correctly-permissioned saat ini (mis. `keuangan` yang sudah punya `harga.setujui` tetap bisa approve seperti biasa — cuma sekarang dicek beneran, bukan cuma sembunyi tombol).
@@ -193,7 +205,8 @@ Pasangan kewenangan berikut dianggap konflik SoD kalau dipegang **role yang sama
 |---|---|---|
 | **Fase 1 (Quick win, low-risk)** ✅ **Selesai 13 Agustus 2026** | FR-1, FR-2, FR-3 — tambah `authorize()` di backend untuk 3 gap Critical/High. Tidak ada perubahan skema data, tidak ada perubahan role assignment existing. Regression test: `tests/Feature/SensitiveActionAuthorizationTest.php`. | Menutup celah keamanan nyata secepat mungkin dengan risiko regresi minimal — hanya menambah pengecekan, tidak mengubah logika bisnis |
 | **Fase 2** ✅ **Selesai 13 Agustus 2026** | FR-6 — perluas audit log ke aksi finansial sensitif | Bergantung Fase 1 selesai supaya titik pencatatan log ditaruh di tempat yang sudah benar aman |
-| **Fase 3 (opsional, atas keputusan klinik)** | FR-4, FR-5 — role baru untuk pemisahan tugas | Butuh keputusan bisnis (apakah klinik punya cukup staf untuk pisah tugas) — tidak dipaksakan |
+| **Fase 2.5** ✅ **Selesai 13 Agustus 2026** | FR-8 — Hak Akses Tambahan per-user (direct permission, di luar role), khusus super_admin | Muncul dari masukan lapangan pemilik sistem (staf merangkap tugas) — dikerjakan sebelum Fase 3 karena mengubah kebutuhan Fase 3 (lihat catatan di FR-4/FR-5) |
+| **Fase 3 (opsional, atas keputusan klinik)** | FR-4, FR-5 — role baru untuk pemisahan tugas | Butuh keputusan bisnis (apakah klinik **benar-benar** punya ≥2 staf berbeda untuk pisah tugas — kalau tidak, FR-8 sudah cukup) — tidak dipaksakan |
 | **Fase 4** | FR-7 — bersih-bersih role tanpa pemilik jelas | Butuh konfirmasi manual dari pemilik sistem, bukan keputusan teknis semata |
 
 ### 6.6 Acceptance Criteria

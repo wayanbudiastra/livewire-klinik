@@ -178,6 +178,12 @@
                         ])>
                             {{ ucfirst(str_replace('_', ' ', $roleName)) }}
                         </span>
+                        @if ($user->permissions_count > 0)
+                        <span class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                              title="Punya {{ $user->permissions_count }} hak akses tambahan di luar role">
+                            +{{ $user->permissions_count }}
+                        </span>
+                        @endif
                     </td>
 
                     {{-- Status toggle --}}

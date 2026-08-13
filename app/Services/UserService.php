@@ -63,6 +63,44 @@ class UserService
         return $user;
     }
 
+    /**
+     * Sinkronkan "Hak Akses Tambahan" -- permission yang diberikan LANGSUNG
+     * ke user (di luar apa pun yang sudah didapat dari role-nya), memakai
+     * fitur direct permission bawaan spatie/laravel-permission.
+     *
+     * Dipakai untuk kondisi lapangan di mana satu staf merangkap tugas
+     * lebih dari role standarnya (mis. perawat yang juga jadi kasir/FO di
+     * klinik kecil) -- tanpa mengubah definisi role standar itu sendiri,
+     * supaya baseline SoD (lihat prd/roles_permissions_sod_audit.md) tetap
+     * bersih dan pengecualian tercatat jelas per-orang.
+     *
+     * Wewenang pemanggilan (siapa yang boleh memberi ini) dijaga di
+     * Livewire component, bukan di sini -- konsisten dengan pola Fase 1.
+     */
+    public function syncExtraPermissions(int $id, array $permissions, User $actor): User
+    {
+        $user = $this->repo->findById($id);
+
+        if (! $user) {
+            throw ValidationException::withMessages(['id' => 'User tidak ditemukan.']);
+        }
+
+        $sebelum = $user->getDirectPermissions()->pluck('name')->sort()->values()->toArray();
+        $sesudah = collect($permissions)->sort()->values()->toArray();
+
+        $user->syncPermissions($permissions);
+
+        if ($sebelum !== $sesudah) {
+            activity('user')
+                ->performedOn($user)
+                ->causedBy($actor)
+                ->withProperties(['sebelum' => $sebelum, 'sesudah' => $sesudah])
+                ->log('Hak akses tambahan user diubah');
+        }
+
+        return $user;
+    }
+
     public function toggleActive(int $id, bool $state): User
     {
         $user = $this->repo->toggleActive($id, $state);
