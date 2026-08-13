@@ -55,6 +55,8 @@ class ProposalHargaDetail extends Component
 
     public function saveEdit(ProposalHargaService $service): void
     {
+        $this->authorize('harga.review');
+
         $this->validate([
             'editHarga' => 'required|numeric|min:0',
         ], ['editHarga.required' => 'Harga baru wajib diisi.']);
@@ -77,6 +79,8 @@ class ProposalHargaDetail extends Component
 
     public function toggleSkip(int $itemId, ProposalHargaService $service): void
     {
+        $this->authorize('harga.review');
+
         $item = ProposalHargaItem::findOrFail($itemId);
         try {
             $service->toggleSkip($item, !$item->is_skip, auth()->user());
@@ -89,6 +93,8 @@ class ProposalHargaDetail extends Component
 
     public function submitReview(ProposalHargaService $service): void
     {
+        $this->authorize('harga.proposal');
+
         $proposal = ProposalHarga::findOrFail($this->proposalId);
         try {
             $service->submitReview($proposal);
@@ -100,6 +106,8 @@ class ProposalHargaDetail extends Component
 
     public function setujui(ProposalHargaService $service): void
     {
+        $this->authorize('harga.setujui');
+
         $proposal = ProposalHarga::findOrFail($this->proposalId);
         try {
             $service->setujui($proposal, auth()->user());
@@ -117,6 +125,8 @@ class ProposalHargaDetail extends Component
 
     public function tolak(ProposalHargaService $service): void
     {
+        $this->authorize('harga.review');
+
         $this->validate(['alasanTolak' => 'required|string|min:5'], [
             'alasanTolak.required' => 'Alasan penolakan wajib diisi.',
             'alasanTolak.min'      => 'Alasan minimal 5 karakter.',
@@ -134,6 +144,8 @@ class ProposalHargaDetail extends Component
 
     public function batalkan(ProposalHargaService $service): void
     {
+        $this->authorize('harga.proposal');
+
         $proposal = ProposalHarga::findOrFail($this->proposalId);
         try {
             $service->batalkan($proposal, auth()->user());
@@ -146,6 +158,8 @@ class ProposalHargaDetail extends Component
 
     public function terapkan(ProposalHargaService $service): void
     {
+        $this->authorize('harga.terapkan');
+
         $proposal = ProposalHarga::findOrFail($this->proposalId);
         try {
             $service->terapkan($proposal, auth()->user());

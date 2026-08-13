@@ -45,6 +45,8 @@ class PenagihanDetail extends Component
 
     public function catatBayar(PenagihanService $service): void
     {
+        $this->authorize('piutang.lunas');
+
         $this->validate();
 
         try {

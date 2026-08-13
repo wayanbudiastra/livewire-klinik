@@ -63,6 +63,8 @@ class JurnalPendingTable extends Component
 
     public function postingTerpilih(): void
     {
+        $this->authorize('akuntansi.jurnal.posting');
+
         if (empty($this->selected)) {
             $this->dispatch('notify', type: 'error', message: 'Pilih minimal satu baris jurnal.');
             return;
@@ -90,6 +92,8 @@ class JurnalPendingTable extends Component
 
     public function abaikan(): void
     {
+        $this->authorize('akuntansi.jurnal.posting');
+
         if (!$this->abaikanId) return;
 
         app(JurnalService::class)->abaikan($this->abaikanId, $this->alasanAbaikan ?: null);

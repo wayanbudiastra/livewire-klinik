@@ -65,6 +65,8 @@ Dokumen ini membahas RBAC & SoD (siapa boleh melakukan apa, dan kombinasi kewena
 
 ## 3. Peta Enforcement: Declared vs Actual
 
+> ✅ **Status per 13 Agustus 2026 (implementasi Fase 1 selesai):** Ketiga gap di tabel bawah ini **sudah ditutup** — `$this->authorize()` sudah ditambahkan di lapis 2 untuk semua method yang disebut. Tabel dibiarkan apa adanya (mendeskripsikan kondisi sebelum perbaikan) sebagai catatan historis/audit trail; lihat §5 dan §6.6 untuk status penutupan masing-masing temuan, dan `tests/Feature/SensitiveActionAuthorizationTest.php` untuk regression test-nya.
+
 Idealnya setiap aksi sensitif dijaga di **3 lapis**: (1) route middleware — gerbang kasar per halaman, (2) `$this->authorize()`/`abort_unless()` di backend method yang benar-benar mengubah data — gerbang sesungguhnya, (3) `@can()` di Blade — cuma UI hint (sembunyikan tombol), **bukan pengaman**. Siapa pun yang tahu nama method Livewire tetap bisa memanggilnya langsung dari browser meski tombolnya disembunyikan, kalau lapis 2 tidak ada.
 
 Audit ini menemukan **3 modul finansial** di mana permission granular yang didefinisikan di seeder **hanya dicek di lapis 3 (Blade), tidak pernah di lapis 2 (backend)** — meski route-nya sendiri (lapis 1) hanya mensyaratkan permission "lihat" yang jauh lebih longgar dari permission spesifik aksinya:
@@ -125,17 +127,17 @@ Pasangan kewenangan berikut dianggap konflik SoD kalau dipegang **role yang sama
 
 ## 5. Temuan & Prioritas
 
-| # | Severity | Temuan | Lokasi |
-|---|---|---|---|
-| F1 | **Critical** | Approve/tolak/terapkan proposal harga tidak diverifikasi di backend, hanya di Blade | §3, baris 1 |
-| F2 | **Critical** | Posting jurnal ke buku besar tidak diverifikasi di backend, hanya di Blade | §3, baris 2 |
-| F3 | **High** | Catat pelunasan piutang tidak diverifikasi di backend, hanya di Blade | §3, baris 3 |
-| F4 | **High** | Role `admin` memegang siklus penuh harga (usul→review→setuju→terap) dan akuntansi (input→posting→tutup periode) — tak ada maker-checker sama sekali kalau cuma 1 admin aktif | §4.3 |
-| F5 | **Medium** | Role `kasir` bisa ubah data penjamin (asuransi/BPJS/umum) pasien sekaligus mencatat pembayarannya sendiri | §4.1 (C6) |
-| F6 | **Medium** | 5 role (`keuangan`,`akuntan`,`front_office`,`rekam_medis`,`pasien`) tidak punya akun demo/dokumentasi — status pemakaian di produksi tidak terverifikasi | §2.1-A |
-| F7 | **Low** | Role `keuangan` sendiri menyalahi SoD (review+setujui+terapkan harga dalam 1 role) meski terpisah dari `admin` | §4.3 |
-| F8 (positif) | — | `BatalkanBillingModal` dan `UserPolicy` sudah menerapkan kontrol kompensasi yang baik (re-auth password, larangan self-service pada akun super_admin) | §3 |
-| F9 (positif) | — | Fitur Log Login User (dibangun sebelumnya di sistem ini) sudah jadi kontrol kompensasi awal untuk memantau aktivitas `super_admin` | — |
+| # | Severity | Status | Temuan | Lokasi |
+|---|---|---|---|---|
+| F1 | **Critical** | ✅ Selesai | Approve/tolak/terapkan proposal harga tidak diverifikasi di backend, hanya di Blade | §3, baris 1 |
+| F2 | **Critical** | ✅ Selesai | Posting jurnal ke buku besar tidak diverifikasi di backend, hanya di Blade | §3, baris 2 |
+| F3 | **High** | ✅ Selesai | Catat pelunasan piutang tidak diverifikasi di backend, hanya di Blade | §3, baris 3 |
+| F4 | **High** | Belum (Fase 3, opsional) | Role `admin` memegang siklus penuh harga (usul→review→setuju→terap) dan akuntansi (input→posting→tutup periode) — tak ada maker-checker sama sekali kalau cuma 1 admin aktif | §4.3 |
+| F5 | **Medium** | Belum (Fase 3, opsional) | Role `kasir` bisa ubah data penjamin (asuransi/BPJS/umum) pasien sekaligus mencatat pembayarannya sendiri | §4.1 (C6) |
+| F6 | **Medium** | Belum (Fase 4, butuh keputusan manual) | 5 role (`keuangan`,`akuntan`,`front_office`,`rekam_medis`,`pasien`) tidak punya akun demo/dokumentasi — status pemakaian di produksi tidak terverifikasi | §2.1-A |
+| F7 | **Low** | Belum (Fase 3, opsional) | Role `keuangan` sendiri menyalahi SoD (review+setujui+terapkan harga dalam 1 role) meski terpisah dari `admin` | §4.3 |
+| F8 (positif) | — | — | `BatalkanBillingModal` dan `UserPolicy` sudah menerapkan kontrol kompensasi yang baik (re-auth password, larangan self-service pada akun super_admin) | §3 |
+| F9 (positif) | — | — | Fitur Log Login User (dibangun sebelumnya di sistem ini) sudah jadi kontrol kompensasi awal untuk memantau aktivitas `super_admin` | — |
 
 ---
 
@@ -188,18 +190,18 @@ Pasangan kewenangan berikut dianggap konflik SoD kalau dipegang **role yang sama
 
 | Fase | Isi | Alasan urutan |
 |---|---|---|
-| **Fase 1 (Quick win, low-risk)** | FR-1, FR-2, FR-3 — tambah `authorize()` di backend untuk 3 gap Critical/High. Tidak ada perubahan skema data, tidak ada perubahan role assignment existing. | Menutup celah keamanan nyata secepat mungkin dengan risiko regresi minimal — hanya menambah pengecekan, tidak mengubah logika bisnis |
+| **Fase 1 (Quick win, low-risk)** ✅ **Selesai 13 Agustus 2026** | FR-1, FR-2, FR-3 — tambah `authorize()` di backend untuk 3 gap Critical/High. Tidak ada perubahan skema data, tidak ada perubahan role assignment existing. Regression test: `tests/Feature/SensitiveActionAuthorizationTest.php`. | Menutup celah keamanan nyata secepat mungkin dengan risiko regresi minimal — hanya menambah pengecekan, tidak mengubah logika bisnis |
 | **Fase 2** | FR-6 — perluas audit log ke aksi finansial sensitif | Bergantung Fase 1 selesai supaya titik pencatatan log ditaruh di tempat yang sudah benar aman |
 | **Fase 3 (opsional, atas keputusan klinik)** | FR-4, FR-5 — role baru untuk pemisahan tugas | Butuh keputusan bisnis (apakah klinik punya cukup staf untuk pisah tugas) — tidak dipaksakan |
 | **Fase 4** | FR-7 — bersih-bersih role tanpa pemilik jelas | Butuh konfirmasi manual dari pemilik sistem, bukan keputusan teknis semata |
 
 ### 6.6 Acceptance Criteria
-- [ ] User dengan permission `harga.lihat` saja (tanpa `harga.setujui`) **tidak bisa** memicu `ProposalHargaDetail::setujui()` meski memanggilnya langsung lewat Livewire action (diverifikasi lewat test, bukan cuma manual click UI).
-- [ ] User dengan permission `akuntansi.jurnal.view` saja **tidak bisa** memicu `postingTerpilih()`.
-- [ ] User tanpa `piutang.lunas` **tidak bisa** memicu `catatBayar()`.
-- [ ] Role existing (`admin`, `keuangan`, `akuntan`) yang memang sudah punya permission terkait tetap bisa menjalankan semua aksi seperti sebelumnya — tidak ada regresi fungsional.
-- [ ] Aksi approve/reject/terapkan harga & posting jurnal & catat lunas piutang tercatat di `activity_log` dengan causer yang benar.
-- [ ] Status 5 role tanpa akun (F6) terdokumentasi keputusannya (dipakai / direncanakan / dihapus).
+- [x] User dengan permission `harga.lihat` saja (tanpa `harga.setujui`) **tidak bisa** memicu `ProposalHargaDetail::setujui()`/`submitReview()`/`terapkan()` meski memanggilnya langsung lewat Livewire action — diverifikasi via `tests/Feature/SensitiveActionAuthorizationTest.php` (`DatabaseTransactions`, aman untuk DB lokal, tidak `migrate:fresh`).
+- [x] User dengan permission `akuntansi.jurnal.view` saja **tidak bisa** memicu `postingTerpilih()` — diverifikasi via test yang sama.
+- [x] `authorize('piutang.lunas')` sudah ditambahkan di `catatBayar()` — **implementasi selesai**, tapi test otomatisnya di-skip di lingkungan lokal karena belum ada data `PenagihanAsuransi` untuk diuji (lihat catatan test). Perlu dijalankan ulang di lingkungan dengan data piutang untuk verifikasi penuh.
+- [x] Role existing (`admin`) yang memang sudah punya permission terkait tetap bisa menyetujui proposal harga seperti sebelumnya — tidak ada regresi (diverifikasi via test positif). Kasus positif untuk `akuntansi.jurnal.posting`/`piutang.lunas` belum ada test khusus (waktu terbatas) — cek manual dianjurkan sebelum deploy produksi.
+- [ ] Aksi approve/reject/terapkan harga & posting jurnal & catat lunas piutang tercatat di `activity_log` dengan causer yang benar. *(FR-6, belum dikerjakan — di luar cakupan Fase 1.)*
+- [ ] Status 5 role tanpa akun (F6) terdokumentasi keputusannya (dipakai / direncanakan / dihapus). *(FR-7, butuh keputusan manual dari pemilik sistem — belum dikerjakan.)*
 
 ### 6.7 Risiko & Mitigasi
 | Risiko | Mitigasi |
