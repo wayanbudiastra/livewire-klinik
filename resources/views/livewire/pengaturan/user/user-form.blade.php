@@ -14,7 +14,7 @@
         <div class="absolute inset-0 bg-black/50" wire:click="$set('showModal', false)"></div>
 
         {{-- Modal --}}
-        <div class="relative z-10 w-full max-w-lg rounded-2xl bg-white shadow-2xl
+        <div class="relative z-10 w-[80%] max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl
                     dark:bg-gray-800 dark:border dark:border-gray-700
                     animate-fade-in">
 
@@ -132,11 +132,11 @@
                         <p class="text-xs text-gray-400 mb-2">
                             Permission bertanda <span class="italic">"dari role"</span> sudah otomatis didapat dan tidak perlu dicentang manual — hanya centang yang benar-benar tambahan.
                         </p>
-                        <div class="max-h-56 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 dark:bg-gray-800/50 p-2 space-y-2">
+                        <div class="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-600 rounded-lg border border-gray-200 dark:border-gray-600 dark:bg-gray-800/50 p-3 space-y-3">
                             @foreach ($this->permissionGroups as $modul => $permsInModul)
                             <div>
                                 <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">{{ str_replace('_', ' ', $modul) }}</p>
-                                <div class="grid grid-cols-2 gap-1">
+                                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1">
                                     @foreach ($permsInModul as $perm)
                                         @php $dariRole = in_array($perm, $this->permissionDariRole); @endphp
                                         <label class="flex items-center gap-1.5 text-xs {{ $dariRole ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-300 cursor-pointer' }}">
