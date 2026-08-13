@@ -17,7 +17,7 @@ Semua temuan di dokumen ini diverifikasi langsung dari kode per 13 Agustus 2026:
 Setiap temuan mencantumkan path file agar bisa diverifikasi ulang kapan saja kode berubah.
 
 ### 1.3 Cakupan
-Dokumen ini **hanya** membahas RBAC & SoD (siapa boleh melakukan apa, dan kombinasi kewenangan apa yang berisiko). Tidak membahas keamanan aplikasi secara umum (XSS, SQL injection, dll — di luar cakupan; lihat skill `security-review` untuk itu).
+Dokumen ini membahas RBAC & SoD (siapa boleh melakukan apa, dan kombinasi kewenangan apa yang berisiko) dalam dua arah: **retrospektif** (§2–§5, audit modul yang sudah ada) dan **forward-looking** (§7, prinsip yang wajib diikuti setiap fitur baru supaya gap yang sama tidak terulang). Tidak membahas keamanan aplikasi secara umum (XSS, SQL injection, dll — di luar cakupan; lihat skill `security-review` untuk itu).
 
 ---
 
@@ -197,7 +197,7 @@ Pasangan kewenangan berikut dianggap konflik SoD kalau dipegang **role yang sama
 - [ ] User dengan permission `harga.lihat` saja (tanpa `harga.setujui`) **tidak bisa** memicu `ProposalHargaDetail::setujui()` meski memanggilnya langsung lewat Livewire action (diverifikasi lewat test, bukan cuma manual click UI).
 - [ ] User dengan permission `akuntansi.jurnal.view` saja **tidak bisa** memicu `postingTerpilih()`.
 - [ ] User tanpa `piutang.lunas` **tidak bisa** memicu `catatBayar()`.
-- [ ] Role existing (`admin`, `keuangan`, `akuntan`) yang memang sudah py permission terkait tetap bisa menjalankan semua aksi seperti sebelumnya — tidak ada regresi fungsional.
+- [ ] Role existing (`admin`, `keuangan`, `akuntan`) yang memang sudah punya permission terkait tetap bisa menjalankan semua aksi seperti sebelumnya — tidak ada regresi fungsional.
 - [ ] Aksi approve/reject/terapkan harga & posting jurnal & catat lunas piutang tercatat di `activity_log` dengan causer yang benar.
 - [ ] Status 5 role tanpa akun (F6) terdokumentasi keputusannya (dipakai / direncanakan / dihapus).
 
@@ -207,3 +207,41 @@ Pasangan kewenangan berikut dianggap konflik SoD kalau dipegang **role yang sama
 | Menambah `authorize()` di backend mematahkan alur kerja user yang selama ini "kebetulan" bisa akses karena gap ini (mis. staf yang terbiasa approve harga padahal harusnya tidak berwenang) | Sebelum deploy Fase 1, audit siapa saja yang selama ini aktif approve/posting/catat-lunas di data produksi (via `activity_log` atau riwayat proposal/jurnal), pastikan role mereka sudah benar sebelum enforcement dinyalakan |
 | Klinik kecil dengan 1 staf keuangan jadi tidak bisa kerja kalau role dipaksa dipisah | FR-4/FR-5 dibuat opsional (Fase 3), bukan migrasi wajib — role lama tetap berfungsi |
 | Salah taruh `authorize()` string (typo nama permission) menyebabkan semua orang ke-block termasuk yang berwenang | Tulis test otomatis untuk tiap acceptance criteria di §6.6, jangan andalkan uji manual saja |
+
+---
+
+## 7. Prinsip SoD untuk Pengembangan Fitur Baru (Forward-Looking)
+
+### 7.1 Kenapa bagian ini perlu ada
+§2–§6 di atas murni retrospektif — mengaudit kode yang **sudah** ada. Tapi akar masalah F1–F3 bukan salah desain data (nama permission-nya sudah benar & granular sejak awal), melainkan salah **proses**: permission baru dibuat, dipasang di Blade untuk sembunyikan tombol, tapi lupa dipasang di backend method yang benar-benar mengeksekusi. Ini pola yang bisa terulang di modul manapun yang dibangun berikutnya kalau tidak ada checklist eksplisit yang wajib dicek sebelum fitur dianggap selesai. Bagian ini mengubah dokumen dari "laporan audit sekali jalan" menjadi acuan hidup yang dipakai tiap kali ada PRD fitur baru ditulis di folder `prd/` ini.
+
+### 7.2 Checklist Wajib untuk Setiap Fitur Baru yang Melibatkan Aksi Sensitif
+Berlaku untuk setiap method baru yang **mengubah data** (create/update/delete/approve/post/apply/dst — bukan sekadar menampilkan). Sebelum PR/fitur dianggap selesai:
+
+1. [ ] Permission baru terdaftar di `RolePermissionSeeder.php` dengan penamaan `modul.aksi` konsisten dengan konvensi yang sudah ada (lihat §2.2) — bukan nama generic yang menumpuk beberapa aksi jadi satu.
+2. [ ] Route middleware memakai permission **sespesifik aksi itu sendiri** — bukan permission "view"/prefix group yang lebih longgar dipakai untuk semua sub-aksi di baliknya (ini persis penyebab F1–F3, lihat §3).
+3. [ ] Backend method Livewire/Controller yang **benar-benar mengeksekusi perubahan** memanggil `$this->authorize()` / `abort_unless()` dengan permission spesifik — bukan cuma mewarisi pengecekan dari `mount()` atau dari route.
+4. [ ] Blade `@can()`/`@canany()` boleh dipakai untuk UI (sembunyikan tombol yang tidak relevan) TAPI **tidak boleh jadi satu-satunya lapis proteksi** — anggap semua isi Blade bisa dilewati orang yang tahu cara memanggil Livewire action langsung.
+5. [ ] Kalau fitur punya alur multi-step (usul → review → setuju → terapkan, atau pola serupa), setiap step idealnya pakai permission terpisah, dan role default **tidak otomatis** diberi semua step sekaligus kecuali memang disengaja & didokumentasikan alasannya (bandingkan dengan F4 — `admin` yang pegang siklus penuh harga tanpa keputusan eksplisit soal itu).
+6. [ ] Aksi yang mengubah data finansial atau klinis penting tercatat di `activity_log` dengan `causedBy()` yang benar (pola yang sudah dipakai untuk masterdata & login, lihat F9).
+
+### 7.3 Modul yang Sudah Diketahui Akan Dikembangkan: Rawat Inap
+Satu-satunya modul dengan stub eksplisit di kode saat ini — `routes/web.php:63` (`Route::get('/rawat-inap', ...)` mengarah ke `resources/views/coming-soon.blade.php`, progress tercatat 5%) dengan roadmap tertulis di placeholder-nya:
+- Admisi pasien rawat inap
+- Manajemen kamar & bed
+- CPPT harian (Catatan Perkembangan Pasien Terintegrasi)
+- Discharge planning
+- Surat keterangan rawat inap
+
+Calon conflict pair SoD yang sebaiknya dipikirkan **sejak desain awal** modul ini — bukan ditambal belakangan seperti F1–F3:
+
+| Calon Conflict Pair | Kenapa relevan |
+|---|---|
+| Admisi pasien (buka rawat inap) + Approve discharge (pulangkan pasien) | Kalau satu perawat/dokter bisa admisi sekaligus discharge tanpa review independen, riwayat rawat inap rawan dimanipulasi (mis. durasi rawat inap untuk klaim asuransi) |
+| Input tarif kamar/layanan rawat inap + Approve billing rawat inap | Modul `update_harga` yang sudah diaudit di dokumen ini (F1) menunjukkan pola "usul-setuju-terap" gampang bocor kalau tidak sengaja dipisah sejak awal — kalau Rawat Inap punya konsep tarif serupa, ikuti FR-1 dari hari pertama |
+| Catat CPPT (dokter/perawat) + Finalisasi rekam medis rawat inap | Perlu ditentukan siapa berwenang "mengunci" CPPT, mengikuti pola `is_final` yang sudah ada di SOAP Note rawat jalan (`app/Models/SoapNote.php`) |
+
+**Rekomendasi:** saat PRD modul Rawat Inap ditulis, desain permission-nya mengikuti pola granular per-aksi yang sudah dipakai `kunjungan`/`soap`/`asesmen` (lihat §2.2), dan checklist §7.2 dijalankan **sebelum** modul dirilis — bukan diaudit belakangan seperti dokumen ini terpaksa dilakukan untuk modul harga & akuntansi.
+
+### 7.4 Modul Lain yang Belum Terlihat Tanda-Tandanya
+Di luar Rawat Inap, tidak ditemukan stub/roadmap eksplisit lain di kode maupun folder `prd/` per tanggal audit ini — juga tidak ada permission "orphan" (didefinisikan tapi tidak dipakai role manapun) yang mengindikasikan fitur setengah-jadi tersembunyi. Kalau ada rencana modul lain yang belum tertulis di kode (baru di kepala tim/product owner), dokumen ini tidak bisa mendeteksinya secara otomatis — tapi checklist §7.2 tetap berlaku untuk modul apa pun yang muncul nanti, terlepas terdaftar di §7.3 atau tidak. Disarankan bagian §7.3 di-update setiap kali ada modul baru masuk tahap "coming soon" di kode.
