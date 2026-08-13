@@ -84,17 +84,17 @@
                 @endif
 
                 {{-- Info pasien --}}
-                @if($kunjungan)
+                @if($this->kunjungan)
                 <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 text-sm">
-                    <span class="font-semibold text-gray-800 dark:text-gray-100">{{ $kunjungan->pasien->nama }}</span>
-                    <span class="text-gray-500 dark:text-gray-400 ml-2 text-xs">{{ $kunjungan->pasien->no_rekam_medis }}</span>
+                    <span class="font-semibold text-gray-800 dark:text-gray-100">{{ $this->kunjungan->pasien->nama }}</span>
+                    <span class="text-gray-500 dark:text-gray-400 ml-2 text-xs">{{ $this->kunjungan->pasien->no_rekam_medis }}</span>
                     <div class="text-xs text-gray-500 mt-0.5">
-                        {{ $kunjungan->pasien->tanggal_lahir ? \Carbon\Carbon::parse($kunjungan->pasien->tanggal_lahir)->age . ' tahun' : '' }}
-                        · Kunjungan: {{ \Carbon\Carbon::parse($kunjungan->tanggal_kunjungan ?? $kunjungan->created_at)->translatedFormat('d M Y') }}
+                        {{ $this->kunjungan->pasien->tanggal_lahir ? \Carbon\Carbon::parse($this->kunjungan->pasien->tanggal_lahir)->age . ' tahun' : '' }}
+                        · Kunjungan: {{ \Carbon\Carbon::parse($this->kunjungan->tanggal_kunjungan ?? $this->kunjungan->created_at)->translatedFormat('d M Y') }}
                     </div>
                 </div>
 
-                @if(!$kunjungan->soapNote?->is_final)
+                @if(!$this->kunjungan->soapNote?->is_final)
                 <div class="flex gap-2 p-3 bg-amber-50 border border-amber-300 rounded-lg text-sm text-amber-700">
                     <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
@@ -231,7 +231,7 @@
                     Batal
                 </button>
                 <button type="button" wire:click="cetak" wire:loading.attr="disabled"
-                        @if(!$kunjungan?->soapNote?->is_final) disabled @endif
+                        @if(!$this->kunjungan?->soapNote?->is_final) disabled @endif
                         class="inline-flex items-center gap-2 px-4 py-2 bg-[#0a3d62] hover:bg-[#1a5a8a] disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors">
                     <span wire:loading.remove wire:target="cetak">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
