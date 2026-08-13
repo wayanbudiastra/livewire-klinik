@@ -230,6 +230,30 @@ class SuratKeteranganService
         }
     }
 
+    /**
+     * Kunjungan yang sudah "selesai" statusnya dianggap final/terkunci -- tiap
+     * tipe surat cuma boleh diterbitkan sekali per kunjungan supaya tidak ada
+     * dokumen resmi bernomor ganda untuk hal yang sama. Selama kunjungan masih
+     * "dalam_pemeriksaan", dokter tetap boleh menerbitkan ulang (mis. salah
+     * tanggal/ralat) sebelum kunjungan ditutup.
+     */
+    private function assertBelumDiterbitkanJikaSelesai(Kunjungan $kunjungan, string $tipe): void
+    {
+        if ($kunjungan->status !== 'selesai') return;
+
+        $sudahAda = SuratKeterangan::where('kunjungan_id', $kunjungan->id)
+            ->where('tipe', $tipe)
+            ->exists();
+
+        if ($sudahAda) {
+            throw new \RuntimeException(
+                SuratKeterangan::labelTipe($tipe) . ' untuk kunjungan ini sudah pernah diterbitkan dan '
+                . 'kunjungan sudah berstatus Selesai. Gunakan "Unduh Ulang" di Riwayat Surat Diterbitkan, '
+                . 'bukan menerbitkan surat baru.'
+            );
+        }
+    }
+
     private function simpan(
         Kunjungan $kunjungan,
         string $tipe,
@@ -237,6 +261,8 @@ class SuratKeteranganService
         array $data,
         int $userId
     ): SuratKeterangan {
+        $this->assertBelumDiterbitkanJikaSelesai($kunjungan, $tipe);
+
         return SuratKeterangan::create([
             'nomor_surat'  => SuratKeterangan::generateNomor($tipe),
             'kunjungan_id' => $kunjungan->id,

@@ -75,6 +75,21 @@ class CetakSurat extends Component
             ->get();
     }
 
+    /**
+     * Tipe surat yang sudah "terkunci" -- sudah pernah diterbitkan dan
+     * kunjungan sudah Selesai, jadi tidak boleh diterbitkan ulang (lihat
+     * SuratKeteranganService::assertBelumDiterbitkanJikaSelesai). Dipakai
+     * untuk grey-out item dropdown supaya user tidak perlu buka modal dulu
+     * baru tahu ditolak.
+     */
+    #[Computed]
+    public function tipeTerkunci(): array
+    {
+        if ($this->kunjungan->status !== 'selesai') return [];
+
+        return $this->riwayatSurat->pluck('tipe')->unique()->values()->all();
+    }
+
     public function buka(string $tipe): void
     {
         $this->reset(['errorMsg', 'keperluan', 'tujuanFasilitas', 'tujuanDokter',
@@ -97,7 +112,7 @@ class CetakSurat extends Component
         $this->showModal = true;
     }
 
-    public function cetak(): StreamedResponse
+    public function cetak(): ?StreamedResponse
     {
         $this->errorMsg = null;
 
@@ -153,13 +168,18 @@ class CetakSurat extends Component
             'fasilitas_bandara'   => $this->fasilitasBandara,
         ];
 
-        $surat = match ($this->tipe) {
-            'keterangan_sehat' => $service->simpanSehat($kunjungan, $input, auth()->id()),
-            'keterangan_sakit' => $service->simpanSakit($kunjungan, $input, auth()->id()),
-            'rujukan'          => $service->simpanRujukan($kunjungan, $input, auth()->id()),
-            'kontrol'          => $service->simpanKontrol($kunjungan, $input, auth()->id()),
-            'resume_medis'     => $service->simpanResumeMedis($kunjungan, $input, auth()->id()),
-        };
+        try {
+            $surat = match ($this->tipe) {
+                'keterangan_sehat' => $service->simpanSehat($kunjungan, $input, auth()->id()),
+                'keterangan_sakit' => $service->simpanSakit($kunjungan, $input, auth()->id()),
+                'rujukan'          => $service->simpanRujukan($kunjungan, $input, auth()->id()),
+                'kontrol'          => $service->simpanKontrol($kunjungan, $input, auth()->id()),
+                'resume_medis'     => $service->simpanResumeMedis($kunjungan, $input, auth()->id()),
+            };
+        } catch (\RuntimeException $e) {
+            $this->errorMsg = $e->getMessage();
+            return null;
+        }
 
         $pdfOutput = $service->pdfOutput($surat);
         $filename  = $surat->nomor_surat . '.pdf';

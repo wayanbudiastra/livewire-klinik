@@ -38,13 +38,18 @@ class SuratKeterangan extends Model
 
     public function getLabelTipeAttribute(): string
     {
-        return match ($this->tipe) {
+        return static::labelTipe($this->tipe);
+    }
+
+    public static function labelTipe(string $tipe): string
+    {
+        return match ($tipe) {
             'keterangan_sehat' => 'Keterangan Sehat',
             'keterangan_sakit' => 'Keterangan Sakit',
             'rujukan'          => 'Rujukan',
             'kontrol'          => 'Kontrol',
             'resume_medis'     => 'Resume Medis',
-            default            => $this->tipe,
+            default            => $tipe,
         };
     }
 

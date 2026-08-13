@@ -28,14 +28,25 @@
                 ['tipe' => 'kontrol',          'label' => 'Jadwal Kontrol',     'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', 'color' => 'text-amber-600'],
                 ['tipe' => 'resume_medis',     'label' => 'Resume Medis',       'icon' => 'M9 12h6m-6 4h6m2-13H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-6-5z', 'color' => 'text-purple-600'],
             ] as $item)
+            @php $terkunci = in_array($item['tipe'], $this->tipeTerkunci); @endphp
             <button type="button"
-                    wire:click="buka('{{ $item['tipe'] }}')"
+                    @if($terkunci)
+                        disabled
+                        title="Sudah diterbitkan & kunjungan sudah Selesai -- pakai Unduh Ulang di Riwayat Surat"
+                    @else
+                        wire:click="buka('{{ $item['tipe'] }}')"
+                    @endif
                     @click="open = false"
-                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                <svg class="w-4 h-4 {{ $item['color'] }} shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    @class([
+                        'w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors',
+                        'text-gray-300 dark:text-gray-600 cursor-not-allowed' => $terkunci,
+                        'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700' => !$terkunci,
+                    ])>
+                <svg class="w-4 h-4 {{ $terkunci ? 'text-gray-300 dark:text-gray-600' : $item['color'] }} shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $item['icon'] }}"/>
                 </svg>
                 {{ $item['label'] }}
+                @if($terkunci)<span class="ml-auto text-xs italic">terbit</span>@endif
             </button>
             @endforeach
         </div>
