@@ -87,6 +87,16 @@ class JurnalService
             }
         });
 
+        if (!empty($diposting)) {
+            activity('akuntansi_jurnal')
+                ->causedBy(\App\Models\User::find($userId))
+                ->withProperties([
+                    'jumlah_baris'   => count($diposting),
+                    'nomor_jurnal'   => collect($diposting)->pluck('nomor_jurnal')->toArray(),
+                ])
+                ->log(count($diposting) . ' baris jurnal diposting ke buku besar');
+        }
+
         return $diposting;
     }
 
@@ -104,6 +114,12 @@ class JurnalService
             'status'     => 'diabaikan',
             'keterangan' => $keterangan,
         ]);
+
+        activity('akuntansi_jurnal')
+            ->performedOn($row)
+            ->causedBy(auth()->user())
+            ->withProperties(['alasan' => $alasan])
+            ->log('Baris jurnal pending diabaikan (tidak diposting)');
 
         return $row;
     }

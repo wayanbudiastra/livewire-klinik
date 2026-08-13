@@ -65,7 +65,7 @@ Dokumen ini membahas RBAC & SoD (siapa boleh melakukan apa, dan kombinasi kewena
 
 ## 3. Peta Enforcement: Declared vs Actual
 
-> ✅ **Status per 13 Agustus 2026 (implementasi Fase 1 selesai):** Ketiga gap di tabel bawah ini **sudah ditutup** — `$this->authorize()` sudah ditambahkan di lapis 2 untuk semua method yang disebut. Tabel dibiarkan apa adanya (mendeskripsikan kondisi sebelum perbaikan) sebagai catatan historis/audit trail; lihat §5 dan §6.6 untuk status penutupan masing-masing temuan, dan `tests/Feature/SensitiveActionAuthorizationTest.php` untuk regression test-nya.
+> ✅ **Status per 13 Agustus 2026 (Fase 1 & Fase 2 selesai):** Ketiga gap di tabel bawah ini **sudah ditutup** — `$this->authorize()` sudah ditambahkan di lapis 2 untuk semua method yang disebut, dan ketiganya juga sudah tercatat di `activity_log` (FR-6/Fase 2). Tabel dibiarkan apa adanya (mendeskripsikan kondisi sebelum perbaikan) sebagai catatan historis/audit trail; lihat §5 dan §6.6 untuk status penutupan masing-masing temuan, dan `tests/Feature/SensitiveActionAuthorizationTest.php` untuk regression test-nya. Sisa: Fase 3 (FR-4/FR-5, opsional atas keputusan klinik) dan Fase 4 (FR-7, butuh konfirmasi manual soal 5 role tanpa akun) belum dikerjakan.
 
 Idealnya setiap aksi sensitif dijaga di **3 lapis**: (1) route middleware — gerbang kasar per halaman, (2) `$this->authorize()`/`abort_unless()` di backend method yang benar-benar mengubah data — gerbang sesungguhnya, (3) `@can()` di Blade — cuma UI hint (sembunyikan tombol), **bukan pengaman**. Siapa pun yang tahu nama method Livewire tetap bisa memanggilnya langsung dari browser meski tombolnya disembunyikan, kalau lapis 2 tidak ada.
 
@@ -175,8 +175,9 @@ Pasangan kewenangan berikut dianggap konflik SoD kalau dipegang **role yang sama
 **FR-5 — Pemisahan tagih vs lunas piutang (opsional)**
 - Sama seperti FR-4: sediakan opsi role `piutang_kolektor` (`piutang.tagih`) terpisah dari `piutang_verifikator` (`piutang.lunas`) untuk klinik yang butuh.
 
-**FR-6 — Audit trail pada aksi sensitif**
+**FR-6 — Audit trail pada aksi sensitif** ✅ **Selesai 13 Agustus 2026**
 - Pastikan setiap aksi F1–F3 (setujui/tolak/terapkan harga, posting jurnal, catat lunas piutang) tercatat di `activity_log` (paket `spatie/laravel-activitylog` sudah dipakai di sistem ini untuk audit masterdata & login — tinggal diperluas cakupannya) dengan `causedBy()` user yang benar-benar melakukan aksi. Ini melengkapi F6 kalau suatu saat perlu investigasi "siapa yang approve harga X tanggal Y".
+- Implementasi: `ProposalHargaService` (log_name `harga_proposal` — submitReview/setujui/tolak/batalkan/terapkan, `terapkan()` juga menyimpan `jumlah_item_diterapkan` di properties), `JurnalService` (log_name `akuntansi_jurnal` — posting/abaikan), `PenagihanService` (log_name `piutang` — catatPembayaran, menyimpan jumlah & metode bayar di properties). Diverifikasi lewat test (`test_admin_dengan_permission_bisa_setujui_proposal_harga`, `test_terapkan_proposal_harga_tercatat_di_activity_log` di `tests/Feature/SensitiveActionAuthorizationTest.php`) — bukan cuma ditambahkan tanpa dicek.
 
 **FR-7 — Verifikasi status role tanpa akun**
 - Tim project mengonfirmasi status 5 role di F6: aktif dipakai (buat dokumentasi & akun demo seperti 6 role lain), direncanakan (biarkan, tandai "planned" di seeder komentar), atau tidak relevan lagi (hapus dari `RolePermissionSeeder.php` supaya tidak jadi permission menumpuk tanpa pemilik jelas).
@@ -191,7 +192,7 @@ Pasangan kewenangan berikut dianggap konflik SoD kalau dipegang **role yang sama
 | Fase | Isi | Alasan urutan |
 |---|---|---|
 | **Fase 1 (Quick win, low-risk)** ✅ **Selesai 13 Agustus 2026** | FR-1, FR-2, FR-3 — tambah `authorize()` di backend untuk 3 gap Critical/High. Tidak ada perubahan skema data, tidak ada perubahan role assignment existing. Regression test: `tests/Feature/SensitiveActionAuthorizationTest.php`. | Menutup celah keamanan nyata secepat mungkin dengan risiko regresi minimal — hanya menambah pengecekan, tidak mengubah logika bisnis |
-| **Fase 2** | FR-6 — perluas audit log ke aksi finansial sensitif | Bergantung Fase 1 selesai supaya titik pencatatan log ditaruh di tempat yang sudah benar aman |
+| **Fase 2** ✅ **Selesai 13 Agustus 2026** | FR-6 — perluas audit log ke aksi finansial sensitif | Bergantung Fase 1 selesai supaya titik pencatatan log ditaruh di tempat yang sudah benar aman |
 | **Fase 3 (opsional, atas keputusan klinik)** | FR-4, FR-5 — role baru untuk pemisahan tugas | Butuh keputusan bisnis (apakah klinik punya cukup staf untuk pisah tugas) — tidak dipaksakan |
 | **Fase 4** | FR-7 — bersih-bersih role tanpa pemilik jelas | Butuh konfirmasi manual dari pemilik sistem, bukan keputusan teknis semata |
 
@@ -200,7 +201,7 @@ Pasangan kewenangan berikut dianggap konflik SoD kalau dipegang **role yang sama
 - [x] User dengan permission `akuntansi.jurnal.view` saja **tidak bisa** memicu `postingTerpilih()` — diverifikasi via test yang sama.
 - [x] `authorize('piutang.lunas')` sudah ditambahkan di `catatBayar()` — **implementasi selesai**, tapi test otomatisnya di-skip di lingkungan lokal karena belum ada data `PenagihanAsuransi` untuk diuji (lihat catatan test). Perlu dijalankan ulang di lingkungan dengan data piutang untuk verifikasi penuh.
 - [x] Role existing (`admin`) yang memang sudah punya permission terkait tetap bisa menyetujui proposal harga seperti sebelumnya — tidak ada regresi (diverifikasi via test positif). Kasus positif untuk `akuntansi.jurnal.posting`/`piutang.lunas` belum ada test khusus (waktu terbatas) — cek manual dianjurkan sebelum deploy produksi.
-- [ ] Aksi approve/reject/terapkan harga & posting jurnal & catat lunas piutang tercatat di `activity_log` dengan causer yang benar. *(FR-6, belum dikerjakan — di luar cakupan Fase 1.)*
+- [x] Aksi approve/reject/terapkan harga & posting jurnal & catat lunas piutang tercatat di `activity_log` dengan causer yang benar — diverifikasi lewat test, lihat FR-6 di §6.3.
 - [ ] Status 5 role tanpa akun (F6) terdokumentasi keputusannya (dipakai / direncanakan / dihapus). *(FR-7, butuh keputusan manual dari pemilik sistem — belum dikerjakan.)*
 
 ### 6.7 Risiko & Mitigasi

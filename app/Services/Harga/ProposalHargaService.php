@@ -179,6 +179,11 @@ class ProposalHargaService
         }
 
         $proposal->update(['status' => 'menunggu_persetujuan']);
+
+        activity('harga_proposal')
+            ->performedOn($proposal)
+            ->causedBy(auth()->user())
+            ->log("Proposal harga \"{$proposal->judul}\" disubmit untuk persetujuan");
     }
 
     /**
@@ -195,6 +200,11 @@ class ProposalHargaService
             'disetujui_oleh'  => $user->id,
             'disetujui_pada'  => now(),
         ]);
+
+        activity('harga_proposal')
+            ->performedOn($proposal)
+            ->causedBy($user)
+            ->log("Proposal harga \"{$proposal->judul}\" disetujui");
     }
 
     /**
@@ -212,6 +222,12 @@ class ProposalHargaService
             'ditolak_oleh' => $user->id,
             'ditolak_pada' => now(),
         ]);
+
+        activity('harga_proposal')
+            ->performedOn($proposal)
+            ->causedBy($user)
+            ->withProperties(['alasan' => $alasan])
+            ->log("Proposal harga \"{$proposal->judul}\" ditolak, dikembalikan ke draft");
     }
 
     /**
@@ -227,6 +243,11 @@ class ProposalHargaService
         }
 
         $proposal->update(['status' => 'dibatalkan']);
+
+        activity('harga_proposal')
+            ->performedOn($proposal)
+            ->causedBy($user)
+            ->log("Proposal harga \"{$proposal->judul}\" dibatalkan");
     }
 
     /**
@@ -245,7 +266,9 @@ class ProposalHargaService
         }
 
         DB::transaction(function () use ($proposal, $user) {
-            $proposal->items()->where('is_skip', false)->each(function (ProposalHargaItem $item) use ($proposal) {
+            $jumlahDiterapkan = 0;
+
+            $proposal->items()->where('is_skip', false)->each(function (ProposalHargaItem $item) use ($proposal, &$jumlahDiterapkan) {
                 if ($item->item_type === 'tindakan') {
                     $upd = ['tarif' => $item->harga_baru];
                     if ($proposal->ikut_bpjs && $item->harga_bpjs_baru !== null) {
@@ -259,6 +282,7 @@ class ProposalHargaService
                     }
                     Barang::where('id', $item->item_id)->update($upd);
                 }
+                $jumlahDiterapkan++;
             });
 
             $proposal->update([
@@ -266,6 +290,12 @@ class ProposalHargaService
                 'diterapkan_oleh'  => $user->id,
                 'diterapkan_pada'  => now(),
             ]);
+
+            activity('harga_proposal')
+                ->performedOn($proposal)
+                ->causedBy($user)
+                ->withProperties(['jumlah_item_diterapkan' => $jumlahDiterapkan])
+                ->log("Proposal harga \"{$proposal->judul}\" diterapkan ke master data ({$jumlahDiterapkan} item)");
         });
     }
 }

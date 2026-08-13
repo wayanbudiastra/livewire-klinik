@@ -97,6 +97,16 @@ class PenagihanService
                     ? 'lunas' : 'dibayar_sebagian',
             ]);
 
+            activity('piutang')
+                ->performedOn($penagihan)
+                ->causedBy(\App\Models\User::find($userId))
+                ->withProperties([
+                    'jumlah_bayar'     => $jumlahBayar,
+                    'metode'           => $metode,
+                    'nomor_pembayaran' => $pembayaran->nomor_pembayaran,
+                ])
+                ->log('Pembayaran piutang dicatat: Rp ' . number_format($jumlahBayar, 0, ',', '.'));
+
             return $pembayaran;
         });
     }

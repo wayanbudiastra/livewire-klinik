@@ -9,6 +9,7 @@ use App\Models\ProposalHarga;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Livewire\Livewire;
+use Spatie\Activitylog\Models\Activity;
 use Tests\TestCase;
 
 /**
@@ -99,6 +100,36 @@ class SensitiveActionAuthorizationTest extends TestCase
         Livewire::test(ProposalHargaDetail::class, ['id' => $proposal->id])->call('setujui');
 
         $this->assertSame('disetujui', $proposal->fresh()->status, 'Admin yang berwenang harus tetap bisa menyetujui (tidak boleh regresi).');
+
+        // FR-6: aksi persetujuan harus tercatat di activity_log dengan causer yang benar.
+        $log = Activity::where('log_name', 'harga_proposal')
+            ->where('subject_id', $proposal->id)
+            ->where('causer_id', $this->admin->id)
+            ->latest()
+            ->first();
+
+        $this->assertNotNull($log, 'Aksi setujui() harus tercatat di activity_log.');
+        $this->assertStringContainsString('disetujui', $log->description);
+    }
+
+    public function test_terapkan_proposal_harga_tercatat_di_activity_log(): void
+    {
+        $proposal = $this->buatProposal('disetujui');
+        $proposal->update(['tanggal_efektif' => now()->subDay()]);
+
+        $this->actingAs($this->admin);
+        Livewire::test(ProposalHargaDetail::class, ['id' => $proposal->id])->call('terapkan');
+
+        $this->assertSame('efektif', $proposal->fresh()->status);
+
+        $log = Activity::where('log_name', 'harga_proposal')
+            ->where('subject_id', $proposal->id)
+            ->where('causer_id', $this->admin->id)
+            ->where('description', 'like', '%diterapkan%')
+            ->first();
+
+        $this->assertNotNull($log, 'Aksi terapkan() harus tercatat di activity_log.');
+        $this->assertArrayHasKey('jumlah_item_diterapkan', $log->properties->toArray());
     }
 
     public function test_dokter_tanpa_permission_tidak_bisa_terapkan_proposal_harga(): void
