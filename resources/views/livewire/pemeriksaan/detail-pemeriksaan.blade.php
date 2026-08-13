@@ -64,7 +64,9 @@
                 </div>
 
                 {{-- Action Buttons --}}
-                <div class="flex gap-2 flex-shrink-0 flex-wrap">
+                {{-- items-start: cegah tombol Batal/Selesai ikut ter-stretch tinggi/lebarnya
+                     saat komponen cetak-surat melebar akibat daftar "Riwayat Surat Diterbitkan". --}}
+                <div class="flex gap-2 flex-shrink-0 flex-wrap items-start">
                     {{-- Cetak Surat (soap sudah final atau kunjungan selesai) --}}
                     @if(in_array($k->status, ['dalam_pemeriksaan', 'selesai']))
                     <livewire:pemeriksaan.cetak-surat :kunjunganId="$kunjunganId" wire:key="cetak-surat-{{ $kunjunganId }}" />

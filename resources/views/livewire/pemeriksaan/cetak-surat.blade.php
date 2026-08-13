@@ -1,4 +1,4 @@
-<div>
+<div class="contents">
     {{-- ── Tombol dropdown Cetak Surat ──────────────────────── --}}
     @canany(['surat.cetak'])
     <div class="relative" x-data="{ open: false }">
@@ -253,8 +253,11 @@
     @endif
 
     {{-- ── Riwayat surat ─────────────────────────────────────── --}}
+    {{-- w-full + basis-full: paksa item ini ambil baris flex-wrap sendiri
+         di "Action Buttons", supaya tidak ikut memengaruhi ukuran
+         tombol Batal Registrasi / Pasien Keluar (lihat detail-pemeriksaan.blade.php). --}}
     @if($this->riwayatSurat->isNotEmpty())
-    <div class="mt-4">
+    <div class="w-full basis-full mt-4">
         <h4 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Riwayat Surat Diterbitkan</h4>
         <div class="space-y-1.5">
             @foreach($this->riwayatSurat as $s)
