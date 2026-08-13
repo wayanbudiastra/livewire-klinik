@@ -191,7 +191,7 @@
          style="max-height: 90vh">
 
         {{-- ── Header ──────────────────────────────────────────────── --}}
-        <div class="flex items-start justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
+        <div class="flex items-start justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 shrink-0 gap-4">
             <div>
                 <div class="flex items-center gap-2">
                     <h2 class="text-lg font-bold text-gray-900 dark:text-white">
@@ -209,8 +209,17 @@
                     No. Antrean: <span class="font-mono font-bold">{{ $vk->nomor_antrean }}</span>
                 </p>
             </div>
-            <button wire:click="closeView" type="button"
-                class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition ml-4 text-2xl leading-none">&times;</button>
+
+            {{-- Cetak Surat -- dibungkus flex-wrap tersendiri supaya jika "Riwayat Surat
+                 Diterbitkan" muncul (basis-full), yang ke-dorong ke baris baru cuma di
+                 dalam kotak ini, tidak ikut menggeser tombol Tutup (x) di sebelahnya. --}}
+            <div class="flex items-start gap-3 shrink-0">
+                <div class="flex flex-wrap items-center gap-2 justify-end max-w-xs">
+                    <livewire:pemeriksaan.cetak-surat :kunjunganId="$viewKunjunganId" wire:key="cetak-surat-view-{{ $viewKunjunganId }}" />
+                </div>
+                <button wire:click="closeView" type="button"
+                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition text-2xl leading-none">&times;</button>
+            </div>
         </div>
 
         {{-- ── Info strip ──────────────────────────────────────────── --}}
