@@ -38,8 +38,14 @@ Dokumen ini membahas RBAC & SoD (siapa boleh melakukan apa, dan kombinasi kewena
 | `front_office` | **Tidak** | Subset pendaftaran pasien/kunjungan tanpa delete |
 | `rekam_medis` | **Tidak** | Data pasien + rekam medis + laporan registrasi/pemeriksaan |
 | `pasien` | **Tidak** | Role portal pasien (view kunjungan/rekam medis/billing sendiri) |
+| `harga_reviewer` | **Tidak** *(baru, Fase 3)* | Koreksi/fine-tune item proposal harga — tanpa wewenang setuju/tolak/terapkan |
+| `harga_approver` | **Tidak** *(baru, Fase 3)* | Setujui/tolak/terapkan proposal harga — tanpa wewenang mengubah item |
+| `piutang_kolektor` | **Tidak** *(baru, Fase 3)* | Menagih piutang — tanpa wewenang mencatat pelunasan |
+| `piutang_verifikator` | **Tidak** *(baru, Fase 3)* | Verifikasi & catat pelunasan piutang — tanpa wewenang menagih aktif |
 
-**Temuan 2.1-A:** 5 dari 11 role (`keuangan`, `akuntan`, `front_office`, `rekam_medis`, `pasien`) tidak punya akun demo di `UserSeeder.php`. Perlu diverifikasi ke tim: apakah role ini aktif dipakai di produksi (dibuat manual via Manajemen Pengguna), direncanakan untuk rilis mendatang, atau sisa dari iterasi desain awal yang sudah tidak relevan. Role yang tidak jelas statusnya adalah risiko tersendiri — permission menumpuk tanpa ada yang mengaudit siapa sebenarnya memegangnya.
+**Temuan 2.1-A:** 5 role asli (`keuangan`, `akuntan`, `front_office`, `rekam_medis`, `pasien`) tidak punya akun demo di `UserSeeder.php` dan **statusnya belum jelas** (lihat FR-7/Fase 4 — masih terbuka). Perlu diverifikasi ke tim: apakah role ini aktif dipakai di produksi (dibuat manual via Manajemen Pengguna), direncanakan untuk rilis mendatang, atau sisa dari iterasi desain awal yang sudah tidak relevan.
+
+4 role tambahan dari Fase 3 (`harga_reviewer`, `harga_approver`, `piutang_kolektor`, `piutang_verifikator`) **juga** belum punya akun — tapi ini beda kasus, statusnya sudah jelas: sengaja dibuat sebagai opsi assignment dan tinggal diberikan ke staf yang tepat lewat Manajemen Pengguna (lihat status F4/F7 di §5), bukan role yang tidak jelas asal-usulnya.
 
 ### 2.2 Daftar Permission per Modul (60 total)
 
@@ -65,7 +71,7 @@ Dokumen ini membahas RBAC & SoD (siapa boleh melakukan apa, dan kombinasi kewena
 
 ## 3. Peta Enforcement: Declared vs Actual
 
-> ✅ **Status per 13 Agustus 2026 (Fase 1 & Fase 2 selesai):** Ketiga gap di tabel bawah ini **sudah ditutup** — `$this->authorize()` sudah ditambahkan di lapis 2 untuk semua method yang disebut, dan ketiganya juga sudah tercatat di `activity_log` (FR-6/Fase 2). Tabel dibiarkan apa adanya (mendeskripsikan kondisi sebelum perbaikan) sebagai catatan historis/audit trail; lihat §5 dan §6.6 untuk status penutupan masing-masing temuan, dan `tests/Feature/SensitiveActionAuthorizationTest.php` untuk regression test-nya. Sisa: Fase 3 (FR-4/FR-5, opsional atas keputusan klinik) dan Fase 4 (FR-7, butuh konfirmasi manual soal 5 role tanpa akun) belum dikerjakan.
+> ✅ **Status per 13 Agustus 2026 (Fase 1, 2, 2.5, & 3 selesai):** Ketiga gap di tabel bawah ini **sudah ditutup** — `$this->authorize()` sudah ditambahkan di lapis 2 untuk semua method yang disebut, dan ketiganya juga sudah tercatat di `activity_log` (FR-6/Fase 2). Tabel dibiarkan apa adanya (mendeskripsikan kondisi sebelum perbaikan) sebagai catatan historis/audit trail; lihat §5 dan §6.6 untuk status penutupan masing-masing temuan, dan `tests/Feature/SensitiveActionAuthorizationTest.php`/`ExtraPermissionTest.php`/`RoleSplitTest.php` untuk regression test-nya. Sisa: Fase 4 (FR-7, butuh konfirmasi manual soal 5 role tanpa akun) belum dikerjakan.
 
 Idealnya setiap aksi sensitif dijaga di **3 lapis**: (1) route middleware — gerbang kasar per halaman, (2) `$this->authorize()`/`abort_unless()` di backend method yang benar-benar mengubah data — gerbang sesungguhnya, (3) `@can()` di Blade — cuma UI hint (sembunyikan tombol), **bukan pengaman**. Siapa pun yang tahu nama method Livewire tetap bisa memanggilnya langsung dari browser meski tombolnya disembunyikan, kalau lapis 2 tidak ada.
 
@@ -132,10 +138,10 @@ Pasangan kewenangan berikut dianggap konflik SoD kalau dipegang **role yang sama
 | F1 | **Critical** | ✅ Selesai | Approve/tolak/terapkan proposal harga tidak diverifikasi di backend, hanya di Blade | §3, baris 1 |
 | F2 | **Critical** | ✅ Selesai | Posting jurnal ke buku besar tidak diverifikasi di backend, hanya di Blade | §3, baris 2 |
 | F3 | **High** | ✅ Selesai | Catat pelunasan piutang tidak diverifikasi di backend, hanya di Blade | §3, baris 3 |
-| F4 | **High** | Belum (Fase 3, opsional) | Role `admin` memegang siklus penuh harga (usul→review→setuju→terap) dan akuntansi (input→posting→tutup periode) — tak ada maker-checker sama sekali kalau cuma 1 admin aktif | §4.3 |
-| F5 | **Medium** | Belum (Fase 3, opsional) | Role `kasir` bisa ubah data penjamin (asuransi/BPJS/umum) pasien sekaligus mencatat pembayarannya sendiri | §4.1 (C6) |
+| F4 | **High** | ⚠️ Opsi tersedia, belum diassign | Role `admin` memegang siklus penuh harga (usul→review→setuju→terap) dan akuntansi (input→posting→tutup periode) — tak ada maker-checker sama sekali kalau cuma 1 admin aktif. Role split (`harga_reviewer`/`harga_approver`) sudah ada (FR-4) — tapi `admin` sendiri **tidak diubah** (by design, opsional). Temuan ini baru benar-benar tertutup kalau staf yang relevan dipindah ke role baru. | §4.3 |
+| F5 | **Medium** | Belum | Role `kasir` bisa ubah data penjamin (asuransi/BPJS/umum) pasien sekaligus mencatat pembayarannya sendiri — belum ada role split untuk C6, di luar cakupan FR-4/FR-5 | §4.1 (C6) |
 | F6 | **Medium** | Belum (Fase 4, butuh keputusan manual) | 5 role (`keuangan`,`akuntan`,`front_office`,`rekam_medis`,`pasien`) tidak punya akun demo/dokumentasi — status pemakaian di produksi tidak terverifikasi | §2.1-A |
-| F7 | **Low** | Belum (Fase 3, opsional) | Role `keuangan` sendiri menyalahi SoD (review+setujui+terapkan harga dalam 1 role) meski terpisah dari `admin` | §4.3 |
+| F7 | **Low** | ⚠️ Opsi tersedia, belum diassign | Role `keuangan` sendiri menyalahi SoD (review+setujui+terapkan harga dalam 1 role) meski terpisah dari `admin`. Sama seperti F4 — `harga_reviewer`/`harga_approver` sudah ada (FR-4), `keuangan` sendiri tidak diubah (by design). Catatan: `keuangan` juga masih pegang `piutang.tagih`+`piutang.lunas` bersamaan (C5) — `piutang_kolektor`/`piutang_verifikator` (FR-5) tersedia sebagai opsi kalau mau dipisah. | §4.3 |
 | F8 (positif) | — | — | `BatalkanBillingModal` dan `UserPolicy` sudah menerapkan kontrol kompensasi yang baik (re-auth password, larangan self-service pada akun super_admin) | §3 |
 | F9 (positif) | — | — | Fitur Log Login User (dibangun sebelumnya di sistem ini) sudah jadi kontrol kompensasi awal untuk memantau aktivitas `super_admin` | — |
 | F10 (kapabilitas baru) | — | ✅ Selesai | "Hak Akses Tambahan" per-user (direct permission, khusus super_admin) — mengakomodasi staf yang merangkap tugas lebih dari role standarnya, tanpa mencemari definisi role standar | §6.3 (FR-8) |
@@ -170,12 +176,15 @@ Pasangan kewenangan berikut dianggap konflik SoD kalau dipegang **role yang sama
 **FR-3 — Backend authorization untuk pelunasan piutang**
 - `PenagihanDetail::catatBayar()` → tambah `$this->authorize('piutang.lunas')` sebelum mencatat pembayaran.
 
-**FR-4 — Pemisahan role harga (opsional per klinik)**
-- Sediakan role baru `harga_reviewer` (permission: `harga.lihat`, `harga.review`) terpisah dari `harga_approver` (permission: `harga.lihat`, `harga.setujui`, `harga.terapkan`), sebagai **opsi** yang bisa diassign kalau klinik punya ≥2 staf finance/manajemen. Role `admin`/`keuangan` existing tidak perlu dihapus permission-nya — ini strictly opsi tambahan, bukan migrasi paksa (klinik kecil dengan 1 admin tetap bisa pakai role lama).
-- **Catatan setelah FR-8 dikerjakan:** urgensi FR-4 berkurang untuk klinik kecil — kalau memang cuma 1 orang yang pegang siklus harga, memisah role tidak menyelesaikan apa-apa (orang yang sama akan diberi kedua role split itu juga). FR-4 baru relevan kalau klinik **benar-benar punya ≥2 orang berbeda** yang bisa saling meng-cross-check.
+**FR-4 — Pemisahan role harga (opsional per klinik)** ✅ **Selesai 13 Agustus 2026**
+- Role baru `harga_reviewer` (`harga.lihat`, `harga.review`) terpisah dari `harga_approver` (`harga.lihat`, `harga.setujui`, `harga.terapkan`). Role `admin`/`keuangan` existing **tidak diubah** — ini opsi tambahan, bukan migrasi paksa.
+- Dikerjakan karena klinik ini dikonfirmasi punya ≥2 orang berbeda untuk peran ini (bukan sekadar disiapkan sebagai opsi tak terpakai).
+- **Perbaikan konsistensi yang ditemukan saat implementasi:** `ProposalHargaDetail::tolak()` sebelumnya di-gate dengan `harga.review` (Fase 1) — salah secara semantik, karena menolak proposal adalah sisi lain dari keputusan akhir yang sama dengan menyetujui, bukan bagian dari koreksi/fine-tuning item. Diperbaiki jadi `harga.setujui`, supaya `harga_approver` bisa menyetujui **atau** menolak (bukan cuma menyetujui). Role `admin`/`keuangan` tidak terdampak (keduanya sudah punya `harga.review` dan `harga.setujui` bersamaan). Sekaligus ditemukan & diperbaiki 2 inkonsistensi `@can()` di Blade (`resources/views/livewire/harga/proposal-harga-detail.blade.php`) yang tidak sinkron dengan gate backend Fase 1 — bukan celah keamanan (backend sudah benar), tapi bisa bikin tombol kelihatan padahal tidak akan berfungsi kalau diklik.
+- Diverifikasi lewat `tests/Feature/RoleSplitTest.php`: `harga_reviewer` bisa koreksi/toggle item tapi tidak bisa menyetujui; `harga_approver` bisa menyetujui **dan** menolak tapi tidak bisa mengubah item; `admin`/`keuangan` existing tidak berubah kemampuannya (tidak ada regresi).
 
-**FR-5 — Pemisahan tagih vs lunas piutang (opsional)**
-- Sama seperti FR-4: sediakan opsi role `piutang_kolektor` (`piutang.tagih`) terpisah dari `piutang_verifikator` (`piutang.lunas`) untuk klinik yang butuh. Catatan yang sama seperti FR-4 berlaku di sini.
+**FR-5 — Pemisahan tagih vs lunas piutang (opsional)** ✅ **Selesai 13 Agustus 2026**
+- Role baru `piutang_kolektor` (`piutang.view`, `piutang.tagih`) terpisah dari `piutang_verifikator` (`piutang.view`, `piutang.lunas`).
+- Diverifikasi lewat `tests/Feature/RoleSplitTest.php`: verifikator punya `piutang.lunas` tapi bukan `piutang.tagih`; kolektor tidak bisa memicu `catatBayar()` (test tercakup, tapi di-skip di lingkungan lokal karena belum ada data `PenagihanAsuransi` untuk diuji — sama seperti catatan di FR-3).
 
 **FR-6 — Audit trail pada aksi sensitif** ✅ **Selesai 13 Agustus 2026**
 - Pastikan setiap aksi F1–F3 (setujui/tolak/terapkan harga, posting jurnal, catat lunas piutang) tercatat di `activity_log` (paket `spatie/laravel-activitylog` sudah dipakai di sistem ini untuk audit masterdata & login — tinggal diperluas cakupannya) dengan `causedBy()` user yang benar-benar melakukan aksi. Ini melengkapi F6 kalau suatu saat perlu investigasi "siapa yang approve harga X tanggal Y".
@@ -206,7 +215,7 @@ Pasangan kewenangan berikut dianggap konflik SoD kalau dipegang **role yang sama
 | **Fase 1 (Quick win, low-risk)** ✅ **Selesai 13 Agustus 2026** | FR-1, FR-2, FR-3 — tambah `authorize()` di backend untuk 3 gap Critical/High. Tidak ada perubahan skema data, tidak ada perubahan role assignment existing. Regression test: `tests/Feature/SensitiveActionAuthorizationTest.php`. | Menutup celah keamanan nyata secepat mungkin dengan risiko regresi minimal — hanya menambah pengecekan, tidak mengubah logika bisnis |
 | **Fase 2** ✅ **Selesai 13 Agustus 2026** | FR-6 — perluas audit log ke aksi finansial sensitif | Bergantung Fase 1 selesai supaya titik pencatatan log ditaruh di tempat yang sudah benar aman |
 | **Fase 2.5** ✅ **Selesai 13 Agustus 2026** | FR-8 — Hak Akses Tambahan per-user (direct permission, di luar role), khusus super_admin | Muncul dari masukan lapangan pemilik sistem (staf merangkap tugas) — dikerjakan sebelum Fase 3 karena mengubah kebutuhan Fase 3 (lihat catatan di FR-4/FR-5) |
-| **Fase 3 (opsional, atas keputusan klinik)** | FR-4, FR-5 — role baru untuk pemisahan tugas | Butuh keputusan bisnis (apakah klinik **benar-benar** punya ≥2 staf berbeda untuk pisah tugas — kalau tidak, FR-8 sudah cukup) — tidak dipaksakan |
+| **Fase 3** ✅ **Selesai 13 Agustus 2026** | FR-4, FR-5 — role baru untuk pemisahan tugas (harga & piutang) | Dikonfirmasi klinik punya ≥2 staf berbeda untuk peran ini. Role `admin`/`keuangan` existing tidak diubah — role baru perlu diassign manual ke staf yang tepat lewat Manajemen Pengguna (lihat catatan status F4/F7 di §5) |
 | **Fase 4** | FR-7 — bersih-bersih role tanpa pemilik jelas | Butuh konfirmasi manual dari pemilik sistem, bukan keputusan teknis semata |
 
 ### 6.6 Acceptance Criteria
@@ -215,6 +224,10 @@ Pasangan kewenangan berikut dianggap konflik SoD kalau dipegang **role yang sama
 - [x] `authorize('piutang.lunas')` sudah ditambahkan di `catatBayar()` — **implementasi selesai**, tapi test otomatisnya di-skip di lingkungan lokal karena belum ada data `PenagihanAsuransi` untuk diuji (lihat catatan test). Perlu dijalankan ulang di lingkungan dengan data piutang untuk verifikasi penuh.
 - [x] Role existing (`admin`) yang memang sudah punya permission terkait tetap bisa menyetujui proposal harga seperti sebelumnya — tidak ada regresi (diverifikasi via test positif). Kasus positif untuk `akuntansi.jurnal.posting`/`piutang.lunas` belum ada test khusus (waktu terbatas) — cek manual dianjurkan sebelum deploy produksi.
 - [x] Aksi approve/reject/terapkan harga & posting jurnal & catat lunas piutang tercatat di `activity_log` dengan causer yang benar — diverifikasi lewat test, lihat FR-6 di §6.3.
+- [x] Role `harga_reviewer` bisa koreksi/toggle item tapi **tidak bisa** menyetujui/menolak/menerapkan; `harga_approver` bisa menyetujui **dan** menolak (bukan cuma salah satu) serta menerapkan, tapi **tidak bisa** mengubah item — diverifikasi via `tests/Feature/RoleSplitTest.php`.
+- [x] Role `admin`/`keuangan` existing tidak berubah kemampuannya setelah role split baru ditambahkan — tidak ada regresi (diverifikasi via test).
+- [ ] Role `piutang_kolektor` tidak bisa memicu `catatBayar()` — kode & permission sudah benar, tapi test otomatisnya di-skip di lingkungan lokal (belum ada data `PenagihanAsuransi`). Perlu dijalankan ulang di lingkungan dengan data piutang untuk verifikasi penuh (sama seperti catatan FR-3).
+- [ ] Role `harga_reviewer`/`harga_approver`/`piutang_kolektor`/`piutang_verifikator` benar-benar **diassign** ke staf yang tepat (bukan cuma tersedia sebagai opsi) — ini langkah manual lewat Manajemen Pengguna, di luar kendali otomatisasi. Lihat status F4/F7 di §5.
 - [ ] Status 5 role tanpa akun (F6) terdokumentasi keputusannya (dipakai / direncanakan / dihapus). *(FR-7, butuh keputusan manual dari pemilik sistem — belum dikerjakan.)*
 
 ### 6.7 Risiko & Mitigasi

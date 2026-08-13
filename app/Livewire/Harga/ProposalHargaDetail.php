@@ -125,7 +125,11 @@ class ProposalHargaDetail extends Component
 
     public function tolak(ProposalHargaService $service): void
     {
-        $this->authorize('harga.review');
+        // Menolak = sisi lain dari keputusan akhir yang sama dengan menyetujui
+        // (harga.setujui), bukan bagian dari koreksi/fine-tuning (harga.review).
+        // Supaya role harga_approver (Fase 3) bisa menyetujui ATAU menolak,
+        // bukan cuma menyetujui.
+        $this->authorize('harga.setujui');
 
         $this->validate(['alasanTolak' => 'required|string|min:5'], [
             'alasanTolak.required' => 'Alasan penolakan wajib diisi.',

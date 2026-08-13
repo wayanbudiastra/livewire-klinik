@@ -50,7 +50,8 @@
             <a href="{{ route('harga.proposal.index') }}" class="btn-secondary btn-sm">← Kembali</a>
 
             @if($proposal->status === 'draft')
-                @can('harga.review')
+                {{-- Konsisten dengan authorize('harga.proposal') di ProposalHargaDetail::submitReview() --}}
+                @can('harga.proposal')
                 <x-confirm-button action="submitReview"
                     title="Submit untuk Persetujuan?"
                     text="Proposal akan dikirim ke approver dan tidak bisa diedit lagi sampai dikembalikan."
@@ -98,6 +99,9 @@
                     Terapkan (tersedia mulai {{ $proposal->tanggal_efektif->format('d/m/Y') }})
                 </button>
                 @endif
+                @endcan
+                {{-- Konsisten dengan authorize('harga.proposal') di ProposalHargaDetail::batalkan() --}}
+                @can('harga.proposal')
                 <x-confirm-button action="batalkan"
                     title="Batalkan Proposal?" text="Tindakan ini tidak bisa diurungkan."
                     icon="warning" type="danger" confirm="Ya, Batalkan"
@@ -248,7 +252,8 @@
                         </td>
                         @endif
                         <td class="text-center">
-                            @if($proposal->status === 'draft')
+                            {{-- Konsisten dengan authorize('harga.review') di ProposalHargaDetail::toggleSkip() --}}
+                            @if($proposal->status === 'draft' && auth()->user()?->can('harga.review'))
                             <input type="checkbox"
                                    wire:click="toggleSkip({{ $item->id }})"
                                    {{ $item->is_skip ? 'checked' : '' }}
@@ -261,10 +266,13 @@
                         </td>
                         @if($proposal->status === 'draft')
                         <td>
+                            {{-- Konsisten dengan authorize('harga.review') di ProposalHargaDetail::saveEdit() --}}
+                            @can('harga.review')
                             @if(!$item->is_skip)
                             <button type="button" wire:click="startEdit({{ $item->id }})"
                                     class="btn-secondary btn-sm">Edit</button>
                             @endif
+                            @endcan
                         </td>
                         @endif
                         @endif

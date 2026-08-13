@@ -141,6 +141,34 @@ class RolePermissionSeeder extends Seeder
                 'akuntansi.laporan.view',
                 'akuntansi.periode.tutup', 'akuntansi.jurnal_manual.create',
             ],
+
+            // ── Fase 3 (opsional, prd/roles_permissions_sod_audit.md FR-4/FR-5) ──
+            // Role split untuk klinik yang punya ≥2 orang berbeda di finance/manajemen
+            // supaya maker-checker beneran jalan (bukan cuma role admin/keuangan yang
+            // pegang siklus penuh sendirian). Role admin/keuangan TIDAK diubah -- ini
+            // opsi tambahan, bukan migrasi paksa.
+            'harga_reviewer' => [
+                // Cek & koreksi item proposal (draft/menunggu persetujuan) sebelum
+                // diputuskan approver -- TIDAK bisa membuat proposal baru maupun
+                // menyetujui/menolak/menerapkan.
+                'harga.lihat', 'harga.review',
+            ],
+            'harga_approver' => [
+                // Keputusan akhir: setujui/tolak, lalu terapkan ke master data --
+                // TIDAK bisa mengoreksi angka item (itu tugas reviewer).
+                'harga.lihat', 'harga.setujui', 'harga.terapkan',
+            ],
+            'piutang_kolektor' => [
+                // Menagih & follow-up piutang -- TIDAK bisa mencatat pelunasan
+                // sendiri (cegah tandai lunas tanpa uang benar-benar diterima).
+                'piutang.view', 'piutang.tagih',
+            ],
+            'piutang_verifikator' => [
+                // Verifikasi & catat pelunasan yang masuk -- TIDAK melakukan
+                // penagihan aktif (hindari satu orang menagih sekaligus
+                // mencatat pelunasannya sendiri).
+                'piutang.view', 'piutang.lunas',
+            ],
             'admin' => [
                 'pasien.view', 'pasien.create', 'pasien.edit', 'pasien.delete',
                 'kunjungan.view', 'kunjungan.create', 'kunjungan.edit', 'kunjungan.delete',
