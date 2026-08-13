@@ -14,7 +14,7 @@
         <div class="absolute inset-0 bg-black/50" wire:click="$set('showModal', false)"></div>
 
         {{-- Modal --}}
-        <div class="relative z-10 w-[80%] max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl
+        <div class="relative z-10 w-[95%] max-w-7xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl
                     dark:bg-gray-800 dark:border dark:border-gray-700
                     animate-fade-in">
 
@@ -35,39 +35,39 @@
             <div class="modal-body">
                 <form wire:submit="save" class="space-y-4">
 
-                    {{-- Nama --}}
-                    <div class="form-group">
-                        <label class="form-label dark:text-gray-300">
-                            Nama Lengkap <span class="text-red-500">*</span>
-                        </label>
-                        <input wire:model="nama" type="text" placeholder="Nama lengkap pengguna"
-                               class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
-                        @error('nama') <p class="form-error">{{ $message }}</p> @enderror
-                    </div>
+                    {{-- Nama, Email, Role (3 kolom di layar lebar) --}}
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="form-group">
+                            <label class="form-label dark:text-gray-300">
+                                Nama Lengkap <span class="text-red-500">*</span>
+                            </label>
+                            <input wire:model="nama" type="text" placeholder="Nama lengkap pengguna"
+                                   class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                            @error('nama') <p class="form-error">{{ $message }}</p> @enderror
+                        </div>
 
-                    {{-- Email --}}
-                    <div class="form-group">
-                        <label class="form-label dark:text-gray-300">
-                            Email <span class="text-red-500">*</span>
-                        </label>
-                        <input wire:model="email" type="email" placeholder="email@domain.com"
-                               class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
-                        @error('email') <p class="form-error">{{ $message }}</p> @enderror
-                    </div>
+                        <div class="form-group">
+                            <label class="form-label dark:text-gray-300">
+                                Email <span class="text-red-500">*</span>
+                            </label>
+                            <input wire:model="email" type="email" placeholder="email@domain.com"
+                                   class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                            @error('email') <p class="form-error">{{ $message }}</p> @enderror
+                        </div>
 
-                    {{-- Role --}}
-                    <div class="form-group">
-                        <label class="form-label dark:text-gray-300">
-                            Role <span class="text-red-500">*</span>
-                        </label>
-                        <select wire:model.live="role"
-                                class="form-select dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
-                            <option value="">-- Pilih Role --</option>
-                            @foreach ($this->rolesList as $r)
-                                <option value="{{ $r }}">{{ ucfirst(str_replace('_', ' ', $r)) }}</option>
-                            @endforeach
-                        </select>
-                        @error('role') <p class="form-error">{{ $message }}</p> @enderror
+                        <div class="form-group">
+                            <label class="form-label dark:text-gray-300">
+                                Role <span class="text-red-500">*</span>
+                            </label>
+                            <select wire:model.live="role"
+                                    class="form-select dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
+                                <option value="">-- Pilih Role --</option>
+                                @foreach ($this->rolesList as $r)
+                                    <option value="{{ $r }}">{{ ucfirst(str_replace('_', ' ', $r)) }}</option>
+                                @endforeach
+                            </select>
+                            @error('role') <p class="form-error">{{ $message }}</p> @enderror
+                        </div>
                     </div>
 
                     {{-- NIK Perawat (hanya muncul jika role = perawat) --}}
@@ -136,7 +136,7 @@
                             @foreach ($this->permissionGroups as $modul => $permsInModul)
                             <div>
                                 <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide mb-1">{{ str_replace('_', ' ', $modul) }}</p>
-                                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1">
+                                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1">
                                     @foreach ($permsInModul as $perm)
                                         @php $dariRole = in_array($perm, $this->permissionDariRole); @endphp
                                         <label class="flex items-center gap-1.5 text-xs {{ $dariRole ? 'text-gray-400 dark:text-gray-500' : 'text-gray-700 dark:text-gray-300 cursor-pointer' }}">
