@@ -20,6 +20,8 @@ class SoapNote extends Model
         'plan', 'p_advice', 'p_other',
         // Status
         'is_final', 'finalized_at', 'finalized_by',
+        // Revisi (setelah finalisasi -- lihat app/Livewire/Pemeriksaan/SoapNote.php)
+        'revised_at', 'revised_by', 'revision_count', 'revision_reason',
     ];
 
     protected function casts(): array
@@ -28,6 +30,7 @@ class SoapNote extends Model
             'icd_codes'    => 'array',
             'is_final'     => 'boolean',
             'finalized_at' => 'datetime',
+            'revised_at'   => 'datetime',
         ];
     }
 
@@ -39,6 +42,11 @@ class SoapNote extends Model
     public function finalizedBy()
     {
         return $this->belongsTo(User::class, 'finalized_by');
+    }
+
+    public function revisedBy()
+    {
+        return $this->belongsTo(User::class, 'revised_by');
     }
 
     public function getDiagnosisUtamaAttribute(): ?array

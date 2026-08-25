@@ -4,14 +4,31 @@
     <div class="flex items-center justify-between">
         <div>
             <h3 class="text-sm font-semibold text-gray-900 dark:text-white">SOAP Note Dokter</h3>
-            @if($isFinal)
-            <div class="flex items-center gap-2 mt-1">
+            @if($isFinal && !$sedangRevisi)
+            <div class="flex items-center gap-2 mt-1 flex-wrap">
                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold
                              bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                     </svg>
                     FINALISASI — Read Only
+                </span>
+                @if($this->soapModel?->revision_count > 0)
+                <span class="text-[11px] text-gray-400" title="{{ $this->soapModel?->revision_reason }}">
+                    Direvisi {{ $this->soapModel->revision_count }}x terakhir oleh
+                    {{ $this->soapModel->revisedBy?->nama ?? '-' }},
+                    {{ $this->soapModel->revised_at?->translatedFormat('d M Y H:i') }}
+                </span>
+                @endif
+            </div>
+            @elseif($sedangRevisi)
+            <div class="flex items-center gap-2 mt-1">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold
+                             bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 animate-pulse">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    MODE REVISI AKTIF
                 </span>
             </div>
             @endif
@@ -35,8 +52,54 @@
                 Simpan & Finalisasi
             </x-confirm-button>
         </div>
+        @elseif($sedangRevisi)
+        <div class="flex gap-2">
+            <button wire:click="batalRevisi" class="btn-secondary btn-sm" wire:loading.attr="disabled">
+                Batal Revisi
+            </button>
+            <x-confirm-button
+                action="simpanRevisi"
+                title="Simpan Revisi SOAP Note?"
+                text="Perubahan akan tercatat di jejak audit beserta alasan revisi."
+                confirm="Ya, Simpan Revisi"
+                type="success"
+                class="btn-primary btn-sm">
+                Simpan Revisi
+            </x-confirm-button>
+        </div>
+        @else
+        @can('soap.revisi')
+        <button wire:click="mulaiRevisi" class="btn-secondary btn-sm inline-flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+            Revisi SOAP
+        </button>
+        @endcan
         @endif
     </div>
+
+    {{-- Prompt alasan revisi --}}
+    @if($showRevisiPrompt)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" wire:click.self="batalPromptRevisi">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-5 space-y-3">
+            <h4 class="text-sm font-bold text-gray-900 dark:text-white">Alasan Revisi SOAP Note</h4>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+                SOAP Note ini sudah difinalisasi. Tuliskan alasan revisi -- akan tercatat di jejak audit
+                bersama data sebelum & sesudah perubahan.
+            </p>
+            <textarea wire:model="alasanRevisi" rows="3" placeholder="mis. Koreksi diagnosa sekunder yang terlewat saat pemeriksaan"
+                      class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"></textarea>
+            @error('alasanRevisi') <p class="text-xs text-red-500">{{ $message }}</p> @enderror
+            <div class="flex justify-end gap-2 pt-1">
+                <button wire:click="batalPromptRevisi" class="btn-secondary btn-sm">Batal</button>
+                <button wire:click="konfirmasiRevisi" class="btn-primary btn-sm" wire:loading.attr="disabled">
+                    Lanjut Revisi
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
 
     @error('diagnoses')
     <div class="rounded-lg border border-red-400 bg-red-50 dark:bg-red-900/20 px-4 py-2 text-sm text-red-700 dark:text-red-400">
@@ -90,25 +153,25 @@
         <div class="grid grid-cols-1 gap-3">
             <div class="form-group">
                 <label class="form-label dark:text-gray-300">Chief Complaint & History of Present Illness (CC + HPI)</label>
-                <textarea wire:model="{{ $isFinal ? '' : 'sCcHpi' }}" rows="3"
-                          @if($isFinal) readonly @endif
+                <textarea wire:model="{{ $this->isLocked() ? '' : 'sCcHpi' }}" rows="3"
+                          @if($this->isLocked()) readonly @endif
                           placeholder="Pasien datang dengan keluhan... sejak... disertai..."
-                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $isFinal ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $sCcHpi }}</textarea>
+                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $sCcHpi }}</textarea>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div class="form-group">
                     <label class="form-label dark:text-gray-300">Past Medical History</label>
-                    <textarea wire:model="{{ $isFinal ? '' : 'sPastMedical' }}" rows="2"
-                              @if($isFinal) readonly @endif
+                    <textarea wire:model="{{ $this->isLocked() ? '' : 'sPastMedical' }}" rows="2"
+                              @if($this->isLocked()) readonly @endif
                               placeholder="Hipertensi, DM, penyakit lain..."
-                              class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $isFinal ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $sPastMedical }}</textarea>
+                              class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $sPastMedical }}</textarea>
                 </div>
                 <div class="form-group">
                     <label class="form-label dark:text-gray-300">Past Surgical History</label>
-                    <textarea wire:model="{{ $isFinal ? '' : 'sPastSurgical' }}" rows="2"
-                              @if($isFinal) readonly @endif
+                    <textarea wire:model="{{ $this->isLocked() ? '' : 'sPastSurgical' }}" rows="2"
+                              @if($this->isLocked()) readonly @endif
                               placeholder="Riwayat operasi..."
-                              class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $isFinal ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $sPastSurgical }}</textarea>
+                              class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $sPastSurgical }}</textarea>
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -119,17 +182,17 @@
                         <span class="text-red-500 text-xs ml-1">(Data dari rekam medis: {{ $this->kunjungan->pasien->alergi }})</span>
                         @endif
                     </label>
-                    <textarea wire:model="{{ $isFinal ? '' : 'sAllergies' }}" rows="2"
-                              @if($isFinal) readonly @endif
+                    <textarea wire:model="{{ $this->isLocked() ? '' : 'sAllergies' }}" rows="2"
+                              @if($this->isLocked()) readonly @endif
                               placeholder="Alergi obat, makanan, lainnya..."
-                              class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $isFinal ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $sAllergies }}</textarea>
+                              class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $sAllergies }}</textarea>
                 </div>
                 <div class="form-group">
                     <label class="form-label dark:text-gray-300">Other (Subjective)</label>
-                    <textarea wire:model="{{ $isFinal ? '' : 'sOther' }}" rows="2"
-                              @if($isFinal) readonly @endif
+                    <textarea wire:model="{{ $this->isLocked() ? '' : 'sOther' }}" rows="2"
+                              @if($this->isLocked()) readonly @endif
                               placeholder="Catatan subjektif lainnya..."
-                              class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $isFinal ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $sOther }}</textarea>
+                              class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $sOther }}</textarea>
                 </div>
             </div>
         </div>
@@ -163,31 +226,31 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div class="form-group">
                 <label class="form-label dark:text-gray-300">Physical Examination</label>
-                <textarea wire:model="{{ $isFinal ? '' : 'oPhysicalExam' }}" rows="3"
-                          @if($isFinal) readonly @endif
+                <textarea wire:model="{{ $this->isLocked() ? '' : 'oPhysicalExam' }}" rows="3"
+                          @if($this->isLocked()) readonly @endif
                           placeholder="Keadaan umum: baik, composmentis. Vital signs: ..."
-                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $isFinal ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $oPhysicalExam }}</textarea>
+                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $oPhysicalExam }}</textarea>
             </div>
             <div class="form-group">
                 <label class="form-label dark:text-gray-300">Systemic Examination</label>
-                <textarea wire:model="{{ $isFinal ? '' : 'oSystemicExam' }}" rows="3"
-                          @if($isFinal) readonly @endif
+                <textarea wire:model="{{ $this->isLocked() ? '' : 'oSystemicExam' }}" rows="3"
+                          @if($this->isLocked()) readonly @endif
                           placeholder="Kepala, Toraks, Abdomen, Ekstremitas..."
-                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $isFinal ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $oSystemicExam }}</textarea>
+                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $oSystemicExam }}</textarea>
             </div>
             <div class="form-group">
                 <label class="form-label dark:text-gray-300">Observation</label>
-                <textarea wire:model="{{ $isFinal ? '' : 'oObservation' }}" rows="2"
-                          @if($isFinal) readonly @endif
+                <textarea wire:model="{{ $this->isLocked() ? '' : 'oObservation' }}" rows="2"
+                          @if($this->isLocked()) readonly @endif
                           placeholder="Observasi umum pasien..."
-                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $isFinal ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $oObservation }}</textarea>
+                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $oObservation }}</textarea>
             </div>
             <div class="form-group">
                 <label class="form-label dark:text-gray-300">Other (Objective)</label>
-                <textarea wire:model="{{ $isFinal ? '' : 'oOther' }}" rows="2"
-                          @if($isFinal) readonly @endif
+                <textarea wire:model="{{ $this->isLocked() ? '' : 'oOther' }}" rows="2"
+                          @if($this->isLocked()) readonly @endif
                           placeholder="Catatan objektif lainnya..."
-                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $isFinal ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $oOther }}</textarea>
+                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $oOther }}</textarea>
             </div>
         </div>
     </div>
@@ -203,7 +266,7 @@
                 <span class="text-xs text-gray-400 ml-1">(wajib minimal 1 diagnosa utama)</span>
             </label>
 
-            @if(!$isFinal)
+            @if(!$this->isLocked())
             <div x-data="{ open: false }" class="relative">
                 <div class="relative">
                     <span class="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none">
@@ -271,7 +334,7 @@
                         </div>
                         <p class="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5">{{ $d['nama'] }}</p>
                     </div>
-                    @if(!$isFinal)
+                    @if(!$this->isLocked())
                     <div class="flex gap-1.5 flex-shrink-0">
                         @if(!$d['is_primary'])
                         <button wire:click="setPrimary({{ $i }})" title="Jadikan Utama"
@@ -290,7 +353,7 @@
                 </div>
                 @endforeach
             </div>
-            @elseif(!$isFinal)
+            @elseif(!$this->isLocked())
             <p class="mt-2 text-xs text-gray-400 italic">Belum ada diagnosa. Cari dan pilih dari ICD-10 di atas.</p>
             @endif
         </div>
@@ -298,24 +361,24 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div class="form-group">
                 <label class="form-label dark:text-gray-300">Problems</label>
-                <textarea wire:model="{{ $isFinal ? '' : 'aProblems' }}" rows="2"
-                          @if($isFinal) readonly @endif
+                <textarea wire:model="{{ $this->isLocked() ? '' : 'aProblems' }}" rows="2"
+                          @if($this->isLocked()) readonly @endif
                           placeholder="Daftar masalah klinis..."
-                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $isFinal ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $aProblems }}</textarea>
+                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $aProblems }}</textarea>
             </div>
             <div class="form-group">
                 <label class="form-label dark:text-gray-300">Progress Note</label>
-                <textarea wire:model="{{ $isFinal ? '' : 'aProgressNote' }}" rows="2"
-                          @if($isFinal) readonly @endif
+                <textarea wire:model="{{ $this->isLocked() ? '' : 'aProgressNote' }}" rows="2"
+                          @if($this->isLocked()) readonly @endif
                           placeholder="Perkembangan klinis..."
-                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $isFinal ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $aProgressNote }}</textarea>
+                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $aProgressNote }}</textarea>
             </div>
             <div class="form-group sm:col-span-2">
                 <label class="form-label dark:text-gray-300">Other (Assessment)</label>
-                <textarea wire:model="{{ $isFinal ? '' : 'aOther' }}" rows="2"
-                          @if($isFinal) readonly @endif
+                <textarea wire:model="{{ $this->isLocked() ? '' : 'aOther' }}" rows="2"
+                          @if($this->isLocked()) readonly @endif
                           placeholder="Catatan asesmen lainnya..."
-                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $isFinal ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $aOther }}</textarea>
+                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $aOther }}</textarea>
             </div>
         </div>
     </div>
@@ -325,23 +388,23 @@
     <div class="space-y-3">
         <div class="form-group">
             <label class="form-label dark:text-gray-300">Advice (Saran & Instruksi untuk Pasien)</label>
-            <textarea wire:model="{{ $isFinal ? '' : 'pAdvice' }}" rows="4"
-                      @if($isFinal) readonly @endif
+            <textarea wire:model="{{ $this->isLocked() ? '' : 'pAdvice' }}" rows="4"
+                      @if($this->isLocked()) readonly @endif
                       placeholder="Anjuran diet, aktivitas, kontrol ulang, rujukan... "
-                      class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $isFinal ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $pAdvice }}</textarea>
+                      class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $pAdvice }}</textarea>
         </div>
         <div class="form-group">
             <label class="form-label dark:text-gray-300">Other (Planning)</label>
-            <textarea wire:model="{{ $isFinal ? '' : 'pOther' }}" rows="2"
-                      @if($isFinal) readonly @endif
+            <textarea wire:model="{{ $this->isLocked() ? '' : 'pOther' }}" rows="2"
+                      @if($this->isLocked()) readonly @endif
                       placeholder="Catatan perencanaan lainnya..."
-                      class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $isFinal ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $pOther }}</textarea>
+                      class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $pOther }}</textarea>
         </div>
     </div>
     @endif
 
     {{-- Footer navigation --}}
-    @if(!$isFinal)
+    @if(!$this->isLocked())
     <div class="flex justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
         <div>
             @if($activeSection !== 's')

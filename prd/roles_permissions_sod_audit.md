@@ -274,3 +274,13 @@ Calon conflict pair SoD yang sebaiknya dipikirkan **sejak desain awal** modul in
 
 ### 7.4 Modul Lain yang Belum Terlihat Tanda-Tandanya
 Di luar Rawat Inap, tidak ditemukan stub/roadmap eksplisit lain di kode maupun folder `prd/` per tanggal audit ini — juga tidak ada permission "orphan" (didefinisikan tapi tidak dipakai role manapun) yang mengindikasikan fitur setengah-jadi tersembunyi. Kalau ada rencana modul lain yang belum tertulis di kode (baru di kepala tim/product owner), dokumen ini tidak bisa mendeteksinya secara otomatis — tapi checklist §7.2 tetap berlaku untuk modul apa pun yang muncul nanti, terlepas terdaftar di §7.3 atau tidak. Disarankan bagian §7.3 di-update setiap kali ada modul baru masuk tahap "coming soon" di kode.
+
+### 7.5 Contoh Penerapan §7.2: Revisi SOAP Note Setelah Finalisasi
+Ditambahkan setelah dokumen ini ditulis, sebagai contoh checklist §7.2 dijalankan sejak awal (bukan ditambal belakangan): SOAP Note yang sudah `is_final` sebelumnya terkunci permanen (§7.3 menyinggung pola ini sebagai acuan untuk Rawat Inap). Kebutuhan bisnis nyata muncul: dokter kadang perlu mengoreksi rekam medis setelah finalisasi (mis. salah input diagnosa) — termasuk setelah billing kunjungan sudah lunas, karena keakuratan rekam medis tidak boleh bergantung status pembayaran.
+
+Desainnya:
+- Permission baru `soap.revisi`, didaftarkan eksplisit di `RolePermissionSeeder.php` dan **cuma** diberikan ke role `dokter` — sengaja tidak disatukan dengan `soap.edit` (yang juga dipegang `dokter` untuk isi SOAP sebelum finalisasi), supaya kalau nanti `soap.edit` dibagikan ke role lain lewat "Hak Akses Tambahan" (FR-8), itu **tidak otomatis** ikut membuka akses revisi.
+- `SoapNote::mulaiRevisi()`, `konfirmasiRevisi()`, `simpanRevisi()` semua memanggil `$this->authorize('soap.revisi')` sendiri-sendiri (bukan cuma dicek sekali di awal) — konsisten dengan §7.2 poin 3, supaya tidak bisa dilewati dengan memanggil action Livewire terakhir (`simpanRevisi`) secara langsung sambil skip step awal.
+- Tidak digate status billing — keputusan sadar (lihat riwayat percakapan), bukan kelalaian.
+- Setiap revisi wajib diisi alasan, dan tercatat ke `activity_log` (`log_name: soap_note`) dengan snapshot before/after + alasan — mengikuti §7.2 poin 6.
+- Regresi diverifikasi lewat `tests/Feature/RevisiSoapNoteTest.php`, termasuk skenario role tanpa `soap.revisi` mencoba memanggil `simpanRevisi` langsung dengan state dipaksa (bukan cuma lewat alur UI normal).
