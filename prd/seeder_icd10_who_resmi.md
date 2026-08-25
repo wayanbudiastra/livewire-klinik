@@ -121,6 +121,20 @@ Siapa pun yang mengeksekusi PRD ini **wajib mencatat** sumber final yang benar-b
 
 **Kesimpulan**: data existing punya keyakinan tinggi berasal dari sumber WHO asli (bukan terjemahan mesin), tapi proses import sebelumnya (yang provenance-nya sendiri tidak terdokumentasi) punya bug data-cleaning yang menghapus apostrof. Ambang batas ≥98% akurasi (§9.1) **belum diverifikasi formal** lewat sampling acak 50 kode terhadap WHO Online Browser — itu tetap jadi tugas manual terbuka (lihat §12 acceptance criteria yang masih unchecked).
 
+### 5.2 Update Kedua — Kategori Diganti ke Level Blok (25 Agustus 2026, sesi lanjutan)
+
+User menyediakan `prd/icd/icd10-english.md` (CSV berisi 276 baris: 22 bab + 254 blok WHO ICD-10, format `Chapter,Code Range,Category Name,Description`). Sebelum dipakai, ditemukan file ini sebenarnya bersumber dari **ICD-10-CM (modifikasi klinis Amerika/CDC)**, bukan WHO ICD-10 internasional murni — indikasinya: ejaan Amerika ("diarrhea"/"esophagus"/"tumor", bukan "diarrhoea"/"oesophagus"/"tumour" ala WHO) dan kode rentang yang cuma ada di CM (mis. `I10-I1A`, `J40-J4A`, `Q00-QA0` — WHO ICD-10 murni tidak punya kategori "1A"/"4A"/"QA0").
+
+**Keputusan user (dikonfirmasi eksplisit)**: tetap dipakai, karena perannya cuma sebagai **label kategori/pengelompokan** (kolom `kategori`) — bukan pengganti `nama_en` per-kode yang sudah diverifikasi terpisah di §5.1. Perbedaan ejaan Amerika vs British tidak relevan untuk keperluan grouping/filter.
+
+Perubahan yang dilakukan:
+- Data CSV disalin ke `database/seeders/data/icd10_blok_who.csv` (sumber tunggal, bukan parsing file `.md` di runtime).
+- `Icd10KategoriBackfill.php` ditulis ulang: sebelumnya mapping 22 bab hardcoded, sekarang membaca CSV & mencocokkan tiap kode ke **blok** (level lebih detail, mis. "Intestinal infectious diseases (A00-A09)") — dengan fallback ke level bab kalau tidak ada blok yang cocok pas.
+- **Temuan**: file sumber tidak exhaustive — sekitar 1.320 dari 10.480 kode (12,6%) tidak punya blok spesifik yang cocok (mis. seluruh rentang A50-B99 di bab I, atau blok F00/T90-T98 yang batasnya beda dari WHO resmi) sehingga jatuh ke fallback level bab. 54 kode (E90, F00.x, T90.x, T91.x, dst) malah tidak cocok bab manapun di file ini (rentang bab di CSV lebih sempit dari WHO asli, mis. bab V cuma F01-F99 bukan F00-F99) — kode-kode ini **tidak disentuh** (kategori lama, kalau ada, dipertahankan; bukan dikosongkan/ditebak).
+- Hasil akhir: 9.106 kode dapat kategori level blok (spesifik), 1.320 fallback ke level bab, 54 tidak berubah.
+
+Konsekuensi: kolom `kategori` sekarang **mencampur dua level granularitas dari dua sumber berbeda** (blok ala ICD-10-CM untuk mayoritas kode, bab ala WHO murni untuk sisanya yang tidak tercakup CSV baru) — trade-off yang disadari & diterima demi cakupan yang jauh lebih detail, bukan kesalahan.
+
 ---
 
 ## 6. Perubahan Skema Data
@@ -251,7 +265,8 @@ Karena sumber data existing belum terverifikasi (§3), QA di sini **wajib** dija
 ## 14. Referensi
 
 - `app/Console/Commands/ImportIcd10.php` — command existing, diperluas dengan `--sumber`/`--versi`/`--dry-run`/`--set-bahasa` (Fase 2).
-- `app/Console/Commands/Icd10KategoriBackfill.php` — command baru, isi `kategori` berdasar 22 bab WHO (Fase 3).
+- `app/Console/Commands/Icd10KategoriBackfill.php` — isi `kategori`; awalnya 22 bab WHO hardcoded (Fase 3), diupdate ke level blok dari CSV (§5.2).
+- `database/seeders/data/icd10_blok_who.csv` — sumber data blok (276 baris: 22 bab + 254 blok, asal ICD-10-CM), dipakai sebagai label kategori/grouping saja.
 - `app/Console/Commands/Icd10KoreksiManual.php` — command baru, koreksi bug apostrof + isi `nama_en` kosong hasil QA sampling (Fase 4). Daftar koreksi & alasan tiap keputusan didokumentasikan sebagai konstanta di file ini.
 - `app/Models/Icd10ImportLog.php` + migrasi `2026_08_25_145216_create_icd10_import_log_table.php` — jejak audit tiap batch import/koreksi.
 - `database/migrations/2026_08_25_145510_widen_icd10_kategori_column.php` — `kategori` varchar(100)→varchar(150).

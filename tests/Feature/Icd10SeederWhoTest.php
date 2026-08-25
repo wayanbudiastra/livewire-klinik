@@ -90,22 +90,37 @@ class Icd10SeederWhoTest extends TestCase
     }
 
     /** @test */
-    public function kategori_backfill_memetakan_kode_ke_bab_who_yang_benar(): void
+    public function kategori_backfill_memetakan_kode_ke_blok_yang_benar(): void
     {
+        // Sejak update: kategori level BLOK (dari database/seeders/data/icd10_blok_who.csv),
+        // bukan cuma 22 bab -- lihat prd/seeder_icd10_who_resmi.md §5.2.
         Artisan::call('icd:kategori-backfill');
 
         $this->assertSame(
-            'I Certain infectious and parasitic diseases (A00-B99)',
+            'I — Intestinal infectious diseases (A00-A09)',
             DB::table('icd10')->where('kode', 'A09')->value('kategori')
         );
         $this->assertSame(
-            'IX Diseases of the circulatory system (I00-I99)',
+            'IX — Hypertensive diseases (I10-I1A)',
             DB::table('icd10')->where('kode', 'I10')->value('kategori')
         );
         $this->assertSame(
-            'XXI Factors influencing health status and contact with health services (Z00-Z99)',
+            'XXII — Persons encountering health services for examinations and consultations (Z00-Z13)',
             DB::table('icd10')->where('kode', 'Z00.0')->value('kategori')
         );
+    }
+
+    /** @test */
+    public function kategori_backfill_fallback_ke_bab_kalau_tidak_ada_blok_spesifik(): void
+    {
+        // Sumber blok punya celah cakupan (mis. rentang A50-B99 di bab I tidak
+        // dipecah jadi blok di file ini) -- kode di rentang itu harus tetap
+        // dapat kategori level bab (fallback), bukan dibiarkan kosong.
+        Artisan::call('icd:kategori-backfill');
+
+        $kategori = DB::table('icd10')->where('kode', 'A90')->value('kategori'); // demam dengue, di luar blok A00-A49
+        $this->assertNotNull($kategori);
+        $this->assertStringContainsString('A00-B99', $kategori);
     }
 
     /** @test */
