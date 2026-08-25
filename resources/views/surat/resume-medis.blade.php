@@ -30,7 +30,7 @@
         'gender' => 'Gender', 'name' => 'Name', 'nationality' => 'Nationality',
         'dob' => 'Date Of Birth', 'address' => 'Address', 'allergy' => 'Allergy',
         'subjective' => 'Subjective', 'chief_complaint' => 'Chief Complaint',
-        'presenting_complaint' => 'Presenting Complaint',
+        'presenting_complaint' => 'S (Subjective) / History of Present Illness',
         'vital_signs' => 'Vital Signs', 'blood_pressure' => 'Blood Pressure',
         'temperature' => 'Temperature', 'body_weight' => 'Body Weight',
         'heart_rate' => 'Heart Rate', 'spo2' => 'SpO2', 'body_height' => 'Body Height',
@@ -53,7 +53,7 @@
         'gender' => 'Jenis Kelamin', 'name' => 'Nama', 'nationality' => 'Kewarganegaraan',
         'dob' => 'Tanggal Lahir', 'address' => 'Alamat', 'allergy' => 'Alergi',
         'subjective' => 'Subjektif', 'chief_complaint' => 'Keluhan Utama',
-        'presenting_complaint' => 'Riwayat Keluhan',
+        'presenting_complaint' => 'S (Subjective) / Riwayat Penyakit Sekarang',
         'vital_signs' => 'Tanda Vital', 'blood_pressure' => 'Tekanan Darah',
         'temperature' => 'Suhu', 'body_weight' => 'Berat Badan',
         'heart_rate' => 'Nadi', 'spo2' => 'Saturasi O2', 'body_height' => 'Tinggi Badan',
@@ -135,11 +135,12 @@
 </table>
 
 <div class="section-title">{{ $L['subjective'] }}</div>
-<span class="field-label">{{ $L['chief_complaint'] }} / {{ $L['presenting_complaint'] }}</span>
+
+<span class="field-label">{{ $L['chief_complaint'] }}</span>
+<div class="field-value">{{ $d['anamnesis_snapshot'] ?: $L['no_data'] }}</div>
+
+<span class="field-label">{{ $L['presenting_complaint'] }}</span>
 <div class="field-value">{{ $d['subjektif_snapshot'] ?: $L['no_data'] }}</div>
-@if(!empty($d['anamnesis_snapshot']))
-<div class="field-value">{{ $d['anamnesis_snapshot'] }}</div>
-@endif
 
 @if(!empty($d['vitals_snapshot']))
 @php $v = $d['vitals_snapshot']; @endphp
