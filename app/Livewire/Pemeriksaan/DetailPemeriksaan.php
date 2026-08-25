@@ -61,6 +61,14 @@ class DetailPemeriksaan extends Component
             $this->gds          = $a->gds           ? (string) $a->gds           : '';
             $this->anamnesisAwal = $a->anamnesis_awal ?? '';
         }
+
+        // Kalau perawat belum isi Anamnesis/Keluhan Utama, pre-fill dari
+        // keluhan yang sudah dicatat petugas saat pendaftaran (kunjungan.keluhan)
+        // -- supaya tidak perlu diketik ulang. Tetap bisa diedit/dilengkapi
+        // perawat sebelum disimpan, bukan field read-only.
+        if (!$this->anamnesisAwal && $k->keluhan) {
+            $this->anamnesisAwal = $k->keluhan;
+        }
     }
 
     #[Computed]

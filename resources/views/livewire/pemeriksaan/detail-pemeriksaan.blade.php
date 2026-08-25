@@ -309,7 +309,12 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label dark:text-gray-300">Anamnesis / Keluhan Utama</label>
+                        <label class="form-label dark:text-gray-300">
+                            Anamnesis / Keluhan Utama
+                            @if($k->keluhan)
+                            <span class="text-xs text-gray-400 font-normal">(otomatis dari keluhan saat pendaftaran, bisa diedit)</span>
+                            @endif
+                        </label>
                         <textarea wire:model="anamnesisAwal" rows="3"
                                   placeholder="Pasien mengeluhkan..."
                                   class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"></textarea>
