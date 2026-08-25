@@ -23,8 +23,8 @@ class StorePasienRequest extends FormRequest
             'no_bpjs'       => ['nullable', 'string', 'size:13', 'regex:/^\d{13}$/', 'unique:pasien,no_bpjs'],
             'no_paspor'     => ['nullable', 'string', 'min:5', 'max:20', 'unique:pasien,no_paspor'],
             'negara_asal'   => ['nullable', 'string', 'max:100'],
-            'alamat'        => ['required', 'string', 'min:10', 'max:500'],
-            'telepon'       => ['required', 'string', 'regex:/^(\+62|62|0)[0-9]{8,13}$/'],
+            'alamat'        => ['required', 'string', 'max:500'],
+            'telepon'       => ['required', 'string', 'regex:/^\+?[0-9\s\-]{6,20}$/'],
             'email'         => ['nullable', 'email', 'max:255'],
             'golongan_darah'=> ['nullable', 'in:A,B,AB,O,tidak_diketahui'],
             'alergi'        => ['nullable', 'string', 'max:1000'],
@@ -74,8 +74,7 @@ class StorePasienRequest extends FormRequest
             'nik.unique'        => 'NIK sudah terdaftar.',
             'no_bpjs.size'      => 'Nomor BPJS harus tepat 13 digit.',
             'no_bpjs.unique'    => 'Nomor BPJS sudah terdaftar.',
-            'telepon.regex'     => 'Format telepon tidak valid (08xx / +62xx).',
-            'alamat.min'        => 'Alamat minimal 10 karakter.',
+            'telepon.regex'     => 'Format nomor telepon tidak valid.',
             'tanggal_lahir.after' => 'Tanggal lahir tidak valid.',
         ];
     }

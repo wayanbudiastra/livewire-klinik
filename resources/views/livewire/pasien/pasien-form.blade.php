@@ -157,7 +157,7 @@
             <div class="grid grid-cols-2 gap-4">
                 <div class="form-group">
                     <label class="form-label dark:text-gray-300">No. HP <span class="text-red-500">*</span></label>
-                    <input wire:model="telepon" type="tel" placeholder="08xxxxxxxxxx"
+                    <input wire:model="telepon" type="tel" placeholder="08xxxxxxxxxx atau +xxxxxxxxxx"
                            class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
                     @error('telepon') <p class="form-error">{{ $message }}</p> @enderror
                 </div>

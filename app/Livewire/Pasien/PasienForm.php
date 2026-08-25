@@ -161,8 +161,11 @@ class PasienForm extends Component
             'no_paspor'     => ['nullable', 'string', 'min:5', 'max:20',
                                 $id ? Rule::unique('pasien','no_paspor')->ignore($id) : 'unique:pasien,no_paspor'],
             'negara_asal'   => ['nullable', 'string', 'max:100'],
-            'alamat'        => ['required', 'string', 'min:10', 'max:500'],
-            'telepon'       => ['required', 'string', 'regex:/^(\+62|62|0)[0-9]{8,13}$/'],
+            'alamat'        => ['required', 'string', 'max:500'],
+            // Terima format Indonesia (08xx/+62/62) maupun nomor luar negeri
+            // (pasien WNA) -- boleh diawali + dan berisi spasi/tanda hubung,
+            // jadi tidak dipaksa pola 08xx saja.
+            'telepon'       => ['required', 'string', 'regex:/^\+?[0-9\s\-]{6,20}$/'],
             'email'         => ['nullable', 'email'],
             'golongan_darah'=> ['nullable', 'in:A,B,AB,O,tidak_diketahui'],
             'alergi'        => ['nullable', 'string', 'max:1000'],
@@ -191,8 +194,7 @@ class PasienForm extends Component
             'nik.regex'                  => 'NIK hanya boleh angka.',
             'nik.unique'                 => 'NIK sudah terdaftar.',
             'no_bpjs.size'               => 'BPJS harus tepat 13 digit.',
-            'telepon.regex'              => 'Format telepon tidak valid (08xx).',
-            'alamat.min'                 => 'Alamat minimal 10 karakter.',
+            'telepon.regex'              => 'Format nomor telepon tidak valid.',
             'kontak.*.nomor_hp.regex'    => 'Format HP kontak tidak valid.',
             'sumberInformasiId.required' => 'Mohon pilih sumber informasi pasien.',
             'sumberInformasiId.exists'   => 'Sumber informasi tidak valid.',

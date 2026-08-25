@@ -28,8 +28,8 @@ class UpdatePasienRequest extends FormRequest
             'no_paspor'     => ['nullable', 'string', 'min:5', 'max:20',
                                 Rule::unique('pasien', 'no_paspor')->ignore($id)],
             'negara_asal'   => ['nullable', 'string', 'max:100'],
-            'alamat'        => ['required', 'string', 'min:10', 'max:500'],
-            'telepon'       => ['required', 'string', 'regex:/^(\+62|62|0)[0-9]{8,13}$/'],
+            'alamat'        => ['required', 'string', 'max:500'],
+            'telepon'       => ['required', 'string', 'regex:/^\+?[0-9\s\-]{6,20}$/'],
             'email'         => ['nullable', 'email'],
             'golongan_darah'=> ['nullable', 'in:A,B,AB,O,tidak_diketahui'],
             'alergi'        => ['nullable', 'string', 'max:1000'],
@@ -42,8 +42,7 @@ class UpdatePasienRequest extends FormRequest
         return [
             'nik.size'      => 'NIK harus tepat 16 digit.',
             'nik.regex'     => 'NIK hanya boleh berisi angka.',
-            'telepon.regex' => 'Format telepon tidak valid (08xx / +62xx).',
-            'alamat.min'    => 'Alamat minimal 10 karakter.',
+            'telepon.regex' => 'Format nomor telepon tidak valid.',
         ];
     }
 }
