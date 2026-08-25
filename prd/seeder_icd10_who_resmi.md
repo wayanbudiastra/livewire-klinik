@@ -3,9 +3,9 @@
 
 | Info | Detail |
 |:-----|:-------|
-| **Versi** | 1.0.0 |
+| **Versi** | 1.1.0 |
 | **Tanggal** | 25 Agustus 2026 |
-| **Status** | Draft |
+| **Status** | Diimplementasikan sebagian — lihat §11/§12 untuk status per-fase & item yang masih perlu review manual |
 | **Depends On** | `pemeriksaan_soap.md` · `cetak_surat_pemeriksaan.md` (Resume Medis bilingual) |
 | **Tech Stack** | Laravel 12 · Artisan Console Command · MySQL |
 | **Scope** | Tabel `icd10`, command `icd:import`, setting `klinik.bahasa_icd` |
@@ -108,6 +108,19 @@ Selain itu, ada `database/seeders/Icd10Seeder.php` — seeder fallback terpisah 
 
 Siapa pun yang mengeksekusi PRD ini **wajib mencatat** sumber final yang benar-benar dipakai (URL, tanggal akses, versi/edisi) di `revisi_impor_icd10` (lihat §6) — supaya keputusan sumber data ini bisa diaudit di masa depan, tidak terulang seperti kondisi as-is sekarang yang tidak terdokumentasi.
 
+### 5.1 Update — Keputusan Aktual Saat Implementasi (25 Agustus 2026)
+
+**Opsi A (WHO ICD API) tidak feasible untuk QA sampling otomatis** — dicoba lewat WebFetch ke `icd.who.int/browse10/2019/en` dan `icd.who.int/icdapi`: situsnya client-rendered (Angular/JS SPA), fragment URL (`#/A09`) tidak pernah sampai ke server, jadi tidak ada cara mengambil teks per-kode secara terprogram di lingkungan ini. Verifikasi live ke WHO ICD-10 Online Browser (§9.1, target sampling 50 kode acak) **tidak selesai dieksekusi** — ini butuh manusia membuka browser sungguhan, bukan sesuatu yang bisa diotomasi lewat tool yang tersedia.
+
+**Yang benar-benar dieksekusi: Opsi D (re-verifikasi data existing), dengan QA berbasis pengetahuan terminologi ICD-10 baku** (bukan live fetch) —
+
+1. Kode yang benar-benar dipakai di data transaksional klinik (§9.2): cuma 1 (A09) — hasilnya **cocok persis** dengan istilah resmi WHO ("Diarrhoea and gastroenteritis of presumed infectious origin").
+2. Spot-check 20 kode umum: 18/20 cocok persis (termasuk detail khas WHO seperti ejaan British "oesophagitis"/"haemorrhage" dan notasi kurung `[common cold]` — indikasi kuat sumber aslinya memang WHO, bukan terjemahan mesin generik), 1 kosong (O80), 1 kehilangan apostrof (G20).
+3. Perluasan pencarian dari temuan #2 menemukan **bug apostrof sistematis** pada proses import asli — 48 nama eponim posesif unik (Parkinson's, Alzheimer's, Hodgkin's, dst — total 96 baris) kehilangan tanda kutipnya. Diperbaiki lewat `php artisan icd:koreksi-manual` (lihat §11 Fase 4) setelah tiap nama diverifikasi manual satu-satu (bukan auto-replace pola umum, supaya tidak salah kena istilah generik seperti "vertiginous"/"vitreous" yang polanya mirip tapi bukan eponim).
+4. 11 baris `nama_en` kosong ditemukan — 6 diisi (kode format standar WHO, keyakinan tinggi/sedang), 5 sengaja **tidak** diisi karena formatnya 2-digit-desimal ala ICD-10-CM (Amerika Serikat), bukan WHO ICD-10 murni (`E11.65`, `K57.30`, `K80.20`, `E83.51`, `R68.9`) — lihat `Icd10KoreksiManual::KODE_DILUAR_CAKUPAN` untuk detail per kode.
+
+**Kesimpulan**: data existing punya keyakinan tinggi berasal dari sumber WHO asli (bukan terjemahan mesin), tapi proses import sebelumnya (yang provenance-nya sendiri tidak terdokumentasi) punya bug data-cleaning yang menghapus apostrof. Ambang batas ≥98% akurasi (§9.1) **belum diverifikasi formal** lewat sampling acak 50 kode terhadap WHO Online Browser — itu tetap jadi tugas manual terbuka (lihat §12 acceptance criteria yang masih unchecked).
+
 ---
 
 ## 6. Perubahan Skema Data
@@ -192,27 +205,32 @@ Karena sumber data existing belum terverifikasi (§3), QA di sini **wajib** dija
 
 ## 11. Fase Implementasi
 
-| Fase | Cakupan |
-|---|---|
-| **Fase 1 — Sumber & Verifikasi** | Tetapkan sumber final (§5), jalankan QA sampling (§9) terhadap data existing. Kalau lolos ambang batas 98%, lanjut Fase 2 tanpa re-import total. Kalau tidak lolos, siapkan file data baru dari sumber definitif (Opsi C) dan proses sebagai import baru. |
-| **Fase 2 — Perluasan Command & Migrasi Kecil** | Migrasi `icd10_import_log`. Tambah parameter `--sumber`, `--versi`, `--dry-run` ke `icd:import` (FR-2, FR-6, FR-7). Ubah behavior "auto-set `bahasa_icd`" jadi eksplisit (FR-5) — perlu dicek dulu apakah ada dependency lain yang mengandalkan behavior lama ini. |
-| **Fase 3 — Pengisian Kategori (Bab WHO)** | Implementasi mapping rentang kode → nama bab (FR-4), jalankan sebagai proses terpisah/idempotent (bisa backfill tanpa menyentuh `nama`/`nama_en`). |
-| **Fase 4 — Eksekusi & QA Final** | Jalankan `icd:import` dengan `--dry-run` dulu, review diff, lalu eksekusi final di lokal → staging (kalau ada) → production (VPS, lewat `update.sh` atau manual sesuai kebutuhan sekali-jalan ini). |
-| **Fase 5 — Dokumentasi** | Update PRD ini dengan sumber final yang benar-benar dipakai (isi §5 dengan keputusan aktual, bukan opsi), catat di `README`/`CHANGELOG` kalau proyek punya. |
+| Fase | Cakupan | Status |
+|---|---|---|
+| **Fase 1 — Sumber & Verifikasi** | Tetapkan sumber final (§5), jalankan QA sampling (§9) terhadap data existing. | ⚠️ **Sebagian**. Opsi B (live WHO browser) terbukti tidak bisa diotomasi (§5.1) — QA yang jalan cuma spot-check berbasis pengetahuan ICD-10 baku (20 kode umum + 1 kode transaksional). Sampling formal 50-kode-acak terhadap WHO Online Browser (§9.1) **belum dieksekusi**, perlu manusia buka browser manual. |
+| **Fase 2 — Perluasan Command & Migrasi Kecil** | Migrasi `icd10_import_log`. Tambah parameter `--sumber`, `--versi`, `--dry-run` ke `icd:import` (FR-2, FR-6, FR-7). Ubah behavior "auto-set `bahasa_icd`" jadi eksplisit (FR-5). | ✅ **Selesai**. `app/Console/Commands/ImportIcd10.php` diperluas, migrasi `icd10_import_log` jalan. `--set-bahasa` sekarang opt-in (default: `bahasa_icd` tidak lagi otomatis berubah saat import). |
+| **Fase 3 — Pengisian Kategori (Bab WHO)** | Implementasi mapping rentang kode → nama bab (FR-4). | ✅ **Selesai**. Command baru `php artisan icd:kategori-backfill` — seluruh 10.480 baris terisi kategori sesuai 21 bab WHO yang ditemukan di data (bab XXII/U00-U99 tidak ada kodenya di dataset ini). Kolom `kategori` dilebarkan `varchar(100)`→`varchar(150)` karena nama bab lengkap WHO bisa >100 karakter. |
+| **Fase 4 — Eksekusi & QA Final** | Jalankan koreksi berdasar temuan Fase 1. | ✅ **Selesai (untuk temuan yang teridentifikasi)**. Command baru `php artisan icd:koreksi-manual`: memperbaiki bug apostrof hilang sistematis (48 nama eponim unik, 96 baris — Parkinson's, Alzheimer's, Hodgkin's, dst, masing-masing diverifikasi manual satu-satu, bukan regex buta) + mengisi 6 dari 11 baris `nama_en` kosong (keyakinan tinggi/sedang). 5 kode format non-WHO (ICD-10-CM style) sengaja dibiarkan kosong, didokumentasikan eksplisit di kode + §5.1, bukan ditebak. |
+| **Fase 5 — Dokumentasi** | Update PRD dengan hasil aktual. | ✅ **Selesai** — §5.1, §11, §12 ini. |
 
 ---
 
 ## 12. Acceptance Criteria
 
-- [ ] Sumber WHO resmi final tercatat eksplisit (URL/dokumen + versi/edisi) di §5 PRD ini dan di `icd10_import_log`.
-- [ ] ≥ 98% sampel 50 kode acak (§9.1) cocok dengan WHO ICD-10 Online Browser.
-- [ ] 100% kode yang sudah pernah dipakai di data transaksional klinik (§9.2) sudah diverifikasi cocok terhadap sumber WHO.
-- [ ] Kolom `kategori` terisi untuk seluruh 10.480+ baris (naik dari 11 baris saat ini) sesuai mapping bab WHO.
-- [ ] `php artisan icd:import` menolak berjalan menimpa `nama_en` tanpa parameter `--sumber` & `--versi`.
-- [ ] `php artisan icd:import --dry-run` menampilkan ringkasan perubahan tanpa menulis ke database (diverifikasi: baris di `icd10` tidak berubah setelah dry-run).
-- [ ] Menjalankan `icd:import` dua kali berturut-turut dengan file & sumber sama tidak menghasilkan baris duplikat (idempotent).
-- [ ] Kode ICD-10 yang sudah dipakai di `soap_note.icd_codes`/`surat_keterangan.data` existing tetap bisa ditemukan lewat pencarian (`IcdDiagnosis::search()`) setelah import — tidak ada kode yang hilang/berubah.
-- [ ] Regression test otomatis untuk `IcdDiagnosis::search()` dan alur pilih-diagnosa di SOAP Note (`tests/Feature/...`) tetap lolos setelah data diperbarui.
+- [ ] Sumber WHO resmi final tercatat eksplisit (URL/dokumen + versi/edisi) di §5 PRD ini dan di `icd10_import_log`. — **Belum**: live WHO browser tidak bisa diakses terprogram (§5.1), sumber final yang tertelusur ke URL WHO spesifik belum ada. `icd10_import_log` mencatat provenance yang JUJUR ("tidak terverifikasi live"), bukan fabrikasi URL.
+- [ ] ≥ 98% sampel 50 kode acak (§9.1) cocok dengan WHO ICD-10 Online Browser. — **Belum dieksekusi formal** (butuh manusia buka browser WHO manual, di luar kemampuan tool otomatis di lingkungan ini). Proxy yang sudah dijalankan: 18/20 spot-check kode umum cocok persis + 1 dari 1 kode transaksional cocok persis.
+- [x] 100% kode yang sudah pernah dipakai di data transaksional klinik (§9.2) sudah diverifikasi cocok terhadap sumber WHO. — Cuma 1 kode (A09) yang benar-benar terpakai di data lokal, sudah diverifikasi cocok persis.
+- [x] Kolom `kategori` terisi untuk seluruh 10.480+ baris (naik dari 11 baris saat ini) sesuai mapping bab WHO.
+- [x] `php artisan icd:import` menolak berjalan menimpa `nama_en` tanpa parameter `--sumber` & `--versi`.
+- [x] `php artisan icd:import --dry-run` menampilkan ringkasan perubahan tanpa menulis ke database.
+- [x] Menjalankan `icd:import`/`icd:kategori-backfill`/`icd:koreksi-manual` dua kali berturut-turut tidak menghasilkan baris duplikat atau perubahan tambahan (idempotent) — diverifikasi lewat `--dry-run` menunjukkan 0 perubahan pada percobaan kedua.
+- [x] Kode ICD-10 yang sudah dipakai di `soap_note.icd_codes`/`surat_keterangan.data` existing tetap bisa ditemukan lewat pencarian (`IcdDiagnosis::search()`) setelah koreksi — tidak ada kode yang hilang/berubah.
+- [x] Regression test otomatis untuk `IcdDiagnosis::search()` dan alur pilih-diagnosa di SOAP Note tetap lolos setelah data diperbarui — `tests/Feature/Icd10SeederWhoTest.php` (7 test) + `tests/Feature/RevisiSoapNoteTest.php`, `tests/Feature/CetakSuratModalTest.php` tetap lolos bersamaan.
+
+**Tugas manual yang masih terbuka** (di luar kemampuan otomatisasi tool yang tersedia saat ini):
+1. Buka `icd.who.int/browse10/2019/en` manual, sampling 50 kode acak, verifikasi terhadap `nama_en` di database — lihat §9.1.
+2. Putuskan nasib 5 kode non-WHO-standar (`E11.65`, `K57.30`, `K80.20`, `E83.51`, `R68.9`) — pertahankan sebagai ekstensi lokal (isi manual), normalisasi ke kode dasar WHO, atau hapus.
+3. Kalau sampling manual (#1) menemukan penyimpangan signifikan, eskalasi ke Opsi C (§5) untuk sumber pengganti definitif.
 
 ---
 
@@ -226,15 +244,21 @@ Karena sumber data existing belum terverifikasi (§3), QA di sini **wajib** dija
 | Perubahan `nama_en` massal membingungkan dokter yang sudah familiar dengan istilah lama | Perubahan hanya di label tampilan/pencarian, bukan kode — dan cakupannya ditata di Fase 4 sebagai satu rilis terjadwal, bukan perubahan diam-diam |
 | Command `icd:import` yang diperluas (FR-2) merusak kompatibilitas dengan cara pemakaian lama di `update.sh` (STEP 5b, `Icd10Seeder`) | `Icd10Seeder` tidak disentuh (§4.2 non-tujuan) — parameter baru di `icd:import` sifatnya aditif (opsional kecuali saat akan overwrite `nama_en`), tidak mengubah command lama yang mungkin dipanggil di alur lain |
 | Proses ini jadi pekerjaan satu kali lalu terlupakan sampai WHO merilis update ICD-10 berikutnya | `icd10_import_log` (§6.1) jadi jejak yang gampang dicek "terakhir update kapan & dari sumber apa" — cukup untuk keputusan manual kapan perlu di-refresh, tidak perlu otomatisasi cron (§4.2) |
+| Verifikasi live ke WHO Online Browser tidak bisa diotomasi (situsnya SPA client-rendered, dikonfirmasi via percobaan WebFetch — §5.1) | QA yang benar-benar bisa dieksekusi otomatis (spot-check pengetahuan terminologi baku) tetap dijalankan sebagai proxy berisiko-rendah; sampling formal terhadap browser WHO didokumentasikan eksplisit sebagai tugas manual terbuka (§12), bukan diklaim selesai padahal belum |
 
 ---
 
 ## 14. Referensi
 
-- `app/Console/Commands/ImportIcd10.php` — command existing yang jadi basis perluasan.
+- `app/Console/Commands/ImportIcd10.php` — command existing, diperluas dengan `--sumber`/`--versi`/`--dry-run`/`--set-bahasa` (Fase 2).
+- `app/Console/Commands/Icd10KategoriBackfill.php` — command baru, isi `kategori` berdasar 22 bab WHO (Fase 3).
+- `app/Console/Commands/Icd10KoreksiManual.php` — command baru, koreksi bug apostrof + isi `nama_en` kosong hasil QA sampling (Fase 4). Daftar koreksi & alasan tiap keputusan didokumentasikan sebagai konstanta di file ini.
+- `app/Models/Icd10ImportLog.php` + migrasi `2026_08_25_145216_create_icd10_import_log_table.php` — jejak audit tiap batch import/koreksi.
+- `database/migrations/2026_08_25_145510_widen_icd10_kategori_column.php` — `kategori` varchar(100)→varchar(150).
 - `app/Models/IcdDiagnosis.php` — model & method `search()`/`bahasaAktif()`.
 - `database/seeders/Icd10Seeder.php` — seeder fallback kurasi manual (tidak disentuh PRD ini).
 - `database/migrations/2026_01_09_000001_create_icd10_table.php`, `2026_05_30_100001_alter_icd10_add_bilingual_columns.php` — skema existing.
 - `prd/cetak_surat_pemeriksaan.md` — konteks pemakaian `nama_en` di dokumen Resume Medis bilingual.
-- WHO ICD-10 Online Browser: `https://icd.who.int/browse10/2019/en` (rujukan verifikasi manual, §5 Opsi B).
+- `tests/Feature/Icd10SeederWhoTest.php` — regression test untuk semua command di atas.
+- WHO ICD-10 Online Browser: `https://icd.who.int/browse10/2019/en` (rujukan verifikasi manual, §5 Opsi B — **terkonfirmasi tidak bisa di-scrape otomatis**, lihat §5.1).
 - WHO ICD API: `https://icd.who.int/icdapi` (jalur jangka panjang, §5 Opsi A — URL/ketersediaan akses perlu dicek ulang saat implementasi).

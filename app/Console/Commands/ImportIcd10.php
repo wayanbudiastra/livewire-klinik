@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Icd10ImportLog;
 use App\Models\Klinik;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -11,15 +12,27 @@ class ImportIcd10 extends Command
     protected $signature = 'icd:import
                             {--lang=id        : Bahasa aktif: id (Indonesia), en (English), both (simpan keduanya, aktif id)}
                             {--mode=upsert    : Mode import: upsert (tambah/perbarui) atau replace (hapus semua dulu)}
-                            {--file=          : Path ke file JSON (default: base_path/master_icd_x.json)}';
+                            {--file=          : Path ke file JSON (default: base_path/master_icd_x.json)}
+                            {--sumber=        : Nama sumber data (wajib kalau akan menimpa nama_en) -- lihat prd/seeder_icd10_who_resmi.md §5}
+                            {--sumber-url=    : URL/referensi sumber (opsional)}
+                            {--versi=         : Versi/edisi WHO yang dirujuk (wajib kalau akan menimpa nama_en)}
+                            {--catatan-qa=    : Catatan hasil QA sampling (opsional, lihat §9)}
+                            {--dry-run        : Tampilkan ringkasan perubahan tanpa menulis ke database}
+                            {--set-bahasa     : Ikut ubah klinik.bahasa_icd sesuai --lang (default: tidak diubah otomatis)}';
 
     protected $description = 'Import data ICD-10 dari file master_icd_x.json ke database';
 
     public function handle(): int
     {
-        $lang = $this->option('lang');
-        $mode = $this->option('mode');
-        $file = $this->option('file') ?: base_path('master_icd_x.json');
+        $lang        = $this->option('lang');
+        $mode        = $this->option('mode');
+        $file        = $this->option('file') ?: base_path('master_icd_x.json');
+        $sumber      = $this->option('sumber');
+        $sumberUrl   = $this->option('sumber-url');
+        $versi       = $this->option('versi');
+        $catatanQa   = $this->option('catatan-qa');
+        $dryRun      = (bool) $this->option('dry-run');
+        $setBahasa   = (bool) $this->option('set-bahasa');
 
         if (!in_array($lang, ['id', 'en', 'both'])) {
             $this->error("Opsi --lang tidak valid. Gunakan: id, en, atau both.");
@@ -28,6 +41,18 @@ class ImportIcd10 extends Command
 
         if (!in_array($mode, ['upsert', 'replace'])) {
             $this->error("Opsi --mode tidak valid. Gunakan: upsert atau replace.");
+            return self::FAILURE;
+        }
+
+        // ── Wajib isi sumber/versi kalau akan menimpa nama_en (bukan dry-run) ──
+        // Lihat prd/seeder_icd10_who_resmi.md FR-2: jangan sampai data ICD-10
+        // (yang dipakai langsung di dokumen Resume Medis bilingual) berubah
+        // tanpa jejak dari mana asalnya -- masalah yang sama persis dengan
+        // kondisi as-is sebelum PRD ini ditulis.
+        if (!$dryRun && (empty($sumber) || empty($versi))) {
+            $this->error("--sumber dan --versi wajib diisi supaya perubahan nama_en tercatat jelas asalnya (lihat prd/seeder_icd10_who_resmi.md §5).");
+            $this->line("Contoh: php artisan icd:import --sumber=\"WHO ICD-10 Volume 1 (2019 edition)\" --versi=2019");
+            $this->line("Atau jalankan dulu dengan --dry-run untuk lihat ringkasan tanpa perlu isi sumber/versi.");
             return self::FAILURE;
         }
 
@@ -50,11 +75,11 @@ class ImportIcd10 extends Command
         $total = count($data);
         $this->info("Total kode ditemukan : {$total}");
         $this->info("Bahasa aktif         : {$lang}");
-        $this->info("Mode import          : {$mode}");
+        $this->info("Mode import          : {$mode}" . ($dryRun ? ' (DRY RUN -- tidak menulis ke DB)' : ''));
         $this->newLine();
 
         // ── Replace mode ───────────────────────────────────────────
-        if ($mode === 'replace') {
+        if ($mode === 'replace' && !$dryRun) {
             if (!$this->confirm("Mode REPLACE akan menghapus seluruh data ICD-10 yang ada. Lanjutkan?", true)) {
                 $this->warn("Import dibatalkan.");
                 return self::SUCCESS;
@@ -71,8 +96,12 @@ class ImportIcd10 extends Command
 
         $imported = 0;
         $skipped  = 0;
+        $baru     = 0;
+        $diperbarui = 0;
         $batch    = [];
         $now      = now();
+        $existing = DB::table('icd10')->pluck('nama_en', 'kode')->all();
+        $diffContoh = [];
 
         foreach ($data as $row) {
             $kode   = strtoupper(trim($row['kode_icd']      ?? ''));
@@ -90,6 +119,15 @@ class ImportIcd10 extends Command
                 default => $namaId ?: $namaEn,   // 'id' atau 'both'
             };
 
+            if (!array_key_exists($kode, $existing)) {
+                $baru++;
+            } elseif ($existing[$kode] !== $namaEn && count($diffContoh) < 15) {
+                $diffContoh[] = [$kode, $existing[$kode] ?? '(kosong)', $namaEn];
+                $diperbarui++;
+            } elseif ($existing[$kode] !== $namaEn) {
+                $diperbarui++;
+            }
+
             $batch[] = [
                 'kode'       => $kode,
                 'nama'       => $namaAktif,
@@ -101,17 +139,19 @@ class ImportIcd10 extends Command
             ];
             $imported++;
 
-            if (count($batch) >= 500) {
-                DB::table('icd10')->upsert($batch, ['kode'], ['nama', 'nama_en', 'nama_id', 'kategori', 'updated_at']);
+            if (!$dryRun && count($batch) >= 500) {
+                DB::table('icd10')->upsert($batch, ['kode'], ['nama', 'nama_en', 'nama_id', 'updated_at']);
                 $bar->setMessage("Memproses batch...");
                 $bar->advance(count($batch));
                 $batch = [];
+            } elseif ($dryRun) {
+                $bar->advance();
             }
         }
 
         // Sisa batch
-        if (!empty($batch)) {
-            DB::table('icd10')->upsert($batch, ['kode'], ['nama', 'nama_en', 'nama_id', 'kategori', 'updated_at']);
+        if (!$dryRun && !empty($batch)) {
+            DB::table('icd10')->upsert($batch, ['kode'], ['nama', 'nama_en', 'nama_id', 'updated_at']);
             $bar->advance(count($batch));
         }
 
@@ -119,26 +159,56 @@ class ImportIcd10 extends Command
         $bar->finish();
         $this->newLine(2);
 
-        // ── Simpan setting bahasa ke klinik ────────────────────────
+        if ($dryRun && !empty($diffContoh)) {
+            $this->line("Contoh perubahan nama_en (maks 15 ditampilkan):");
+            $this->table(['Kode', 'nama_en lama', 'nama_en baru'], $diffContoh);
+        }
+
+        // ── Simpan setting bahasa ke klinik (hanya kalau diminta eksplisit) ──
         $bahasaSetting = ($lang === 'en') ? 'en' : 'id';
-        $klinik = Klinik::first();
-        if ($klinik) {
-            $klinik->update(['bahasa_icd' => $bahasaSetting]);
+        if (!$dryRun && $setBahasa) {
+            $klinik = Klinik::first();
+            if ($klinik) {
+                $klinik->update(['bahasa_icd' => $bahasaSetting]);
+            }
+        }
+
+        // ── Catat ke icd10_import_log ──────────────────────────────
+        if (!$dryRun) {
+            Icd10ImportLog::create([
+                'sumber'            => $sumber,
+                'sumber_url'        => $sumberUrl,
+                'versi_who'         => $versi,
+                'mode'              => $mode,
+                'jumlah_baris'      => $imported,
+                'jumlah_baru'       => $baru,
+                'jumlah_diperbarui' => $diperbarui,
+                'catatan_qa'        => $catatanQa,
+                'dijalankan_oleh'   => auth()->id(),
+            ]);
         }
 
         // ── Ringkasan ──────────────────────────────────────────────
         $this->table(
             ['Keterangan', 'Jumlah'],
             [
-                ['Total data di file',    $total],
-                ['Berhasil diimpor',      $imported],
+                ['Total data di file',     $total],
+                ['Berhasil diimpor',       $imported],
+                ['  - baris baru',         $baru],
+                ['  - baris diperbarui',   $diperbarui],
                 ['Dilewati (data kosong)', $skipped],
-                ['Bahasa aktif',          $bahasaSetting === 'id' ? 'Indonesia' : 'International (EN)'],
-                ['Total di database',     DB::table('icd10')->count()],
+                ['Bahasa aktif',           $bahasaSetting === 'id' ? 'Indonesia' : 'International (EN)'],
+                ['bahasa_icd diubah?',     $setBahasa && !$dryRun ? 'Ya' : 'Tidak (pakai --set-bahasa kalau perlu)'],
+                ['Total di database',      $dryRun ? DB::table('icd10')->count() . ' (belum berubah -- dry run)' : DB::table('icd10')->count()],
             ]
         );
 
-        $this->info("✓ Import ICD-10 selesai.");
+        if ($dryRun) {
+            $this->warn("DRY RUN -- tidak ada perubahan ditulis ke database. Jalankan tanpa --dry-run untuk eksekusi sungguhan.");
+        } else {
+            $this->info("✓ Import ICD-10 selesai. Tercatat di icd10_import_log.");
+        }
+
         return self::SUCCESS;
     }
 }
