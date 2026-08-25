@@ -127,6 +127,21 @@ else
     info "STEP 5b: Item Penunjang sudah ada ($PENUNJANG_COUNT item), skip seed."
 fi
 
+# ── 5c. Sync ulang role & permission (SELALU, tiap update) ────
+# RolePermissionSeeder aman dijalankan berkali-kali di production:
+# cuma Permission::firstOrCreate() + Role::firstOrCreate()->syncPermissions().
+# Tidak pernah menyentuh model_has_roles (siapa punya role apa) atau
+# model_has_permissions (Hak Akses Tambahan per user) -- jadi user &
+# role assignment yang sudah ada tidak akan berubah/ke-reset.
+#
+# Ini WAJIB dijalankan tiap update, bukan cuma sekali: kalau tidak,
+# setiap kali RolePermissionSeeder.php diubah di kode (permission baru,
+# role baru, dsb) perubahannya cuma hidup di git -- DB production tetap
+# pakai definisi role/permission yang lama, dan gejalanya baru ketahuan
+# belakangan sebagai "menu X tidak muncul" / "role Y tidak bisa Z".
+info "STEP 5c: Sync ulang role & permission (RolePermissionSeeder)..."
+php8.3 artisan db:seed --class=RolePermissionSeeder --force
+
 # ── 6. Clear & rebuild cache ───────────────────────────────────
 # event:clear/cache disertakan supaya listener baru (mis. LogSuccessfulLogin)
 # langsung terdeteksi — tanpa ini, Laravel bisa pakai daftar event lama
