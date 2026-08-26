@@ -310,7 +310,7 @@
 
                     <div class="form-group">
                         <label class="form-label dark:text-gray-300">
-                            Anamnesis / Keluhan Utama
+                            Keluhan Utama
                             @if($k->keluhan)
                             <span class="text-xs text-gray-400 font-normal">(otomatis dari keluhan saat pendaftaran, bisa diedit)</span>
                             @endif

@@ -14,8 +14,10 @@ use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
- * Field "Anamnesis / Keluhan Utama" di tab Asesmen & Tanda Vital (permintaan
- * user): pre-fill dari kunjungan.keluhan (yang dicatat petugas saat
+ * Field "Keluhan Utama" (properti anamnesisAwal, kolom asesmen_perawat.
+ * anamnesis_awal -- labelnya di UI sudah disederhanakan, cuma "Keluhan Utama"
+ * tanpa prefix "Anamnesis /") di tab Asesmen & Tanda Vital (permintaan user):
+ * pre-fill dari kunjungan.keluhan (yang dicatat petugas saat
  * pendaftaran di PendaftaranTab.php) supaya perawat tidak perlu ketik ulang
  * -- tapi tetap bisa diedit, dan tidak menimpa data asesmen yang sudah
  * disimpan perawat sebelumnya.
