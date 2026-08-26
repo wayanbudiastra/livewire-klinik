@@ -142,6 +142,25 @@ fi
 info "STEP 5c: Sync ulang role & permission (RolePermissionSeeder)..."
 php8.3 artisan db:seed --class=RolePermissionSeeder --force
 
+# ── 5d. Sync ulang kategori & koreksi data ICD-10 (SELALU, tiap update) ──
+# Sama seperti RolePermissionSeeder di atas: kedua command ini aman
+# dijalankan berkali-kali (idempotent) dan cuma menyentuh kolom kategori
+# / memperbaiki pola nama_en yang SUDAH diketahui salah (bug apostrof
+# eponim, dsb) -- tidak menghapus/menimpa data ICD-10 custom yang
+# mungkin ditambahkan admin lewat menu Pengaturan > Data ICD-10.
+#
+# CATATAN: kalau tabel icd10 di server ini BELUM PERNAH diimpor dari
+# master_icd_x.json (masih data fallback ~120 kode dari Icd10Seeder),
+# dua command ini tidak banyak berefek karena nama_en kosong untuk
+# sebagian besar baris. Import awal & ganti bahasa aktif (icd:import,
+# icd:set-bahasa-aktif) SENGAJA TIDAK otomatis di sini -- itu langkah
+# satu-kali, jalankan `sudo bash icd10_setup_awal.sh` (lihat file itu &
+# prd/seeder_icd10_who_resmi.md §5.3), supaya tidak menimpa data custom
+# ICD-10 di production tanpa sepengetahuan admin.
+info "STEP 5d: Sync ulang kategori blok & koreksi data ICD-10..."
+php8.3 artisan icd:kategori-backfill
+php8.3 artisan icd:koreksi-manual
+
 # ── 6. Clear & rebuild cache ───────────────────────────────────
 # event:clear/cache disertakan supaya listener baru (mis. LogSuccessfulLogin)
 # langsung terdeteksi — tanpa ini, Laravel bisa pakai daftar event lama

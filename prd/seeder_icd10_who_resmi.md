@@ -270,6 +270,13 @@ User minta kolom `nama` (yang benar-benar dipakai `IcdDiagnosis::search()` & mun
 
 Dieksekusi: `klinik.bahasa_icd` = `en`, 10.136 dari 10.480 baris `nama` berubah ke Inggris (sisanya kebetulan sudah identik atau termasuk 5 kode di luar cakupan). Diverifikasi manual: `G20` tetap `"Parkinson's disease"` (apostrof tidak regresi), `E11.65` tetap teks Indonesia lama (tidak dikosongkan).
 
+**Catatan penting ditemukan saat menyiapkan VPS**: ternyata sudah ada UI existing untuk manajemen ICD-10 sejak Mei 2026 (`app/Livewire/Pengaturan/Masterdata/IcdManager.php`, menu Pengaturan > Data ICD-10) — punya fitur import dari `master_icd_x.json`, import CSV/Excel custom, dan tombol ganti bahasa (`gantiBarasa()`, fungsinya mirip `icd:set-bahasa-aktif`). Command CLI yang dibangun di §5.1–§5.3 tetap relevan (UI itu tidak punya fitur koreksi bug apostrof atau backfill kategori level blok), tapi ini berarti **VPS mungkin sudah punya data ICD-10 custom** hasil import admin lewat UI tsb — jadi proses setup VPS (di bawah) dibuat sebagai langkah manual sadar, bukan otomatis, supaya tidak menimpa data itu tanpa sepengetahuan admin.
+
+### 5.4 Persiapan untuk VPS
+
+- `update.sh` STEP 5d menjalankan `icd:kategori-backfill` & `icd:koreksi-manual` otomatis **tiap update** (aman/idempotent, cuma menyentuh `kategori` dan pola `nama_en` yang sudah diketahui salah — tidak menyentuh data custom admin).
+- `icd:import` (import ulang dari `master_icd_x.json`) dan `icd:set-bahasa-aktif` (ganti bahasa aktif) **sengaja tidak** dimasukkan ke `update.sh` — keduanya berpotensi menimpa data/pilihan admin di production. Disediakan sebagai skrip terpisah `icd10_setup_awal.sh`, dijalankan **satu kali** manual oleh admin VPS (`sudo bash icd10_setup_awal.sh`), dengan konfirmasi interaktif dan pengecekan kondisi data dulu sebelum eksekusi.
+
 ---
 
 ## 14. Referensi
