@@ -260,12 +260,23 @@ Karena sumber data existing belum terverifikasi (§3), QA di sini **wajib** dija
 | Proses ini jadi pekerjaan satu kali lalu terlupakan sampai WHO merilis update ICD-10 berikutnya | `icd10_import_log` (§6.1) jadi jejak yang gampang dicek "terakhir update kapan & dari sumber apa" — cukup untuk keputusan manual kapan perlu di-refresh, tidak perlu otomatisasi cron (§4.2) |
 | Verifikasi live ke WHO Online Browser tidak bisa diotomasi (situsnya SPA client-rendered, dikonfirmasi via percobaan WebFetch — §5.1) | QA yang benar-benar bisa dieksekusi otomatis (spot-check pengetahuan terminologi baku) tetap dijalankan sebagai proxy berisiko-rendah; sampling formal terhadap browser WHO didokumentasikan eksplisit sebagai tugas manual terbuka (§12), bukan diklaim selesai padahal belum |
 
+### 5.3 Update Ketiga — Bahasa Aktif Diganti ke Inggris (25 Agustus 2026, sesi lanjutan)
+
+User minta kolom `nama` (yang benar-benar dipakai `IcdDiagnosis::search()` & muncul di pencarian diagnosa SOAP Note) diganti dari Indonesia ke Inggris, untuk semua user (bukan per-user preference).
+
+**Risiko yang ditemukan sebelum eksekusi**: `master_icd_x.json` di disk masih berisi data LAMA sebelum koreksi manual (§5.1) — kalau ganti bahasa dilakukan lewat re-run `icd:import --lang=en`, seluruh 96 baris koreksi apostrof dan 6 baris nama_en yang diisi akan **regresi balik ke rusak**, karena file JSON sumbernya sendiri tidak pernah ditulis ulang dengan hasil koreksi.
+
+**Fix**: command baru `php artisan icd:set-bahasa-aktif {id|en}` — cuma `UPDATE icd10 SET nama = nama_en` (atau `nama_id`) dari data yang **sudah ada di database** (sudah terkoreksi), tidak pernah baca ulang file JSON. Baris yang tidak punya `nama_en` (5 kode ICD-10-CM non-standar, §5.1 poin 4) **dipertahankan apa adanya** (nama Indonesia lama, tidak dikosongkan).
+
+Dieksekusi: `klinik.bahasa_icd` = `en`, 10.136 dari 10.480 baris `nama` berubah ke Inggris (sisanya kebetulan sudah identik atau termasuk 5 kode di luar cakupan). Diverifikasi manual: `G20` tetap `"Parkinson's disease"` (apostrof tidak regresi), `E11.65` tetap teks Indonesia lama (tidak dikosongkan).
+
 ---
 
 ## 14. Referensi
 
 - `app/Console/Commands/ImportIcd10.php` — command existing, diperluas dengan `--sumber`/`--versi`/`--dry-run`/`--set-bahasa` (Fase 2).
 - `app/Console/Commands/Icd10KategoriBackfill.php` — isi `kategori`; awalnya 22 bab WHO hardcoded (Fase 3), diupdate ke level blok dari CSV (§5.2).
+- `app/Console/Commands/Icd10SetBahasaAktif.php` — ganti `icd10.nama` aktif + `klinik.bahasa_icd`, baca dari kolom DB (bukan re-import file) supaya tidak regresi koreksi manual (§5.3).
 - `database/seeders/data/icd10_blok_who.csv` — sumber data blok (276 baris: 22 bab + 254 blok, asal ICD-10-CM), dipakai sebagai label kategori/grouping saja.
 - `app/Console/Commands/Icd10KoreksiManual.php` — command baru, koreksi bug apostrof + isi `nama_en` kosong hasil QA sampling (Fase 4). Daftar koreksi & alasan tiap keputusan didokumentasikan sebagai konstanta di file ini.
 - `app/Models/Icd10ImportLog.php` + migrasi `2026_08_25_145216_create_icd10_import_log_table.php` — jejak audit tiap batch import/koreksi.

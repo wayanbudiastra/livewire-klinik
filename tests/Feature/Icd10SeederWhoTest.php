@@ -143,4 +143,53 @@ class Icd10SeederWhoTest extends TestCase
         $this->assertGreaterThan(0, $hasil->count());
         $this->assertTrue($hasil->contains('kode', 'G20'));
     }
+
+    /** @test */
+    public function set_bahasa_aktif_menyalin_dari_nama_en_bukan_re_import_file(): void
+    {
+        // Kondisi awal (fixture khusus test ini): nama masih Indonesia,
+        // nama_en sudah versi terkoreksi (beda dari isi master_icd_x.json
+        // di disk yang masih rusak) -- membuktikan command ini baca dari
+        // DB, bukan re-import file yang bisa regresi ke data rusak.
+        DB::table('icd10')->where('kode', 'G20')->update([
+            'nama' => 'Penyakit Parkinson', // Indonesia
+            'nama_en' => "Parkinson's disease", // sudah terkoreksi
+        ]);
+
+        Artisan::call('icd:set-bahasa-aktif', ['bahasa' => 'en']);
+
+        $this->assertSame("Parkinson's disease", DB::table('icd10')->where('kode', 'G20')->value('nama'));
+        $this->assertSame('en', DB::table('klinik')->value('bahasa_icd'));
+
+        $log = DB::table('icd10_import_log')->where('mode', 'set-bahasa-aktif')->latest('id')->first();
+        $this->assertNotNull($log);
+    }
+
+    /** @test */
+    public function set_bahasa_aktif_tidak_mengosongkan_baris_tanpa_nama_en(): void
+    {
+        DB::table('icd10')->where('kode', 'A09')->update(['nama' => 'Teks Indonesia', 'nama_en' => null]);
+
+        Artisan::call('icd:set-bahasa-aktif', ['bahasa' => 'en']);
+
+        // Tidak dikosongkan -- nama lama dipertahankan apa adanya.
+        $this->assertSame('Teks Indonesia', DB::table('icd10')->where('kode', 'A09')->value('nama'));
+    }
+
+    /** @test */
+    public function set_bahasa_aktif_dry_run_tidak_menulis_ke_database(): void
+    {
+        $namaSebelum = DB::table('icd10')->where('kode', 'A09')->value('nama');
+
+        Artisan::call('icd:set-bahasa-aktif', ['bahasa' => 'en', '--dry-run' => true]);
+
+        $this->assertSame($namaSebelum, DB::table('icd10')->where('kode', 'A09')->value('nama'));
+    }
+
+    /** @test */
+    public function set_bahasa_aktif_menolak_argumen_tidak_valid(): void
+    {
+        $exit = Artisan::call('icd:set-bahasa-aktif', ['bahasa' => 'fr']);
+        $this->assertSame(1, $exit);
+    }
 }
