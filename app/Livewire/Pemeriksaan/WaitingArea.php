@@ -13,8 +13,14 @@ class WaitingArea extends Component
 {
     use WithPagination;
 
+    /** Maksimal rentang tanggal yang boleh dipilih sekaligus (hari). */
+    private const MAKS_RENTANG_HARI = 31;
+
     #[Url]
-    public string $tanggal = '';
+    public string $tanggalMulai = '';
+
+    #[Url]
+    public string $tanggalAkhir = '';
 
     #[Url(as: 'q')]
     public string $search = '';
@@ -26,10 +32,35 @@ class WaitingArea extends Component
 
     public function mount(): void
     {
-        $this->tanggal = now()->toDateString();
+        if (! $this->tanggalMulai) $this->tanggalMulai = now()->toDateString();
+        if (! $this->tanggalAkhir) $this->tanggalAkhir = now()->toDateString();
+        $this->clampRentang();
     }
 
-    public function updatingTanggal(): void    { $this->resetPage(); }
+    /**
+     * Jaga rentang tetap valid & tidak lebih dari MAKS_RENTANG_HARI --
+     * dipanggil tiap salah satu tanggal berubah. "Sampai" yang disesuaikan
+     * mengikuti "Dari" (bukan sebaliknya), supaya user yang baru pilih
+     * tanggal mulai tidak kaget tanggal itu ikut berubah sendiri.
+     */
+    private function clampRentang(): void
+    {
+        $mulai = \Carbon\Carbon::parse($this->tanggalMulai);
+        $akhir = \Carbon\Carbon::parse($this->tanggalAkhir);
+
+        if ($akhir->lt($mulai)) {
+            $akhir = $mulai->copy();
+        }
+
+        if ($mulai->diffInDays($akhir) > self::MAKS_RENTANG_HARI - 1) {
+            $akhir = $mulai->copy()->addDays(self::MAKS_RENTANG_HARI - 1);
+        }
+
+        $this->tanggalAkhir = $akhir->toDateString();
+    }
+
+    public function updatedTanggalMulai(): void { $this->clampRentang(); $this->resetPage(); }
+    public function updatedTanggalAkhir(): void  { $this->clampRentang(); $this->resetPage(); }
     public function updatingSearch(): void      { $this->resetPage(); }
     public function updatingFilterStatus(): void { $this->resetPage(); }
 
@@ -41,7 +72,8 @@ class WaitingArea extends Component
             'dokter.user:id,nama',
             'poli:id,nama',
         ])
-        ->whereDate('tanggal', $this->tanggal)
+        ->whereDate('tanggal', '>=', $this->tanggalMulai)
+        ->whereDate('tanggal', '<=', $this->tanggalAkhir)
         ->when($this->search, fn ($q, $s) =>
             $q->whereHas('pasien', fn ($pq) =>
                 $pq->where('nama', 'like', "%{$s}%")

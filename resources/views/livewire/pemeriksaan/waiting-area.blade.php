@@ -1,9 +1,15 @@
 <div>
     {{-- Toolbar --}}
     <div class="mb-4 flex flex-col sm:flex-row gap-3 justify-between">
-        <div class="flex flex-wrap gap-2">
-            <input wire:model.live="tanggal" type="date"
-                   class="form-input w-44 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
+        <div class="flex flex-wrap gap-2 items-center">
+            <div class="flex items-center gap-1.5" title="Rentang tanggal maksimal 1 bulan">
+                <input wire:model.live="tanggalMulai" type="date"
+                       class="form-input w-40 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
+                <span class="text-gray-400 text-sm">s/d</span>
+                <input wire:model.live="tanggalAkhir" type="date"
+                       min="{{ $tanggalMulai }}"
+                       class="form-input w-40 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
+            </div>
             <div class="relative">
                 <span class="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -23,8 +29,9 @@
                 <option value="">Semua Status</option>
             </select>
         </div>
-        <div class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-            Total: <span class="font-semibold">{{ $this->kunjungan->total() }}</span>
+        <div class="text-sm text-gray-500 dark:text-gray-400 flex flex-col items-end gap-0.5">
+            <span class="flex items-center gap-1">Total: <span class="font-semibold">{{ $this->kunjungan->total() }}</span></span>
+            <span class="text-[11px] text-gray-400">Rentang tanggal maksimal 1 bulan</span>
         </div>
     </div>
 

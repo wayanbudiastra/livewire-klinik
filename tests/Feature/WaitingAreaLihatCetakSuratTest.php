@@ -78,7 +78,8 @@ class WaitingAreaLihatCetakSuratTest extends TestCase
         $kunjungan = $this->buatKunjunganSelesai();
 
         Livewire::test(WaitingArea::class)
-            ->set('tanggal', $kunjungan->tanggal->toDateString())
+            ->set('tanggalMulai', $kunjungan->tanggal->toDateString())
+            ->set('tanggalAkhir', $kunjungan->tanggal->toDateString())
             ->set('filterStatus', 'selesai')
             ->call('openView', $kunjungan->id)
             ->assertOk()
