@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="{{ ($surat->data['bahasa'] ?? 'id') === 'en' ? 'en' : 'id' }}">
 <head>
 <meta charset="UTF-8">
 <style>
@@ -17,60 +17,95 @@
 </style>
 </head>
 <body>
+@php
+    $bahasa = ($surat->data['bahasa'] ?? 'id') === 'en' ? 'en' : 'id';
+    $L = $bahasa === 'en' ? [
+        'title' => 'Certificate of Health', 'signed_below' => 'The undersigned, physician at',
+        'certifies' => 'hereby certifies that:', 'exam_result' => 'Physical Examination Results',
+        'blood_pressure' => 'Blood Pressure', 'heart_rate' => 'Heart Rate', 'temperature' => 'Temperature',
+        'body_weight' => 'Body Weight', 'body_height' => 'Body Height',
+        'colour_blindness' => 'Colour Blindness Examination',
+        'based_on_exam' => 'Based on the examination conducted on', 'is_in' => 'the above-named is in',
+        'healthy_state' => 'HEALTHY', 'condition' => 'condition and fit for daily activities',
+        'for_purpose' => 'for the purpose of',
+        'closing' => 'This certificate is issued truthfully to be used as required.',
+    ] : [
+        'title' => 'Surat Keterangan Sehat', 'signed_below' => 'Yang bertanda tangan di bawah ini, dokter pada',
+        'certifies' => 'menerangkan bahwa:', 'exam_result' => 'Hasil Pemeriksaan Fisik',
+        'blood_pressure' => 'Tekanan Darah', 'heart_rate' => 'Nadi', 'temperature' => 'Suhu',
+        'body_weight' => 'Berat Badan', 'body_height' => 'Tinggi Badan',
+        'colour_blindness' => 'Pemeriksaan Buta Warna',
+        'based_on_exam' => 'Berdasarkan hasil pemeriksaan yang dilakukan pada tanggal', 'is_in' => 'yang bersangkutan dalam keadaan',
+        'healthy_state' => 'SEHAT', 'condition' => 'dan layak melakukan aktivitas sehari-hari',
+        'for_purpose' => 'untuk keperluan',
+        'closing' => 'Demikian surat keterangan ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.',
+    ];
+@endphp
 @include('surat._kop')
 
 <div class="judul">
-    <h2>Surat Keterangan Sehat</h2>
+    <h2>{{ $L['title'] }}</h2>
 </div>
 <div class="nomor">No: {{ $surat->nomor_surat }}</div>
 
-<p>Yang bertanda tangan di bawah ini, dokter pada <strong>{{ $klinik->nama }}</strong>, menerangkan bahwa:</p>
+<p>{{ $L['signed_below'] }} <strong>{{ $klinik->nama }}</strong>, {{ $L['certifies'] }}</p>
 
 @include('surat._identitas-pasien')
 
 @if(!empty($surat->data['vitals_snapshot']))
 @php $v = $surat->data['vitals_snapshot']; @endphp
 <div class="vitals">
-    <strong style="font-size:9px;">Hasil Pemeriksaan Fisik:</strong>
+    <strong style="font-size:9px;">{{ $L['exam_result'] }}:</strong>
     <table style="width:100%;margin-top:4px;">
         <tr>
             @if($v['tekanan_darah'] ?? null)
-            <td>Tekanan Darah: <strong>{{ $v['tekanan_darah'] }} mmHg</strong></td>
+            <td>{{ $L['blood_pressure'] }}: <strong>{{ $v['tekanan_darah'] }} mmHg</strong></td>
             @endif
             @if($v['nadi'] ?? null)
-            <td>Nadi: <strong>{{ $v['nadi'] }} x/mnt</strong></td>
+            <td>{{ $L['heart_rate'] }}: <strong>{{ $v['nadi'] }} x/mnt</strong></td>
             @endif
             @if($v['suhu'] ?? null)
-            <td>Suhu: <strong>{{ $v['suhu'] }} °C</strong></td>
+            <td>{{ $L['temperature'] }}: <strong>{{ $v['suhu'] }} °C</strong></td>
             @endif
         </tr>
         <tr>
             @if($v['berat_badan'] ?? null)
-            <td>Berat Badan: <strong>{{ $v['berat_badan'] }} kg</strong></td>
+            <td>{{ $L['body_weight'] }}: <strong>{{ $v['berat_badan'] }} kg</strong></td>
             @endif
             @if($v['tinggi_badan'] ?? null)
-            <td>Tinggi Badan: <strong>{{ $v['tinggi_badan'] }} cm</strong></td>
+            <td>{{ $L['body_height'] }}: <strong>{{ $v['tinggi_badan'] }} cm</strong></td>
             @endif
             @if($v['bmi'] ?? null)
             <td>IMT/BMI: <strong>{{ $v['bmi'] }}</strong></td>
             @endif
         </tr>
+        @if(!empty($surat->data['buta_warna']))
+        <tr>
+            <td colspan="3">{{ $L['colour_blindness'] }}: <strong>{{ \App\Models\SuratKeterangan::labelButaWarna($surat->data['buta_warna'], $bahasa) }}</strong></td>
+        </tr>
+        @endif
+    </table>
+</div>
+@elseif(!empty($surat->data['buta_warna']))
+<div class="vitals">
+    <table style="width:100%;">
+        <tr><td>{{ $L['colour_blindness'] }}: <strong>{{ \App\Models\SuratKeterangan::labelButaWarna($surat->data['buta_warna'], $bahasa) }}</strong></td></tr>
     </table>
 </div>
 @endif
 
 <div class="isi">
-    Berdasarkan hasil pemeriksaan yang dilakukan pada tanggal
-    <strong>{{ \Carbon\Carbon::parse($kunjungan->tanggal_kunjungan ?? $surat->dicetak_pada)->translatedFormat('d F Y') }}</strong>,
-    yang bersangkutan dalam keadaan <strong>SEHAT</strong> dan layak melakukan aktivitas sehari-hari
+    {{ $L['based_on_exam'] }}
+    <strong>{{ \Carbon\Carbon::parse($kunjungan->tanggal_kunjungan ?? $surat->dicetak_pada)->locale($bahasa)->translatedFormat('d F Y') }}</strong>,
+    {{ $L['is_in'] }} <strong>{{ $L['healthy_state'] }}</strong> {{ $L['condition'] }}
     @if(!empty($surat->data['keperluan']))
-        untuk keperluan <strong>{{ $surat->data['keperluan'] }}</strong>.
+        {{ $L['for_purpose'] }} <strong>{{ $surat->data['keperluan'] }}</strong>.
     @else
         .
     @endif
 </div>
 
-<p>Demikian surat keterangan ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.</p>
+<p>{{ $L['closing'] }}</p>
 
 @include('surat._ttd-dokter')
 

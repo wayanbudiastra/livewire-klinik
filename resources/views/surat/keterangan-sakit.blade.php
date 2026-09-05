@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="{{ ($surat->data['bahasa'] ?? 'id') === 'en' ? 'en' : 'id' }}">
 <head>
 <meta charset="UTF-8">
 <style>
@@ -16,44 +16,64 @@
 </style>
 </head>
 <body>
+@php
+    $bahasa = ($surat->data['bahasa'] ?? 'id') === 'en' ? 'en' : 'id';
+    $L = $bahasa === 'en' ? [
+        'title' => 'Certificate of Sick Leave', 'signed_below' => 'The undersigned, physician at',
+        'certifies' => 'hereby certifies that:', 'based_on_exam' => 'Based on the examination conducted on',
+        'needs_rest' => 'the above-named needs', 'rest_word' => 'REST', 'for_duration' => 'for',
+        'days' => 'day(s)', 'starting' => 'starting from', 'until' => 'until',
+        'diagnosis' => 'Diagnosis', 'primary' => 'Primary',
+        'rest_notice' => 'During the rest period, the above-named is advised not to engage in strenuous activities.',
+        'closing' => 'This certificate is issued truthfully to be used as required.',
+    ] : [
+        'title' => 'Surat Keterangan Sakit', 'signed_below' => 'Yang bertanda tangan di bawah ini, dokter pada',
+        'certifies' => 'menerangkan bahwa:', 'based_on_exam' => 'Berdasarkan hasil pemeriksaan yang dilakukan pada tanggal',
+        'needs_rest' => 'yang bersangkutan perlu', 'rest_word' => 'ISTIRAHAT', 'for_duration' => 'selama',
+        'days' => 'hari', 'starting' => 'terhitung mulai tanggal', 'until' => 'sampai dengan',
+        'diagnosis' => 'Diagnosa', 'primary' => 'Utama',
+        'rest_notice' => 'Selama masa istirahat yang bersangkutan tidak diperkenankan melakukan kegiatan yang berat.',
+        'closing' => 'Demikian surat keterangan ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.',
+    ];
+@endphp
 @include('surat._kop')
 
 <div class="judul">
-    <h2>Surat Keterangan Sakit</h2>
+    <h2>{{ $L['title'] }}</h2>
 </div>
 <div class="nomor">No: {{ $surat->nomor_surat }}</div>
 
-<p>Yang bertanda tangan di bawah ini, dokter pada <strong>{{ $klinik->nama }}</strong>, menerangkan bahwa:</p>
+<p>{{ $L['signed_below'] }} <strong>{{ $klinik->nama }}</strong>, {{ $L['certifies'] }}</p>
 
 @include('surat._identitas-pasien')
 
 @php
     $d     = $surat->data;
-    $mulai = \Carbon\Carbon::parse($d['tanggal_mulai'])->translatedFormat('d F Y');
-    $akhir = \Carbon\Carbon::parse($d['tanggal_selesai'])->translatedFormat('d F Y');
-    $tglKunjungan = \Carbon\Carbon::parse($kunjungan->tanggal_kunjungan ?? $surat->dicetak_pada)->translatedFormat('d F Y');
+    $mulai = \Carbon\Carbon::parse($d['tanggal_mulai'])->locale($bahasa)->translatedFormat('d F Y');
+    $akhir = \Carbon\Carbon::parse($d['tanggal_selesai'])->locale($bahasa)->translatedFormat('d F Y');
+    $tglKunjungan = \Carbon\Carbon::parse($kunjungan->tanggal_kunjungan ?? $surat->dicetak_pada)->locale($bahasa)->translatedFormat('d F Y');
 @endphp
 
 <div class="isi">
-    Berdasarkan hasil pemeriksaan yang dilakukan pada tanggal <strong>{{ $tglKunjungan }}</strong>,
-    yang bersangkutan perlu <strong>ISTIRAHAT</strong> selama
-    <strong>{{ $d['lama_hari'] }} ({{ \App\Helpers\Terbilang::convert($d['lama_hari']) }}) hari</strong>,
-    terhitung mulai tanggal <strong>{{ $mulai }}</strong> sampai dengan <strong>{{ $akhir }}</strong>.
+    {{ $L['based_on_exam'] }} <strong>{{ $tglKunjungan }}</strong>,
+    {{ $L['needs_rest'] }} <strong>{{ $L['rest_word'] }}</strong> {{ $L['for_duration'] }}
+    <strong>{{ $d['lama_hari'] }} ({{ \App\Helpers\Terbilang::convert($d['lama_hari']) }}) {{ $L['days'] }}</strong>,
+    {{ $L['starting'] }} <strong>{{ $mulai }}</strong> {{ $L['until'] }} <strong>{{ $akhir }}</strong>.
 </div>
 
 @if(!empty($d['tampilkan_diagnosa']) && !empty($d['diagnosa_snapshot']))
 <div class="diagnosa-box">
-    <strong>Diagnosa:</strong><br>
+    <strong>{{ $L['diagnosis'] }}:</strong><br>
     @foreach($d['diagnosa_snapshot'] as $dx)
     <span style="{{ $dx['is_primary'] ? 'font-weight:bold' : '' }}">
-        {{ $dx['kode'] }} — {{ $dx['nama'] }}{{ $dx['is_primary'] ? ' (Utama)' : '' }}
+        {{ $dx['kode'] }} — {{ $dx['nama'] }}{{ $dx['is_primary'] ? ' (' . $L['primary'] . ')' : '' }}
     </span><br>
     @endforeach
 </div>
 @endif
 
-<p>Selama masa istirahat yang bersangkutan tidak diperkenankan melakukan kegiatan yang berat.</p>
-<p>Demikian surat keterangan ini dibuat dengan sebenarnya untuk dipergunakan sebagaimana mestinya.</p>
+<p>{{ $L['rest_notice'] }}</p>
+<p>{{ $L['closing'] }}</p>
 
 @include('surat._ttd-dokter')
 

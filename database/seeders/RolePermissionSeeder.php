@@ -69,6 +69,10 @@ class RolePermissionSeeder extends Seeder
             // eksklusif ke role dokter (lihat seed role di bawah), tidak
             // ikut dibagikan lewat 'Hak Akses Tambahan' ke role lain.
             'soap.revisi',
+
+            // Revisi Surat Keterangan yang sudah terbit -- pola sama
+            // persis dengan soap.revisi, eksklusif dokter.
+            'surat.revisi',
         ];
 
         foreach ($permissions as $perm) {
@@ -96,6 +100,7 @@ class RolePermissionSeeder extends Seeder
                 'kunjungan.view', 'kunjungan.edit',
                 'asesmen.view', 'asesmen.create', 'asesmen.edit',
                 'soap.view', 'soap.create', 'soap.edit', 'soap.revisi',
+                'surat.revisi',
                 'resep.view', 'resep.create', 'resep.edit',
                 'tindakan.view', 'tindakan.create',
                 'laporan.view',

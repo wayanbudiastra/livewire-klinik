@@ -5,6 +5,7 @@ namespace App\Livewire\Pemeriksaan;
 use App\Models\Dokter;
 use App\Models\Kunjungan;
 use App\Models\SuratKeterangan;
+use App\Models\TujuanRujukan;
 use App\Services\Pemeriksaan\SuratKeteranganService;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -18,8 +19,12 @@ class CetakSurat extends Component
     public string $tipe     = '';
     public ?int   $dokterId = null;
 
+    /** Bahasa dokumen -- dipakai keterangan_sehat, keterangan_sakit, resume_medis. */
+    public string $bahasa = 'id';
+
     // Keterangan Sehat
-    public string $keperluan = '';
+    public string $keperluan  = '';
+    public string $butaWarna  = ''; // '', normal, parsial, total
 
     // Keterangan Sakit
     public string $tanggalMulai      = '';
@@ -37,13 +42,17 @@ class CetakSurat extends Component
     public string $instruksi      = '';
 
     // Resume Medis
-    public string $bahasaResume     = 'id';
     public string $escorted         = '';
     public string $flight           = '';
     public string $recommendation   = '';
     public string $fasilitasBandara = '';
 
     public ?string $errorMsg = null;
+
+    // ── Revisi surat yang sudah terbit (khusus dokter, wajib alasan) ─
+    public ?int $editingSuratId  = null;
+    public bool $showRevisiPrompt = false;
+    public string $alasanRevisi   = '';
 
     public function mount(int $kunjunganId): void
     {
@@ -70,8 +79,20 @@ class CetakSurat extends Component
     public function riwayatSurat()
     {
         return SuratKeterangan::where('kunjungan_id', $this->kunjunganId)
-            ->with(['dokter.user', 'dicetakOleh'])
+            ->with(['dokter.user', 'dicetakOleh', 'revisedBy'])
             ->orderByDesc('dicetak_pada')
+            ->get();
+    }
+
+    /** Saran tujuan rujukan (combobox create-on-the-fly) berdasarkan ketikan user. */
+    #[Computed]
+    public function tujuanRujukanSuggestions()
+    {
+        if (strlen($this->tujuanFasilitas) < 2) return collect();
+        return TujuanRujukan::aktif()
+            ->where('nama', 'like', "%{$this->tujuanFasilitas}%")
+            ->orderBy('nama')
+            ->limit(10)
             ->get();
     }
 
@@ -87,16 +108,22 @@ class CetakSurat extends Component
     {
         if ($this->kunjungan->status !== 'selesai') return [];
 
-        return $this->riwayatSurat->pluck('tipe')->unique()->values()->all();
+        // resume_medis sengaja dikecualikan -- SuratKeteranganService tidak
+        // menggerbang tipe ini dgn aturan "sekali per tipe" (pasien/keluarga
+        // sering perlu cetak ulang belakangan, lihat assertBelumDiterbitkanJikaSelesai()).
+        return $this->riwayatSurat->pluck('tipe')->unique()
+            ->reject(fn ($tipe) => $tipe === 'resume_medis')
+            ->values()->all();
     }
 
     public function buka(string $tipe): void
     {
-        $this->reset(['errorMsg', 'keperluan', 'tujuanFasilitas', 'tujuanDokter',
+        $this->reset(['errorMsg', 'keperluan', 'butaWarna', 'tujuanFasilitas', 'tujuanDokter',
                       'indikasi', 'instruksi', 'tampilkanDiagnosa', 'sertakanPenunjang',
-                      'escorted', 'flight', 'recommendation', 'fasilitasBandara']);
+                      'escorted', 'flight', 'recommendation', 'fasilitasBandara',
+                      'editingSuratId']);
 
-        $this->bahasaResume   = 'id';
+        $this->bahasa         = 'id';
         $this->tipe           = $tipe;
         $this->lamaHari       = 1;
         $this->tanggalMulai   = now()->toDateString();
@@ -110,6 +137,87 @@ class CetakSurat extends Component
         }
 
         $this->showModal = true;
+    }
+
+    // ── Revisi surat yang sudah terbit ────────────────────────────
+
+    public function mulaiEdit(int $suratId): void
+    {
+        $this->authorize('surat.revisi');
+
+        $surat = SuratKeterangan::findOrFail($suratId);
+        abort_unless($surat->kunjungan_id === $this->kunjunganId, 403);
+
+        $this->editingSuratId  = $surat->id;
+        $this->alasanRevisi    = '';
+        $this->showRevisiPrompt = true;
+    }
+
+    public function batalPromptRevisi(): void
+    {
+        $this->showRevisiPrompt = false;
+        $this->editingSuratId   = null;
+        $this->alasanRevisi     = '';
+    }
+
+    /** Alasan sudah diisi -> muat data surat ke form yang sama dengan alur cetak baru. */
+    public function konfirmasiRevisi(): void
+    {
+        $this->authorize('surat.revisi');
+
+        $this->validate([
+            'alasanRevisi' => 'required|string|min:5|max:500',
+        ], [
+            'alasanRevisi.required' => 'Alasan revisi wajib diisi.',
+            'alasanRevisi.min'      => 'Alasan revisi minimal 5 karakter, tuliskan yang jelas.',
+        ]);
+
+        $surat = SuratKeterangan::findOrFail($this->editingSuratId);
+        $d     = $surat->data ?? [];
+
+        $this->reset(['errorMsg', 'keperluan', 'butaWarna', 'tujuanFasilitas', 'tujuanDokter',
+                      'indikasi', 'instruksi', 'tampilkanDiagnosa', 'sertakanPenunjang',
+                      'escorted', 'flight', 'recommendation', 'fasilitasBandara']);
+
+        $this->tipe     = $surat->tipe;
+        $this->dokterId = $surat->dokter_id;
+        $this->bahasa   = $d['bahasa'] ?? 'id';
+
+        match ($surat->tipe) {
+            'keterangan_sehat' => $this->fill([
+                'keperluan' => $d['keperluan'] ?? '', 'butaWarna' => $d['buta_warna'] ?? '',
+            ]),
+            'keterangan_sakit' => $this->fill([
+                'tanggalMulai' => $d['tanggal_mulai'] ?? now()->toDateString(),
+                'lamaHari'     => $d['lama_hari'] ?? 1,
+                'tampilkanDiagnosa' => $d['tampilkan_diagnosa'] ?? false,
+            ]),
+            'rujukan' => $this->fill([
+                'tujuanFasilitas'   => $d['tujuan_fasilitas'] ?? '',
+                'tujuanDokter'      => $d['tujuan_dokter'] ?? '',
+                'indikasi'          => $d['indikasi'] ?? '',
+                'sertakanPenunjang' => !empty($d['penunjang_snapshot']),
+            ]),
+            'kontrol' => $this->fill([
+                'tanggalKontrol' => $d['tanggal_kontrol'] ?? now()->addDays(7)->toDateString(),
+                'instruksi'      => $d['instruksi'] ?? '',
+            ]),
+            'resume_medis' => $this->fill([
+                'escorted' => $d['escorted'] ?? '', 'flight' => $d['flight'] ?? '',
+                'recommendation' => $d['recommendation'] ?? '', 'fasilitasBandara' => $d['fasilitas_bandara'] ?? '',
+            ]),
+            default => null,
+        };
+
+        $this->showRevisiPrompt = false;
+        $this->showModal        = true;
+    }
+
+    public function batalEdit(): void
+    {
+        $this->showModal      = false;
+        $this->editingSuratId = null;
+        $this->alasanRevisi   = '';
     }
 
     public function cetak(): ?StreamedResponse
@@ -130,9 +238,6 @@ class CetakSurat extends Component
             'kontrol' => $rules += [
                 'tanggalKontrol' => 'required|date|after:today',
             ],
-            'resume_medis' => $rules += [
-                'bahasaResume' => 'required|in:id,en',
-            ],
             default => null,
         };
 
@@ -152,6 +257,7 @@ class CetakSurat extends Component
         $input = [
             'dokter_id'           => $this->dokterId,
             'keperluan'           => $this->keperluan,
+            'buta_warna'          => $this->butaWarna,
             'tanggal_mulai'       => $this->tanggalMulai,
             'lama_hari'           => $this->lamaHari,
             'tampilkan_diagnosa'  => $this->tampilkanDiagnosa,
@@ -161,7 +267,7 @@ class CetakSurat extends Component
             'sertakan_penunjang'  => $this->sertakanPenunjang,
             'tanggal_kontrol'     => $this->tanggalKontrol,
             'instruksi'           => $this->instruksi,
-            'bahasa'              => $this->bahasaResume,
+            'bahasa'              => $this->bahasa,
             'escorted'            => $this->escorted,
             'flight'              => $this->flight,
             'recommendation'      => $this->recommendation,
@@ -169,13 +275,18 @@ class CetakSurat extends Component
         ];
 
         try {
-            $surat = match ($this->tipe) {
-                'keterangan_sehat' => $service->simpanSehat($kunjungan, $input, auth()->id()),
-                'keterangan_sakit' => $service->simpanSakit($kunjungan, $input, auth()->id()),
-                'rujukan'          => $service->simpanRujukan($kunjungan, $input, auth()->id()),
-                'kontrol'          => $service->simpanKontrol($kunjungan, $input, auth()->id()),
-                'resume_medis'     => $service->simpanResumeMedis($kunjungan, $input, auth()->id()),
-            };
+            if ($this->editingSuratId) {
+                $surat = SuratKeterangan::findOrFail($this->editingSuratId);
+                $surat = $service->editSurat($surat, $input, auth()->id(), $this->alasanRevisi);
+            } else {
+                $surat = match ($this->tipe) {
+                    'keterangan_sehat' => $service->simpanSehat($kunjungan, $input, auth()->id()),
+                    'keterangan_sakit' => $service->simpanSakit($kunjungan, $input, auth()->id()),
+                    'rujukan'          => $service->simpanRujukan($kunjungan, $input, auth()->id()),
+                    'kontrol'          => $service->simpanKontrol($kunjungan, $input, auth()->id()),
+                    'resume_medis'     => $service->simpanResumeMedis($kunjungan, $input, auth()->id()),
+                };
+            }
         } catch (\RuntimeException $e) {
             $this->errorMsg = $e->getMessage();
             return null;
@@ -184,8 +295,10 @@ class CetakSurat extends Component
         $pdfOutput = $service->pdfOutput($surat);
         $filename  = $surat->nomor_surat . '.pdf';
 
-        unset($this->kunjungan, $this->riwayatSurat, $this->dokterList);
-        $this->showModal = false;
+        unset($this->kunjungan, $this->riwayatSurat, $this->dokterList, $this->tujuanRujukanSuggestions);
+        $this->showModal      = false;
+        $this->editingSuratId = null;
+        $this->alasanRevisi   = '';
 
         return response()->streamDownload(
             fn () => print($pdfOutput),
