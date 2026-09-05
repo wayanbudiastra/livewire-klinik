@@ -304,7 +304,10 @@ class SuratKeteranganService
                 'bmi'           => $asesmen->bmi,
             ] : null,
             'anamnesis_snapshot'        => $asesmen?->anamnesis_awal,
-            'subjektif_snapshot'        => $soap->subjektif ?? $soap->s_cc_hpi ?? null,
+            // s_hpi (History of Present Illness) -- fallback ke kolom lama
+            // s_cc_hpi (gabungan CC+HPI, sebelum dipisah) & subjektif utk
+            // rekam medis lama.
+            'subjektif_snapshot'        => $soap->s_hpi ?? $soap->subjektif ?? $soap->s_cc_hpi ?? null,
             'objektif_snapshot'         => $soap->objektif ?? $soap->o_physical_exam ?? null,
             'plan_snapshot'             => $soap->plan ?? $soap->p_advice ?? null,
             'diagnosa_snapshot'         => $soap->icd_codes ?? [],

@@ -69,7 +69,7 @@ class RevisiSoapNoteTest extends TestCase
 
         $soap = SoapNoteModel::create([
             'kunjungan_id' => $kunjungan->id,
-            's_cc_hpi'     => 'Demam 3 hari',
+            's_hpi'     => 'Demam 3 hari',
             'icd_codes'    => [['kode' => 'A09', 'nama' => 'Diare', 'is_primary' => true]],
             'is_final'     => true,
             'finalized_at' => now(),
@@ -92,12 +92,12 @@ class RevisiSoapNoteTest extends TestCase
             ->call('konfirmasiRevisi')
             ->assertSet('sedangRevisi', true)
             ->assertSet('showRevisiPrompt', false)
-            ->set('sCcHpi', 'Demam 5 hari, direvisi')
+            ->set('sHpi', 'Demam 5 hari, direvisi')
             ->call('simpanRevisi')
             ->assertSet('sedangRevisi', false);
 
         $soap = $data['soap']->fresh();
-        $this->assertSame('Demam 5 hari, direvisi', $soap->s_cc_hpi);
+        $this->assertSame('Demam 5 hari, direvisi', $soap->s_hpi);
         $this->assertTrue($soap->is_final, 'is_final harus tetap true setelah revisi');
         $this->assertSame(1, $soap->revision_count);
         $this->assertSame($data['dokterUser']->id, $soap->revised_by);
@@ -106,8 +106,8 @@ class RevisiSoapNoteTest extends TestCase
 
         $log = Activity::where('log_name', 'soap_note')->where('subject_id', $soap->id)->latest()->first();
         $this->assertNotNull($log, 'Revisi harus tercatat di activity_log');
-        $this->assertSame('Demam 3 hari', $log->properties['sebelum']['s_cc_hpi']);
-        $this->assertSame('Demam 5 hari, direvisi', $log->properties['sesudah']['s_cc_hpi']);
+        $this->assertSame('Demam 3 hari', $log->properties['sebelum']['s_hpi']);
+        $this->assertSame('Demam 5 hari, direvisi', $log->properties['sesudah']['s_hpi']);
     }
 
     /** @test */
@@ -144,13 +144,13 @@ class RevisiSoapNoteTest extends TestCase
 
         // Bahkan kalau state sedangRevisi/showRevisiPrompt dipaksa true langsung
         // (skip mulaiRevisi), simpanRevisi tetap harus authorize() ulang & menolak.
-        $soapSebelum = $data['soap']->s_cc_hpi;
+        $soapSebelum = $data['soap']->s_hpi;
         Livewire::test(SoapNoteLivewire::class, ['kunjunganId' => $data['kunjungan']->id])
             ->set('sedangRevisi', true)
-            ->set('sCcHpi', 'Harusnya tidak tersimpan')
+            ->set('sHpi', 'Harusnya tidak tersimpan')
             ->call('simpanRevisi');
 
-        $this->assertSame($soapSebelum, $data['soap']->fresh()->s_cc_hpi, 'Perawat tidak boleh berhasil menyimpan revisi');
+        $this->assertSame($soapSebelum, $data['soap']->fresh()->s_hpi, 'Perawat tidak boleh berhasil menyimpan revisi');
     }
 
     /** @test */
@@ -184,12 +184,12 @@ class RevisiSoapNoteTest extends TestCase
             ->call('mulaiRevisi')
             ->set('alasanRevisi', 'Alasan percobaan revisi')
             ->call('konfirmasiRevisi')
-            ->set('sCcHpi', 'Perubahan yang akan dibatalkan')
+            ->set('sHpi', 'Perubahan yang akan dibatalkan')
             ->call('batalRevisi')
             ->assertSet('sedangRevisi', false)
-            ->assertSet('sCcHpi', 'Demam 3 hari'); // balik ke data tersimpan
+            ->assertSet('sHpi', 'Demam 3 hari'); // balik ke data tersimpan
 
-        $this->assertSame('Demam 3 hari', $data['soap']->fresh()->s_cc_hpi);
+        $this->assertSame('Demam 3 hari', $data['soap']->fresh()->s_hpi);
         $this->assertSame(0, $data['soap']->fresh()->revision_count);
     }
 }

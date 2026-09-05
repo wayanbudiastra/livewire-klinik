@@ -321,7 +321,8 @@
                 {{-- Subjective --}}
                 <div x-show="soapTab === 's'" x-cloak class="space-y-3 text-sm">
                     @foreach([
-                        'CC / HPI'              => $soap->s_cc_hpi,
+                        'Chief Complaint'        => $soap->s_chief_complaint,
+                        'History of Present Illness' => $soap->s_hpi ?? $soap->s_cc_hpi,
                         'Past Medical History'   => $soap->s_past_medical,
                         'Past Surgical History'  => $soap->s_past_surgical,
                         'Allergies'              => $soap->s_allergies,
@@ -334,7 +335,7 @@
                     </div>
                     @endif
                     @endforeach
-                    @if(!$soap->s_cc_hpi && !$soap->s_past_medical && !$soap->s_allergies)
+                    @if(!$soap->s_chief_complaint && !$soap->s_hpi && !$soap->s_cc_hpi && !$soap->s_past_medical && !$soap->s_allergies)
                     <p class="text-gray-400 italic text-center py-4">Tidak ada data subjective.</p>
                     @endif
                 </div>

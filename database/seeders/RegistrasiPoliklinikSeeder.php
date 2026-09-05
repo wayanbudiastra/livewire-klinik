@@ -45,7 +45,8 @@ class RegistrasiPoliklinikSeeder extends Seeder
                     'nadi' => 88, 'suhu' => 38.2, 'saturasi' => 98, 'gds' => null,
                     'anamnesis_awal' => 'Pasien mengeluh demam naik turun, batuk berdahak, dan pilek. Belum minum obat.'],
                 'soap' => [
-                    's_cc_hpi' => 'Demam, batuk berdahak, dan pilek sejak 3 hari. Tidak ada sesak napas.',
+                    's_chief_complaint' => 'Demam, batuk, dan pilek sejak 3 hari.',
+                    's_hpi' => 'Demam, batuk berdahak, dan pilek sejak 3 hari. Tidak ada sesak napas.',
                     's_past_medical' => 'Tidak ada riwayat penyakit kronis.',
                     's_past_surgical' => 'Tidak ada riwayat operasi.',
                     's_allergies' => 'Tidak ada riwayat alergi obat.',
@@ -78,7 +79,8 @@ class RegistrasiPoliklinikSeeder extends Seeder
                     'nadi' => 96, 'suhu' => 37.8, 'saturasi' => 98, 'gds' => null,
                     'anamnesis_awal' => 'BAB cair >5x/hari sejak kemarin, tidak ada darah/lendir. Masih bisa minum.'],
                 'soap' => [
-                    's_cc_hpi' => 'Diare cair >5x sejak 1 hari, disertai demam ringan dan mual.',
+                    's_chief_complaint' => 'Diare cair >5x/hari sejak kemarin.',
+                    's_hpi' => 'Diare cair >5x sejak 1 hari, disertai demam ringan dan mual.',
                     's_past_medical' => 'Tidak ada riwayat penyakit kronis.',
                     's_past_surgical' => 'Tidak ada riwayat operasi.',
                     's_allergies' => 'Tidak ada riwayat alergi obat.',
@@ -110,7 +112,8 @@ class RegistrasiPoliklinikSeeder extends Seeder
                     'nadi' => 84, 'suhu' => 36.7, 'saturasi' => 97, 'gds' => 110,
                     'anamnesis_awal' => 'Pasien rutin kontrol hipertensi, mengaku kadang lupa minum obat.'],
                 'soap' => [
-                    's_cc_hpi' => 'Kontrol rutin hipertensi, mengeluh pusing dan tengkuk berat 2 hari terakhir.',
+                    's_chief_complaint' => 'Kontrol hipertensi, pusing dan tengkuk berat.',
+                    's_hpi' => 'Kontrol rutin hipertensi, mengeluh pusing dan tengkuk berat 2 hari terakhir.',
                     's_past_medical' => 'Hipertensi sejak 5 tahun lalu, rutin kontrol tidak teratur.',
                     's_past_surgical' => 'Tidak ada riwayat operasi.',
                     's_allergies' => 'Tidak ada riwayat alergi obat.',
@@ -141,7 +144,8 @@ class RegistrasiPoliklinikSeeder extends Seeder
                     'nadi' => 80, 'suhu' => 36.5, 'saturasi' => 99, 'gds' => null,
                     'anamnesis_awal' => 'Mata kanan merah dan berair sejak 2 hari, ada kotoran mata saat bangun pagi.'],
                 'soap' => [
-                    's_cc_hpi' => 'Mata kanan merah, berair, gatal, dan ada sekret mukopurulen sejak 2 hari.',
+                    's_chief_complaint' => 'Mata kanan merah dan berair sejak 2 hari.',
+                    's_hpi' => 'Mata kanan merah, berair, gatal, dan ada sekret mukopurulen sejak 2 hari.',
                     's_past_medical' => 'Tidak ada riwayat penyakit mata sebelumnya.',
                     's_past_surgical' => 'Tidak ada riwayat operasi.',
                     's_allergies' => 'Riwayat alergi debu.',
@@ -172,7 +176,8 @@ class RegistrasiPoliklinikSeeder extends Seeder
                     'nadi' => 82, 'suhu' => 36.6, 'saturasi' => 98, 'gds' => null,
                     'anamnesis_awal' => 'Nyeri ulu hati seperti terbakar, mual, sering terlambat makan karena kerja shift.'],
                 'soap' => [
-                    's_cc_hpi' => 'Nyeri ulu hati seperti terbakar sejak 4 hari, mual, kembung, memberat saat terlambat makan.',
+                    's_chief_complaint' => 'Nyeri ulu hati seperti terbakar sejak 4 hari.',
+                    's_hpi' => 'Nyeri ulu hati seperti terbakar sejak 4 hari, mual, kembung, memberat saat terlambat makan.',
                     's_past_medical' => 'Riwayat maag berulang dalam 1 tahun terakhir.',
                     's_past_surgical' => 'Tidak ada riwayat operasi.',
                     's_allergies' => 'Tidak ada riwayat alergi obat.',

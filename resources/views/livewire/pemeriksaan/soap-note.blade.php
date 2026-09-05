@@ -152,11 +152,23 @@
 
         <div class="grid grid-cols-1 gap-3">
             <div class="form-group">
-                <label class="form-label dark:text-gray-300">Chief Complaint & History of Present Illness (CC + HPI)</label>
-                <textarea wire:model="{{ $this->isLocked() ? '' : 'sCcHpi' }}" rows="3"
+                <label class="form-label dark:text-gray-300">
+                    Chief Complaint
+                    @if($this->kunjungan?->keluhan || $this->kunjungan?->asesmenPerawat?->anamnesis_awal)
+                    <span class="text-xs text-gray-400 font-normal">(otomatis dari keluhan pendaftaran/asesmen perawat, bisa diedit)</span>
+                    @endif
+                </label>
+                <textarea wire:model="{{ $this->isLocked() ? '' : 'sChiefComplaint' }}" rows="2"
+                          @if($this->isLocked()) readonly @endif
+                          placeholder="Keluhan utama pasien secara singkat..."
+                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $sChiefComplaint }}</textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label dark:text-gray-300">History of Present Illness</label>
+                <textarea wire:model="{{ $this->isLocked() ? '' : 'sHpi' }}" rows="3"
                           @if($this->isLocked()) readonly @endif
                           placeholder="Pasien datang dengan keluhan... sejak... disertai..."
-                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $sCcHpi }}</textarea>
+                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $sHpi }}</textarea>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div class="form-group">

@@ -13,7 +13,7 @@ class SoapNote extends Component
 {
     /** Kolom isi SOAP yang dicatat before/after tiap revisi ke activity_log. */
     private const KOLOM_ISI = [
-        's_cc_hpi', 's_past_medical', 's_past_surgical', 's_allergies', 's_other',
+        's_chief_complaint', 's_hpi', 's_past_medical', 's_past_surgical', 's_allergies', 's_other',
         'o_physical_exam', 'o_systemic_exam', 'o_observation', 'o_other',
         'icd_codes', 'a_problems', 'a_progress_note', 'a_other',
         'p_advice', 'p_other',
@@ -24,7 +24,9 @@ class SoapNote extends Component
     public string $activeSection = 's';
 
     // ── Subjective ────────────────────────────────────────────
-    public string $sCcHpi         = '';
+    /** Keluhan singkat -- default terisi dari asesmen_perawat.anamnesis_awal / kunjungan.keluhan, bisa diedit. */
+    public string $sChiefComplaint = '';
+    public string $sHpi           = '';
     public string $sPastMedical   = '';
     public string $sPastSurgical  = '';
     public string $sAllergies     = '';
@@ -60,6 +62,7 @@ class SoapNote extends Component
     {
         $this->loadExisting();
         $this->autoFillAllergies();
+        $this->autoFillChiefComplaint();
     }
 
     private function loadExisting(): void
@@ -70,7 +73,10 @@ class SoapNote extends Component
         $this->soapId       = $soap->id;
         $this->isFinal      = $soap->is_final;
 
-        $this->sCcHpi        = $soap->s_cc_hpi       ?? '';
+        $this->sChiefComplaint = $soap->s_chief_complaint ?? '';
+        // s_hpi baru -- fallback ke s_cc_hpi (kolom lama, gabungan) utk
+        // rekam medis yang dibuat sebelum field ini dipisah.
+        $this->sHpi           = $soap->s_hpi ?? $soap->s_cc_hpi ?? '';
         $this->sPastMedical  = $soap->s_past_medical  ?? '';
         $this->sPastSurgical = $soap->s_past_surgical ?? '';
         $this->sAllergies    = $soap->s_allergies     ?? '';
@@ -97,6 +103,24 @@ class SoapNote extends Component
         if ($kunjungan?->pasien?->alergi) {
             $this->sAllergies = $kunjungan->pasien->alergi;
         }
+    }
+
+    /**
+     * Kalau dokter belum isi Chief Complaint, pre-fill dari rantai yang
+     * sudah ada: Anamnesis/Keluhan Utama perawat (asesmen_perawat.
+     * anamnesis_awal, yang sendiri sudah auto-terisi dari kunjungan.keluhan
+     * saat pendaftaran -- lihat DetailPemeriksaan::loadData()) atau kalau
+     * itu juga kosong, langsung dari kunjungan.keluhan. Tetap bisa diedit,
+     * bukan field read-only.
+     */
+    private function autoFillChiefComplaint(): void
+    {
+        if ($this->sChiefComplaint) return;
+
+        $kunjungan = Kunjungan::with('asesmenPerawat')->find($this->kunjunganId);
+        $this->sChiefComplaint = $kunjungan?->asesmenPerawat?->anamnesis_awal
+            ?: $kunjungan?->keluhan
+            ?: '';
     }
 
     #[Computed]
@@ -304,7 +328,8 @@ class SoapNote extends Component
         $soap = SoapNoteModel::updateOrCreate(
             ['kunjungan_id' => $this->kunjunganId],
             [
-                's_cc_hpi'       => $this->sCcHpi        ?: null,
+                's_chief_complaint' => $this->sChiefComplaint ?: null,
+                's_hpi'           => $this->sHpi          ?: null,
                 's_past_medical'  => $this->sPastMedical  ?: null,
                 's_past_surgical' => $this->sPastSurgical ?: null,
                 's_allergies'     => $this->sAllergies    ?: null,

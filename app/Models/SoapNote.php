@@ -11,7 +11,7 @@ class SoapNote extends Model
     protected $fillable = [
         'kunjungan_id',
         // Subjective
-        'subjektif', 's_cc_hpi', 's_past_medical', 's_past_surgical', 's_allergies', 's_other',
+        'subjektif', 's_chief_complaint', 's_hpi', 's_cc_hpi', 's_past_medical', 's_past_surgical', 's_allergies', 's_other',
         // Objective
         'objektif', 'o_physical_exam', 'o_systemic_exam', 'o_observation', 'o_other',
         // Assessment
