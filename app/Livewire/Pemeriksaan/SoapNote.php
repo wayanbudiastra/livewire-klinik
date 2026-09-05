@@ -14,9 +14,9 @@ class SoapNote extends Component
     /** Kolom isi SOAP yang dicatat before/after tiap revisi ke activity_log. */
     private const KOLOM_ISI = [
         's_chief_complaint', 's_hpi', 's_past_medical', 's_past_surgical', 's_allergies', 's_other',
-        'o_physical_exam', 'o_systemic_exam', 'o_observation', 'o_other',
-        'icd_codes', 'a_problems', 'a_progress_note', 'a_other',
-        'p_advice', 'p_other',
+        'o_physical_exam', 'o_supporting_examination',
+        'icd_codes', 'a_primary_diagnosis', 'a_differential_diagnosis',
+        'p_treatment', 'p_advice', 'p_transportation', 'p_escort', 'p_notes',
     ];
 
     public int $kunjunganId;
@@ -34,20 +34,20 @@ class SoapNote extends Component
 
     // ── Objective (vitals auto dari asesmen) ─────────────────
     public string $oPhysicalExam  = '';
-    public string $oSystemicExam  = '';
-    public string $oObservation   = '';
-    public string $oOther         = '';
+    public string $oSupportingExamination = '';
 
     // ── Assessment ────────────────────────────────────────────
     public string $searchIcd      = '';
     public array  $diagnoses      = [];
-    public string $aProblems      = '';
-    public string $aProgressNote  = '';
-    public string $aOther         = '';
+    public string $aPrimaryDiagnosis      = '';
+    public string $aDifferentialDiagnosis = '';
 
     // ── Planning ──────────────────────────────────────────────
-    public string $pAdvice        = '';
-    public string $pOther         = '';
+    public string $pTreatment      = '';
+    public string $pAdvice         = '';
+    public string $pTransportation = ''; // '', fit_to_fly, not_fit_to_fly
+    public string $pEscort         = ''; // '', medical_escort, non_medical_escort, no_escort
+    public string $pNotes          = '';
 
     // ── State ─────────────────────────────────────────────────
     public bool   $isFinal        = false;
@@ -82,18 +82,18 @@ class SoapNote extends Component
         $this->sAllergies    = $soap->s_allergies     ?? '';
         $this->sOther        = $soap->s_other         ?? '';
 
-        $this->oPhysicalExam = $soap->o_physical_exam ?? '';
-        $this->oSystemicExam = $soap->o_systemic_exam ?? '';
-        $this->oObservation  = $soap->o_observation   ?? '';
-        $this->oOther        = $soap->o_other         ?? '';
+        $this->oPhysicalExam          = $soap->o_physical_exam         ?? '';
+        $this->oSupportingExamination = $soap->o_supporting_examination ?? '';
 
-        $this->diagnoses     = $soap->icd_codes       ?? [];
-        $this->aProblems     = $soap->a_problems      ?? '';
-        $this->aProgressNote = $soap->a_progress_note ?? '';
-        $this->aOther        = $soap->a_other         ?? '';
+        $this->diagnoses             = $soap->icd_codes              ?? [];
+        $this->aPrimaryDiagnosis     = $soap->a_primary_diagnosis    ?? '';
+        $this->aDifferentialDiagnosis = $soap->a_differential_diagnosis ?? '';
 
-        $this->pAdvice       = $soap->p_advice        ?? '';
-        $this->pOther        = $soap->p_other         ?? '';
+        $this->pTreatment       = $soap->p_treatment      ?? '';
+        $this->pAdvice          = $soap->p_advice         ?? '';
+        $this->pTransportation  = $soap->p_transportation ?? '';
+        $this->pEscort          = $soap->p_escort         ?? '';
+        $this->pNotes           = $soap->p_notes          ?? '';
     }
 
     private function autoFillAllergies(): void
@@ -166,6 +166,48 @@ class SoapNote extends Component
             'SpO2'  => $a->saturasi     ? $a->saturasi.'%'        : null,
             'GDS'   => $a->gds          ? $a->gds.' mg/dL'        : null,
         ]);
+    }
+
+    /**
+     * Ringkasan obat yang sudah diresepkan (dari modul Resep/Medication) --
+     * read-only di sini, sesuai keputusan user: SOAP Planning cuma
+     * menampilkan, bukan input ulang. Hanya resep yang sudah is_locked
+     * (dikunci/di-charge) yang dihitung, sama seperti pola di
+     * SuratKeteranganService::buildDataResumeMedis().
+     */
+    #[Computed]
+    public function resepSummary()
+    {
+        $kunjungan = Kunjungan::with(['resep.itemResep.barang', 'resep.racikan.bahanRacikan.barang'])
+            ->find($this->kunjunganId);
+
+        $ringkasan = collect();
+        foreach ($kunjungan?->resep->where('is_locked', true) ?? [] as $resep) {
+            foreach ($resep->itemResep as $ir) {
+                $ringkasan->push([
+                    'nama'         => $ir->barang->nama ?? '-',
+                    'aturan_pakai' => $ir->aturan_pakai ?? '-',
+                    'jumlah'       => $ir->jumlah,
+                    'satuan'       => $ir->barang->satuan ?? '-',
+                ]);
+            }
+            foreach ($resep->racikan as $racikan) {
+                $ringkasan->push([
+                    'nama'         => $racikan->nama_racikan . ' (racikan)',
+                    'aturan_pakai' => $racikan->aturan_pakai ?? '-',
+                    'jumlah'       => 1,
+                    'satuan'       => 'racikan',
+                ]);
+            }
+        }
+
+        return $ringkasan;
+    }
+
+    /** Pindah ke tab Medication di DetailPemeriksaan -- dipicu dari link "Kelola Resep" di Planning. */
+    public function keTabMedication(): void
+    {
+        $this->dispatch('switch-section', section: 'obat');
     }
 
     /** Field sedang bisa diedit sekarang? (belum final, ATAU final tapi lagi mode revisi). */
@@ -328,22 +370,22 @@ class SoapNote extends Component
         $soap = SoapNoteModel::updateOrCreate(
             ['kunjungan_id' => $this->kunjunganId],
             [
-                's_chief_complaint' => $this->sChiefComplaint ?: null,
-                's_hpi'           => $this->sHpi          ?: null,
-                's_past_medical'  => $this->sPastMedical  ?: null,
-                's_past_surgical' => $this->sPastSurgical ?: null,
-                's_allergies'     => $this->sAllergies    ?: null,
-                's_other'         => $this->sOther        ?: null,
-                'o_physical_exam' => $this->oPhysicalExam ?: null,
-                'o_systemic_exam' => $this->oSystemicExam ?: null,
-                'o_observation'   => $this->oObservation  ?: null,
-                'o_other'         => $this->oOther        ?: null,
-                'icd_codes'       => $this->diagnoses,
-                'a_problems'      => $this->aProblems     ?: null,
-                'a_progress_note' => $this->aProgressNote ?: null,
-                'a_other'         => $this->aOther        ?: null,
-                'p_advice'        => $this->pAdvice       ?: null,
-                'p_other'         => $this->pOther        ?: null,
+                's_chief_complaint'        => $this->sChiefComplaint        ?: null,
+                's_hpi'                    => $this->sHpi                   ?: null,
+                's_past_medical'           => $this->sPastMedical           ?: null,
+                's_past_surgical'          => $this->sPastSurgical          ?: null,
+                's_allergies'              => $this->sAllergies             ?: null,
+                's_other'                  => $this->sOther                 ?: null,
+                'o_physical_exam'          => $this->oPhysicalExam          ?: null,
+                'o_supporting_examination' => $this->oSupportingExamination ?: null,
+                'icd_codes'                => $this->diagnoses,
+                'a_primary_diagnosis'      => $this->aPrimaryDiagnosis      ?: null,
+                'a_differential_diagnosis' => $this->aDifferentialDiagnosis ?: null,
+                'p_treatment'              => $this->pTreatment             ?: null,
+                'p_advice'                 => $this->pAdvice                ?: null,
+                'p_transportation'         => $this->pTransportation        ?: null,
+                'p_escort'                 => $this->pEscort                ?: null,
+                'p_notes'                  => $this->pNotes                 ?: null,
             ]
         );
 

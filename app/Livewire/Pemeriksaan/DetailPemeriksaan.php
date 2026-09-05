@@ -5,6 +5,7 @@ namespace App\Livewire\Pemeriksaan;
 use App\Models\Kunjungan;
 use App\Services\KunjunganService;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 
@@ -40,6 +41,13 @@ class DetailPemeriksaan extends Component
     {
         $this->loadData();
         $this->activeSection = 'identitas';
+    }
+
+    /** Dipicu dari link "Kelola Resep" di SOAP Note Planning -- lihat SoapNote::keTabMedication(). */
+    #[On('switch-section')]
+    public function switchSection(string $section): void
+    {
+        $this->activeSection = $section;
     }
 
     private function loadData(): void

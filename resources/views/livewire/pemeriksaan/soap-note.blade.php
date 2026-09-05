@@ -244,25 +244,11 @@
                           class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $oPhysicalExam }}</textarea>
             </div>
             <div class="form-group">
-                <label class="form-label dark:text-gray-300">Systemic Examination</label>
-                <textarea wire:model="{{ $this->isLocked() ? '' : 'oSystemicExam' }}" rows="3"
+                <label class="form-label dark:text-gray-300">Supporting Examination</label>
+                <textarea wire:model="{{ $this->isLocked() ? '' : 'oSupportingExamination' }}" rows="3"
                           @if($this->isLocked()) readonly @endif
-                          placeholder="Kepala, Toraks, Abdomen, Ekstremitas..."
-                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $oSystemicExam }}</textarea>
-            </div>
-            <div class="form-group">
-                <label class="form-label dark:text-gray-300">Observation</label>
-                <textarea wire:model="{{ $this->isLocked() ? '' : 'oObservation' }}" rows="2"
-                          @if($this->isLocked()) readonly @endif
-                          placeholder="Observasi umum pasien..."
-                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $oObservation }}</textarea>
-            </div>
-            <div class="form-group">
-                <label class="form-label dark:text-gray-300">Other (Objective)</label>
-                <textarea wire:model="{{ $this->isLocked() ? '' : 'oOther' }}" rows="2"
-                          @if($this->isLocked()) readonly @endif
-                          placeholder="Catatan objektif lainnya..."
-                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $oOther }}</textarea>
+                          placeholder="Hasil lab, radiologi, EKG, dan pemeriksaan penunjang lainnya..."
+                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $oSupportingExamination }}</textarea>
             </div>
         </div>
     </div>
@@ -372,25 +358,18 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div class="form-group">
-                <label class="form-label dark:text-gray-300">Problems</label>
-                <textarea wire:model="{{ $this->isLocked() ? '' : 'aProblems' }}" rows="2"
+                <label class="form-label dark:text-gray-300">Primary Diagnosis</label>
+                <textarea wire:model="{{ $this->isLocked() ? '' : 'aPrimaryDiagnosis' }}" rows="2"
                           @if($this->isLocked()) readonly @endif
-                          placeholder="Daftar masalah klinis..."
-                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $aProblems }}</textarea>
+                          placeholder="Diagnosis utama (naratif)..."
+                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $aPrimaryDiagnosis }}</textarea>
             </div>
             <div class="form-group">
-                <label class="form-label dark:text-gray-300">Progress Note</label>
-                <textarea wire:model="{{ $this->isLocked() ? '' : 'aProgressNote' }}" rows="2"
+                <label class="form-label dark:text-gray-300">Differential Diagnosis</label>
+                <textarea wire:model="{{ $this->isLocked() ? '' : 'aDifferentialDiagnosis' }}" rows="2"
                           @if($this->isLocked()) readonly @endif
-                          placeholder="Perkembangan klinis..."
-                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $aProgressNote }}</textarea>
-            </div>
-            <div class="form-group sm:col-span-2">
-                <label class="form-label dark:text-gray-300">Other (Assessment)</label>
-                <textarea wire:model="{{ $this->isLocked() ? '' : 'aOther' }}" rows="2"
-                          @if($this->isLocked()) readonly @endif
-                          placeholder="Catatan asesmen lainnya..."
-                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $aOther }}</textarea>
+                          placeholder="Diagnosis banding..."
+                          class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $aDifferentialDiagnosis }}</textarea>
             </div>
         </div>
     </div>
@@ -399,18 +378,73 @@
     @elseif($activeSection === 'p')
     <div class="space-y-3">
         <div class="form-group">
+            <label class="form-label dark:text-gray-300">Treatment</label>
+            <textarea wire:model="{{ $this->isLocked() ? '' : 'pTreatment' }}" rows="3"
+                      @if($this->isLocked()) readonly @endif
+                      placeholder="Tindakan/terapi yang diberikan..."
+                      class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $pTreatment }}</textarea>
+        </div>
+
+        {{-- Prescription Medicine -- ringkasan read-only dari modul Resep, bukan input ulang --}}
+        <div class="card p-3">
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">Prescription Medicine</p>
+                <button type="button" wire:click="keTabMedication" class="text-xs text-blue-500 hover:text-blue-700 font-medium">
+                    Kelola Resep →
+                </button>
+            </div>
+            @forelse($this->resepSummary as $item)
+            <div class="flex items-center justify-between text-sm py-1 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                <div>
+                    <span class="font-medium text-gray-800 dark:text-gray-200">{{ $item['nama'] }}</span>
+                    <span class="block text-xs text-gray-400">{{ $item['aturan_pakai'] }}</span>
+                </div>
+                <span class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">{{ $item['jumlah'] }} {{ $item['satuan'] }}</span>
+            </div>
+            @empty
+            <p class="text-xs text-gray-400 italic">Belum ada resep obat untuk kunjungan ini.</p>
+            @endforelse
+        </div>
+
+        <div class="form-group">
             <label class="form-label dark:text-gray-300">Advice (Saran & Instruksi untuk Pasien)</label>
             <textarea wire:model="{{ $this->isLocked() ? '' : 'pAdvice' }}" rows="4"
                       @if($this->isLocked()) readonly @endif
                       placeholder="Anjuran diet, aktivitas, kontrol ulang, rujukan... "
                       class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $pAdvice }}</textarea>
         </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="form-group">
+                <label class="form-label dark:text-gray-300">Transportation</label>
+                <select wire:model="{{ $this->isLocked() ? '' : 'pTransportation' }}"
+                        @if($this->isLocked()) disabled @endif
+                        class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">
+                    <option value="">-- Pilih --</option>
+                    @foreach(\App\Models\SoapNote::opsiTransportation() as $val => $label)
+                    <option value="{{ $val }}" @selected($pTransportation === $val)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label dark:text-gray-300">Escort</label>
+                <select wire:model="{{ $this->isLocked() ? '' : 'pEscort' }}"
+                        @if($this->isLocked()) disabled @endif
+                        class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">
+                    <option value="">-- Pilih --</option>
+                    @foreach(\App\Models\SoapNote::opsiEscort() as $val => $label)
+                    <option value="{{ $val }}" @selected($pEscort === $val)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+
         <div class="form-group">
-            <label class="form-label dark:text-gray-300">Other (Planning)</label>
-            <textarea wire:model="{{ $this->isLocked() ? '' : 'pOther' }}" rows="2"
+            <label class="form-label dark:text-gray-300">Notes</label>
+            <textarea wire:model="{{ $this->isLocked() ? '' : 'pNotes' }}" rows="2"
                       @if($this->isLocked()) readonly @endif
                       placeholder="Catatan perencanaan lainnya..."
-                      class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $pOther }}</textarea>
+                      class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $pNotes }}</textarea>
         </div>
     </div>
     @endif

@@ -132,8 +132,18 @@ class CetakSurat extends Component
 
         $soap = $this->kunjungan->soapNote;
         if ($soap) {
-            $this->indikasi  = $soap->a_problems ?? '';
+            // a_problems kolom lama (Assessment sudah direstrukturisasi jadi
+            // Primary/Differential Diagnosis) -- fallback ke a_primary_diagnosis
+            // supaya auto-fill indikasi rujukan tetap jalan utk SOAP baru.
+            $this->indikasi  = $soap->a_problems ?? $soap->a_primary_diagnosis ?? '';
             $this->instruksi = $soap->p_advice ?? '';
+
+            // Resume Medis: auto-isi Escorted/Recommendation dari pilihan
+            // Escort/Transportation di SOAP Planning -- tetap bisa diedit manual di sini.
+            if ($tipe === 'resume_medis') {
+                $this->escorted       = $soap->label_escort ?? '';
+                $this->recommendation = $soap->label_transportation ?? '';
+            }
         }
 
         $this->showModal = true;
