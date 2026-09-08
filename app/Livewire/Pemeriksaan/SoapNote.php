@@ -5,12 +5,17 @@ namespace App\Livewire\Pemeriksaan;
 use App\Models\AsesmenPerawat;
 use App\Models\IcdDiagnosis;
 use App\Models\Kunjungan;
+use App\Models\SoapLampiran as SoapLampiranModel;
 use App\Models\SoapNote as SoapNoteModel;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class SoapNote extends Component
 {
+    use WithFileUploads;
+
     /** Kolom isi SOAP yang dicatat before/after tiap revisi ke activity_log. */
     private const KOLOM_ISI = [
         's_chief_complaint', 's_hpi', 's_past_medical', 's_past_surgical', 's_allergies', 's_other',
@@ -57,6 +62,12 @@ class SoapNote extends Component
     public bool   $sedangRevisi     = false;
     public bool   $showRevisiPrompt = false;
     public string $alasanRevisi     = '';
+
+    // ── Lampiran (foto luka, hasil jahitan, radiologi, dll) ───
+    /** @var \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null */
+    public $lampiranBaru = null;
+    public string $kategoriLampiran   = '';
+    public string $keteranganLampiran = '';
 
     public function mount(): void
     {
@@ -208,6 +219,74 @@ class SoapNote extends Component
     public function keTabMedication(): void
     {
         $this->dispatch('switch-section', section: 'obat');
+    }
+
+    /**
+     * Lampiran dokumen/foto (foto luka, hasil jahitan, radiologi, dll --
+     * permintaan user). Ditautkan ke kunjungan_id, jadi bisa diupload
+     * kapan saja terlepas dari status finalisasi SOAP Note.
+     */
+    #[Computed]
+    public function daftarLampiran()
+    {
+        return SoapLampiranModel::with('uploader:id,nama')
+            ->where('kunjungan_id', $this->kunjunganId)
+            ->latest()
+            ->get();
+    }
+
+    public function uploadLampiran(): void
+    {
+        $this->validate([
+            'lampiranBaru'     => ['required', 'file', 'mimes:jpg,jpeg,pdf', 'max:1024'],
+            'kategoriLampiran' => ['required', 'in:' . implode(',', array_keys(SoapLampiranModel::opsiKategori()))],
+        ], [
+            'lampiranBaru.required'     => 'Pilih file terlebih dahulu.',
+            'lampiranBaru.mimes'        => 'File harus berformat JPEG atau PDF.',
+            'lampiranBaru.max'          => 'Ukuran file maksimal 1 MB.',
+            'kategoriLampiran.required' => 'Pilih kategori dokumen terlebih dahulu.',
+        ]);
+
+        $path = $this->lampiranBaru->store("lampiran-soap/{$this->kunjunganId}", 'local');
+
+        $lampiran = SoapLampiranModel::create([
+            'kunjungan_id' => $this->kunjunganId,
+            'kategori'     => $this->kategoriLampiran,
+            'nama_file'    => $this->lampiranBaru->getClientOriginalName(),
+            'path'         => $path,
+            'mime_type'    => $this->lampiranBaru->getMimeType(),
+            'ukuran'       => $this->lampiranBaru->getSize(),
+            'keterangan'   => $this->keteranganLampiran ?: null,
+            'uploaded_by'  => auth()->id(),
+        ]);
+
+        activity('soap_lampiran')
+            ->performedOn($lampiran)
+            ->causedBy(auth()->user())
+            ->withProperties(['kategori' => $lampiran->kategori, 'nama_file' => $lampiran->nama_file])
+            ->log('Lampiran SOAP Note diupload');
+
+        $this->reset(['lampiranBaru', 'kategoriLampiran', 'keteranganLampiran']);
+        unset($this->daftarLampiran);
+        $this->dispatch('notify', type: 'success', message: 'Lampiran berhasil diupload.');
+    }
+
+    public function hapusLampiran(int $id): void
+    {
+        $lampiran = SoapLampiranModel::where('kunjungan_id', $this->kunjunganId)->findOrFail($id);
+
+        Storage::disk('local')->delete($lampiran->path);
+
+        activity('soap_lampiran')
+            ->performedOn($lampiran)
+            ->causedBy(auth()->user())
+            ->withProperties(['kategori' => $lampiran->kategori, 'nama_file' => $lampiran->nama_file])
+            ->log('Lampiran SOAP Note dihapus');
+
+        $lampiran->delete();
+
+        unset($this->daftarLampiran);
+        $this->dispatch('notify', type: 'success', message: 'Lampiran berhasil dihapus.');
     }
 
     /** Field sedang bisa diedit sekarang? (belum final, ATAU final tapi lagi mode revisi). */

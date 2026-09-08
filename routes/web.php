@@ -47,6 +47,15 @@ Route::middleware(['auth', 'active'])->group(function () {
         ->middleware('permission:asesmen.view')
         ->name('pemeriksaan.index');
 
+    // Lampiran SOAP Note (foto luka, hasil jahitan, radiologi, dll) --
+    // disk 'local' (private), sengaja digerbang permission yang sama dgn
+    // halaman pemeriksaan supaya konsisten dgn siapa saja yang bisa
+    // melihat SOAP Note kunjungan tsb.
+    Route::middleware('permission:asesmen.view')->get('/pemeriksaan/lampiran/{lampiran}/unduh', function (\App\Models\SoapLampiran $lampiran) {
+        abort_unless(\Illuminate\Support\Facades\Storage::disk('local')->exists($lampiran->path), 404);
+        return \Illuminate\Support\Facades\Storage::disk('local')->response($lampiran->path, $lampiran->nama_file);
+    })->name('pemeriksaan.lampiran.unduh');
+
     // Cetak Surat
     Route::middleware('permission:surat.cetak')->group(function () {
         Route::get('/pemeriksaan/surat/{surat}/unduh', function (\App\Models\SuratKeterangan $surat) {

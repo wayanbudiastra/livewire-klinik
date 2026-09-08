@@ -107,14 +107,15 @@
     </div>
     @enderror
 
-    {{-- Tab Navigasi S / O / A / P --}}
-    <div class="border-b border-gray-200 dark:border-gray-700">
+    {{-- Tab Navigasi S / O / A / P / Lampiran --}}
+    <div class="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
         <nav class="flex gap-0 -mb-px">
             @foreach([
-                's' => ['label' => 'S — Subjective', 'color' => 'blue'],
-                'o' => ['label' => 'O — Objective',  'color' => 'green'],
-                'a' => ['label' => 'A — Assessment',  'color' => 'amber'],
-                'p' => ['label' => 'P — Planning',    'color' => 'purple'],
+                's'    => ['label' => 'S — Subjective', 'color' => 'blue'],
+                'o'    => ['label' => 'O — Objective',  'color' => 'green'],
+                'a'    => ['label' => 'A — Assessment',  'color' => 'amber'],
+                'p'    => ['label' => 'P — Planning',    'color' => 'purple'],
+                'lamp' => ['label' => 'Lampiran',        'color' => 'gray'],
             ] as $key => $tab)
             <button type="button" wire:click="$set('activeSection', '{{ $key }}')"
                     @class([
@@ -126,6 +127,11 @@
                 @if($key === 'a' && count($diagnoses) > 0)
                 <span class="ml-1.5 inline-flex items-center justify-center h-4 w-4 rounded-full text-[10px] font-bold bg-[#0a3d62] text-white">
                     {{ count($diagnoses) }}
+                </span>
+                @endif
+                @if($key === 'lamp' && count($this->daftarLampiran) > 0)
+                <span class="ml-1.5 inline-flex items-center justify-center h-4 w-4 rounded-full text-[10px] font-bold bg-[#0a3d62] text-white">
+                    {{ count($this->daftarLampiran) }}
                 </span>
                 @endif
             </button>
@@ -447,6 +453,98 @@
                       class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 {{ $this->isLocked() ? 'bg-gray-50 cursor-not-allowed' : '' }}">{{ $pNotes }}</textarea>
         </div>
     </div>
+
+    {{-- ══════════ LAMPIRAN ══════════ --}}
+    @elseif($activeSection === 'lamp')
+    <div class="space-y-3">
+        <div class="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10 px-3 py-2 text-xs text-blue-700 dark:text-blue-300">
+            Upload foto luka, foto hasil jahitan, gambaran radiologis, file ekspertise radiologi, surat persetujuan tindakan, atau dokumen pendukung lainnya.
+            Format JPEG/PDF, ukuran maksimal 1 MB per file. Lampiran tetap bisa ditambah kapan saja, termasuk setelah SOAP Note difinalisasi.
+        </div>
+
+        {{-- Form upload --}}
+        <div class="card p-3 space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="form-group">
+                    <label class="form-label dark:text-gray-300">Kategori Dokumen <span class="text-red-500">*</span></label>
+                    <select wire:model="kategoriLampiran" class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200">
+                        <option value="">-- Pilih Kategori --</option>
+                        @foreach(\App\Models\SoapLampiran::opsiKategori() as $val => $label)
+                        <option value="{{ $val }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    @error('kategoriLampiran') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div class="form-group">
+                    <label class="form-label dark:text-gray-300">File (JPEG/PDF, maks. 1 MB) <span class="text-red-500">*</span></label>
+                    <input type="file" wire:model="lampiranBaru" accept=".jpg,.jpeg,.pdf,image/jpeg,application/pdf"
+                           class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
+                    <div wire:loading wire:target="lampiranBaru" class="text-xs text-gray-400 mt-1">Mengunggah...</div>
+                    @error('lampiranBaru') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label dark:text-gray-300">Keterangan (opsional)</label>
+                <input type="text" wire:model="keteranganLampiran" placeholder="mis. Luka kaki kanan, hasil rontgen thorax..."
+                       class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
+            </div>
+            <div class="flex justify-end">
+                <button type="button" wire:click="uploadLampiran" class="btn-primary btn-sm" wire:loading.attr="disabled" wire:target="uploadLampiran,lampiranBaru">
+                    <span wire:loading.remove wire:target="uploadLampiran">Upload Lampiran</span>
+                    <span wire:loading wire:target="uploadLampiran">Menyimpan...</span>
+                </button>
+            </div>
+        </div>
+
+        {{-- Daftar lampiran --}}
+        <div class="space-y-2">
+            @forelse($this->daftarLampiran as $lampiran)
+            <div wire:key="lampiran-{{ $lampiran->id }}" class="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-600 px-3 py-2">
+                <a href="{{ route('pemeriksaan.lampiran.unduh', $lampiran->id) }}" target="_blank" class="flex-shrink-0">
+                    @if($lampiran->is_gambar)
+                    <img src="{{ route('pemeriksaan.lampiran.unduh', $lampiran->id) }}" alt="{{ $lampiran->nama_file }}"
+                         class="h-12 w-12 object-cover rounded border border-gray-200 dark:border-gray-600"/>
+                    @else
+                    <div class="h-12 w-12 flex items-center justify-center rounded border border-gray-200 dark:border-gray-600 bg-red-50 dark:bg-red-900/20">
+                        <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    @endif
+                </a>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 uppercase">
+                            {{ $lampiran->label_kategori }}
+                        </span>
+                        <a href="{{ route('pemeriksaan.lampiran.unduh', $lampiran->id) }}" target="_blank"
+                           class="text-sm text-[#0a3d62] dark:text-blue-400 hover:underline truncate">{{ $lampiran->nama_file }}</a>
+                    </div>
+                    @if($lampiran->keterangan)
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ $lampiran->keterangan }}</p>
+                    @endif
+                    <p class="text-[11px] text-gray-400 mt-0.5">
+                        {{ $lampiran->ukuran_label }} · diupload {{ $lampiran->uploader?->nama ?? '-' }},
+                        {{ $lampiran->created_at?->translatedFormat('d M Y H:i') }}
+                    </p>
+                </div>
+                <x-confirm-button
+                    action="hapusLampiran({{ $lampiran->id }})"
+                    title="Hapus lampiran ini?"
+                    text="File '{{ $lampiran->nama_file }}' akan dihapus permanen."
+                    confirm="Ya, Hapus"
+                    type="danger"
+                    class="text-gray-400 hover:text-red-500 transition-colors p-1 flex-shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                </x-confirm-button>
+            </div>
+            @empty
+            <p class="text-xs text-gray-400 italic">Belum ada lampiran untuk kunjungan ini.</p>
+            @endforelse
+        </div>
+    </div>
     @endif
 
     {{-- Footer navigation --}}
@@ -454,13 +552,13 @@
     <div class="flex justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
         <div>
             @if($activeSection !== 's')
-            <button wire:click="$set('activeSection', '{{ ['o'=>'s','a'=>'o','p'=>'a'][$activeSection] }}')"
+            <button wire:click="$set('activeSection', '{{ ['o'=>'s','a'=>'o','p'=>'a','lamp'=>'p'][$activeSection] }}')"
                     class="btn-secondary btn-sm">← Sebelumnya</button>
             @endif
         </div>
         <div>
-            @if($activeSection !== 'p')
-            <button wire:click="$set('activeSection', '{{ ['s'=>'o','o'=>'a','a'=>'p'][$activeSection] }}')"
+            @if($activeSection !== 'lamp')
+            <button wire:click="$set('activeSection', '{{ ['s'=>'o','o'=>'a','a'=>'p','p'=>'lamp'][$activeSection] }}')"
                     class="btn-primary btn-sm">Selanjutnya →</button>
             @else
             <div class="flex gap-2">
