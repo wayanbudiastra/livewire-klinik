@@ -107,6 +107,25 @@
     </div>
     @enderror
 
+    {{-- Tanda Vital (dari Asesmen Perawat) -- tampil di atas tab, terlepas dari section yang aktif --}}
+    @if(count($this->vitals) > 0)
+    <div class="card p-3">
+        <p class="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Tanda Vital (dari Asesmen Perawat)</p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            @foreach($this->vitals as $label => $val)
+            <div class="text-center">
+                <p class="text-[10px] text-gray-400 uppercase tracking-wide">{{ $label }}</p>
+                <p class="font-bold text-sm text-gray-800 dark:text-gray-200">{{ $val }}</p>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @else
+    <div class="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+        Belum ada data vital dari asesmen perawat untuk kunjungan ini.
+    </div>
+    @endif
+
     {{-- Tab Navigasi S / O / A / P / Lampiran --}}
     <div class="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
         <nav class="flex gap-0 -mb-px">
@@ -142,20 +161,6 @@
     {{-- ══════════ SUBJECTIVE ══════════ --}}
     @if($activeSection === 's')
     <div class="space-y-3">
-        {{-- Vitals ringkas dari asesmen perawat --}}
-        @if(count($this->vitals) > 0)
-        <div class="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10 px-4 py-2">
-            <p class="text-[10px] uppercase tracking-wider text-blue-500 dark:text-blue-400 mb-1.5">Tanda Vital (dari Asesmen Perawat)</p>
-            <div class="flex flex-wrap gap-3">
-                @foreach($this->vitals as $label => $val)
-                <span class="text-xs text-blue-800 dark:text-blue-300">
-                    <span class="font-semibold">{{ $label }}:</span> {{ $val }}
-                </span>
-                @endforeach
-            </div>
-        </div>
-        @endif
-
         <div class="grid grid-cols-1 gap-3">
             <div class="form-group">
                 <label class="form-label dark:text-gray-300">
@@ -219,28 +224,6 @@
     {{-- ══════════ OBJECTIVE ══════════ --}}
     @elseif($activeSection === 'o')
     <div class="space-y-3">
-        {{-- Vitals tampilan dari asesmen --}}
-        @if(count($this->vitals) > 0)
-        <div class="card p-3">
-            <p class="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Tanda Vital (Auto dari Asesmen Perawat)</p>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                @foreach($this->vitals as $label => $val)
-                <div class="text-center">
-                    <p class="text-[10px] text-gray-400 uppercase tracking-wide">{{ $label }}</p>
-                    <p class="font-bold text-sm text-gray-800 dark:text-gray-200">{{ $val }}</p>
-                </div>
-                @endforeach
-            </div>
-            @if(count($this->vitals) === 0)
-            <p class="text-xs text-gray-400 italic">Belum ada data vital dari asesmen perawat.</p>
-            @endif
-        </div>
-        @else
-        <div class="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-            Belum ada data vital dari asesmen perawat untuk kunjungan ini.
-        </div>
-        @endif
-
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div class="form-group">
                 <label class="form-label dark:text-gray-300">Physical Examination</label>
