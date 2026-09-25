@@ -40,6 +40,10 @@ class ListPendaftaran extends Component
             'dokter.user:id,nama',
             'poli:id,nama',
             'appointment:id,kode_booking',
+            // Tanpa batasan kolom -- hasOne(...)->latestOfMany() menghasilkan
+            // self-join, dan daftar kolom eksplisit di sini bikin
+            // "kunjungan_id" ambigu di query tersebut.
+            'invoice',
         ])
         ->whereDate('tanggal', $this->tanggal)
         ->when($this->search, fn ($q, $s) =>

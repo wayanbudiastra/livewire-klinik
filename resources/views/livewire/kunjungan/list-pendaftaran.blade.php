@@ -102,19 +102,30 @@
                     </td>
                     <td><x-badge-status :status="$k->status" /></td>
                     <td>
-                        @if ($k->status === 'menunggu')
-                        @can('kunjungan.edit')
-                        <x-confirm-button
-                            action="cancel({{ $k->id }})"
-                            title="Batalkan Kunjungan?"
-                            text="Kunjungan pasien {{ $k->pasien?->nama }} akan dibatalkan."
-                            confirm="Ya, Batalkan"
-                            type="danger"
-                            class="btn-danger btn-sm">
-                            Cancel
-                        </x-confirm-button>
-                        @endcan
-                        @endif
+                        <div class="flex flex-wrap gap-1.5">
+                            @if ($k->bisa_cetak_label)
+                            <a href="{{ route('kunjungan.label.cetak', $k->id) }}" target="_blank"
+                               class="btn-secondary btn-sm inline-flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a1 1 0 001-1v-4H8v4a1 1 0 001 1zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                                </svg>
+                                Cetak Label
+                            </a>
+                            @endif
+                            @if ($k->status === 'menunggu')
+                            @can('kunjungan.edit')
+                            <x-confirm-button
+                                action="cancel({{ $k->id }})"
+                                title="Batalkan Kunjungan?"
+                                text="Kunjungan pasien {{ $k->pasien?->nama }} akan dibatalkan."
+                                confirm="Ya, Batalkan"
+                                type="danger"
+                                class="btn-danger btn-sm">
+                                Cancel
+                            </x-confirm-button>
+                            @endcan
+                            @endif
+                        </div>
                     </td>
                 </tr>
                 @empty

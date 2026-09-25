@@ -96,4 +96,19 @@ class Kunjungan extends Model
         $sisa = $menit % 60;
         return "{$jam}j {$sisa}m";
     }
+
+    /**
+     * Label pasien (permintaan user) cuma boleh dicetak selama kunjungan
+     * masih aktif (belum selesai/dibatalkan) DAN billing-nya belum
+     * ditutup (belum lunas) -- lihat routes/web.php (kunjungan.label.cetak)
+     * & resources/views/livewire/kunjungan/list-pendaftaran.blade.php.
+     */
+    public function getBisaCetakLabelAttribute(): bool
+    {
+        if (in_array($this->status, ['selesai', 'dibatalkan'], true)) {
+            return false;
+        }
+
+        return optional($this->invoice)->status !== 'lunas';
+    }
 }

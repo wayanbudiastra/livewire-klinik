@@ -39,6 +39,8 @@ class PendaftaranTab extends Component
     public bool   $showHasil      = false;
     public string $nomorAntrean   = '';
     public string $namaPasienHasil= '';
+    /** Dipakai buat tombol "Cetak Label" di panel hasil -- lihat routes/web.php (kunjungan.label.cetak). */
+    public ?int   $kunjunganIdHasil = null;
 
     // Auto-daftar flag (dari URL auto=1)
     public bool $autoDaftar = false;
@@ -176,9 +178,10 @@ class PendaftaranTab extends Component
                 'tipe_pembayaran' => 'umum',
             ], $this->appointmentId);
 
-            $this->nomorAntrean    = $kunjungan->nomor_antrean;
-            $this->namaPasienHasil = $kunjungan->pasien->nama ?? $this->namaPasien;
-            $this->showHasil       = true;
+            $this->nomorAntrean     = $kunjungan->nomor_antrean;
+            $this->namaPasienHasil  = $kunjungan->pasien->nama ?? $this->namaPasien;
+            $this->kunjunganIdHasil = $kunjungan->id;
+            $this->showHasil        = true;
 
             $this->dispatch('kunjungan-created');
             $this->dispatch('notify', type: 'success',
@@ -267,9 +270,10 @@ class PendaftaranTab extends Component
                 'tipe_pembayaran' => $this->tipePembayaran,
             ], $this->mode === 'appointment' ? $this->appointmentId : null);
 
-            $this->nomorAntrean    = $kunjungan->nomor_antrean;
-            $this->namaPasienHasil = $kunjungan->pasien->nama ?? $this->namaPasien;
-            $this->showHasil       = true;
+            $this->nomorAntrean     = $kunjungan->nomor_antrean;
+            $this->namaPasienHasil  = $kunjungan->pasien->nama ?? $this->namaPasien;
+            $this->kunjunganIdHasil = $kunjungan->id;
+            $this->showHasil        = true;
 
             $this->dispatch('kunjungan-created');
             $this->dispatch('notify', type: 'success',
@@ -290,7 +294,7 @@ class PendaftaranTab extends Component
             'kodeBooking','searchAppointment','appointmentId','aptPasienNama','aptPasienRM',
             'aptDokterNama','aptPoliNama','aptJadwal',
             'searchPasien','pasienId','namaPasien','dokterId','poliId',
-            'keluhan','showHasil','nomorAntrean','namaPasienHasil','autoDaftar',
+            'keluhan','showHasil','nomorAntrean','namaPasienHasil','kunjunganIdHasil','autoDaftar',
         ]);
         $this->tipePembayaran = 'umum';
     }
