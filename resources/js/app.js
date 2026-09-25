@@ -64,6 +64,38 @@ window.confirmAction = async function ({
     return result.isConfirmed;
 };
 
+// ── Helper: tanya jumlah lembar sebelum cetak label pasien ──
+// (permintaan user -- default 3 lembar, bisa diubah)
+window.promptCetakLabel = async function (url, defaultJumlah = 3) {
+    const { value: jumlah, isConfirmed } = await SwalEMR.fire({
+        title: 'Cetak Label Pasien',
+        text: 'Berapa lembar label yang akan dicetak?',
+        icon: 'question',
+        input: 'number',
+        inputValue: defaultJumlah,
+        inputAttributes: { min: 1, max: 20, step: 1 },
+        showCancelButton: true,
+        confirmButtonText: 'Cetak',
+        cancelButtonText: 'Batal',
+        customClass: {
+            confirmButton: 'swal-btn-confirm',
+            cancelButton:  'swal-btn-cancel',
+            popup:         'swal-popup',
+        },
+        buttonsStyling: false,
+        reverseButtons: true,
+        inputValidator: (value) => {
+            const n = Number(value);
+            if (!value || n < 1) return 'Jumlah minimal 1 lembar.';
+            if (n > 20) return 'Jumlah maksimal 20 lembar.';
+        },
+    });
+
+    if (isConfirmed) {
+        window.open(`${url}?jumlah=${encodeURIComponent(jumlah)}`, '_blank');
+    }
+};
+
 // ── Livewire: intercept wire:confirm → SweetAlert2 ───────
 // Mengganti dialog browser bawaan wire:confirm
 document.addEventListener('livewire:init', () => {

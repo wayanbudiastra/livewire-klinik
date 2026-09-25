@@ -43,15 +43,21 @@ Route::middleware(['auth', 'active'])->group(function () {
 
         // Cetak Label Pasien (permintaan user) -- cuma boleh selama
         // kunjungan masih aktif & billing belum ditutup, lihat
-        // Kunjungan::getBisaCetakLabelAttribute().
+        // Kunjungan::getBisaCetakLabelAttribute(). Query ?jumlah= dipilih
+        // user lewat popup sebelum cetak (default 3, lihat
+        // promptCetakLabel() di resources/js/app.js), dibatasi 1-20 lembar.
         Route::get('/{kunjungan}/label', function (\App\Models\Kunjungan $kunjungan) {
             $kunjungan->load(['pasien', 'invoice']);
             abort_if(! $kunjungan->pasien, 404);
             abort_unless($kunjungan->bisa_cetak_label, 403, 'Label hanya bisa dicetak selama kunjungan masih aktif dan billing belum ditutup.');
 
+            $jumlah = (int) request()->query('jumlah', 3);
+            $jumlah = max(1, min(20, $jumlah));
+
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('kunjungan.label-pasien-pdf', [
                 'pasien' => $kunjungan->pasien,
                 'klinik' => \App\Models\Klinik::profil(),
+                'jumlah' => $jumlah,
             ])->setPaper([0, 0, 283.46, 141.73]); // ~10cm x 5cm
 
             return $pdf->stream("Label-{$kunjungan->pasien->nomor_rm}.pdf");

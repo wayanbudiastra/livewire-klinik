@@ -111,6 +111,13 @@ class CetakLabelPasienTest extends TestCase
 
     // ── Route cetak label ─────────────────────────────────────────
 
+    /** Ambil jumlah halaman sesungguhnya dari byte PDF via /Count di object Pages -- lebih akurat daripada meng-grep "/Type /Page" (nge-double-count sisipan lain di object stream). */
+    private function jumlahHalamanPdf(string $pdfContent): ?int
+    {
+        preg_match('/\/Type\s*\/Pages.{0,200}?\/Count\s+(\d+)/s', $pdfContent, $m);
+        return isset($m[1]) ? (int) $m[1] : null;
+    }
+
     /** @test */
     public function route_cetak_label_mengembalikan_pdf_untuk_kunjungan_yang_eligible(): void
     {
@@ -121,6 +128,54 @@ class CetakLabelPasienTest extends TestCase
 
         $response->assertOk();
         $response->assertHeader('Content-Type', 'application/pdf');
+    }
+
+    /** @test */
+    public function default_jumlah_label_adalah_3_lembar_kalau_tidak_diisi(): void
+    {
+        $user      = $this->buatUserFrontOffice();
+        $kunjungan = $this->buatKunjungan($this->buatPasien(), 'menunggu');
+
+        $response = $this->actingAs($user)->get(route('kunjungan.label.cetak', $kunjungan->id));
+
+        $response->assertOk();
+        $this->assertSame(3, $this->jumlahHalamanPdf($response->getContent()));
+    }
+
+    /** @test */
+    public function jumlah_label_mengikuti_query_param_jumlah(): void
+    {
+        $user      = $this->buatUserFrontOffice();
+        $kunjungan = $this->buatKunjungan($this->buatPasien(), 'menunggu');
+
+        $response = $this->actingAs($user)->get(route('kunjungan.label.cetak', $kunjungan->id) . '?jumlah=7');
+
+        $response->assertOk();
+        $this->assertSame(7, $this->jumlahHalamanPdf($response->getContent()));
+    }
+
+    /** @test */
+    public function jumlah_label_dibatasi_maksimal_20_lembar(): void
+    {
+        $user      = $this->buatUserFrontOffice();
+        $kunjungan = $this->buatKunjungan($this->buatPasien(), 'menunggu');
+
+        $response = $this->actingAs($user)->get(route('kunjungan.label.cetak', $kunjungan->id) . '?jumlah=999');
+
+        $response->assertOk();
+        $this->assertSame(20, $this->jumlahHalamanPdf($response->getContent()));
+    }
+
+    /** @test */
+    public function jumlah_label_dibatasi_minimal_1_lembar(): void
+    {
+        $user      = $this->buatUserFrontOffice();
+        $kunjungan = $this->buatKunjungan($this->buatPasien(), 'menunggu');
+
+        $response = $this->actingAs($user)->get(route('kunjungan.label.cetak', $kunjungan->id) . '?jumlah=0');
+
+        $response->assertOk();
+        $this->assertSame(1, $this->jumlahHalamanPdf($response->getContent()));
     }
 
     /** @test */
