@@ -229,7 +229,7 @@ class ReturResepService
             TransaksiDeposit::create([
                 'pasien_id'       => $pasien->id,
                 'user_id'         => $userId,
-                'nomor_transaksi' => 'TD-' . now()->format('Ymd') . '-' . str_pad((string) (TransaksiDeposit::count() + 1), 4, '0', STR_PAD_LEFT),
+                'nomor_transaksi' => $this->generateNomorTransaksiDeposit(),
                 'tipe'            => 'koreksi',
                 'jumlah'          => $retur->total_nilai_retur,
                 'saldo_sebelum'   => $saldoSebelum,
@@ -252,5 +252,27 @@ class ReturResepService
             'referensi'     => "retur_resep:{$retur->id}",
             'tanggal_bayar' => now(),
         ]);
+    }
+
+    /**
+     * Sebelumnya nomor_transaksi dihitung dari TransaksiDeposit::count()+1
+     * -- itu hitungan GLOBAL sepanjang masa (bukan per hari sesuai format
+     * "TD-Ymd-XXXX"-nya sendiri), jadi urutannya salah begitu lewat hari
+     * pertama pemakaian, DAN tanpa lock sama sekali (rawan dapat nomor sama
+     * kalau 2 retur metode deposit diproses bersamaan). Diperbaiki: hitung
+     * dari nomor_transaksi hari ini SAJA (sesuai prefix), dengan
+     * lockForUpdate() -- aman karena dipanggil dari dalam DB::transaction()
+     * di proses() di atas.
+     */
+    private function generateNomorTransaksiDeposit(): string
+    {
+        $prefix = 'TD-' . now()->format('Ymd') . '-';
+        $last   = TransaksiDeposit::where('nomor_transaksi', 'like', $prefix . '%')
+            ->orderByDesc('nomor_transaksi')
+            ->lockForUpdate()
+            ->value('nomor_transaksi');
+        $seq    = $last ? (int) substr($last, -4) + 1 : 1;
+
+        return $prefix . str_pad($seq, 4, '0', STR_PAD_LEFT);
     }
 }

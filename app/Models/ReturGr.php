@@ -47,11 +47,17 @@ class ReturGr extends Model
         return $this->belongsTo(User::class, 'diverifikasi_oleh');
     }
 
+    /**
+     * Dipanggil dari dalam DB::transaction() di ReturGrService -- lihat
+     * catatan yang sama di ReturResep::generateNomorRetur() soal kenapa
+     * lockForUpdate() di sini penting.
+     */
     public static function generateNomorRetur(): string
     {
         $prefix = 'RGR-' . now()->format('Y-m-');
         $last   = static::where('nomor_retur', 'like', $prefix . '%')
                     ->orderByDesc('nomor_retur')
+                    ->lockForUpdate()
                     ->value('nomor_retur');
         $seq    = $last ? (int) substr($last, -4) + 1 : 1;
         return $prefix . str_pad($seq, 4, '0', STR_PAD_LEFT);

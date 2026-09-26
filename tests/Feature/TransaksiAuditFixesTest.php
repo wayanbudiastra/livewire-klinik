@@ -17,10 +17,14 @@ use App\Models\PembayaranSplit;
 use App\Models\Poli;
 use App\Models\Racikan;
 use App\Models\Resep;
+use App\Models\ReturGr;
+use App\Models\ReturResep;
 use App\Models\SesiKas;
 use App\Models\StokOpname;
 use App\Models\StokOpnameItem;
+use App\Models\TransaksiDeposit;
 use App\Models\User;
+use App\Services\Farmasi\ReturResepService;
 use App\Services\Inventory\StokOpnameService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Hash;
@@ -57,6 +61,13 @@ use Tests\TestCase;
  *    stok terkini -- transaksi lain yang terjadi di jeda
  *    input-fisik-ke-verifikasi bisa tertimpa hilang. Sekarang selisih
  *    diterapkan ke stok terkini (yang sudah dikunci row-nya).
+ * 6. [Rendah] ReturResep::generateNomorRetur() & ReturGr::
+ *    generateNomorRetur() tidak pakai lockForUpdate() -- ditambahkan
+ *    (aman karena dipanggil dari dalam DB::transaction() masing-masing
+ *    service). Nomor TransaksiDeposit di ReturResepService malah
+ *    dihitung dari TransaksiDeposit::count()+1 GLOBAL (bukan per hari
+ *    sesuai format nomornya sendiri) -- diperbaiki jadi method
+ *    generateNomorTransaksiDeposit() yang scope per hari + lock.
  *
  * Pakai DatabaseTransactions -- bukan RefreshDatabase (lihat catatan yang
  * sama di SensitiveActionAuthorizationTest.php).
@@ -475,5 +486,64 @@ class TransaksiAuditFixesTest extends TestCase
         // penambahan 20 unit yang masuk di tengah jalan.
         $this->assertSame(65, $barang->fresh()->stok,
             'Stok akhir harus 70 (terkini) - 5 (selisih opname) = 65, bukan ditimpa jadi 45.');
+    }
+
+    // ── #6 (Rendah): nomor retur/transaksi deposit -- lock + scoping ──
+
+    /** @test */
+    public function nomor_retur_resep_tetap_urut_setelah_ditambah_lock(): void
+    {
+        $kasir     = $this->buatKasir();
+        $kunjungan = $this->buatKunjunganSelesai();
+        $invoice   = $this->buatInvoice($kunjungan, 100000);
+        $resep     = Resep::create(['kunjungan_id' => $kunjungan->id, 'dokter_id' => $kunjungan->dokter_id, 'status' => 'siap', 'is_locked' => true]);
+
+        $n1 = ReturResep::generateNomorRetur();
+
+        ReturResep::create([
+            'nomor_retur' => $n1, 'resep_id' => $resep->id, 'kunjungan_id' => $kunjungan->id, 'billing_id' => $invoice->id,
+            'tanggal_retur' => now()->toDateString(), 'alasan' => 'test', 'metode_pengembalian' => 'tunai',
+            'total_nilai_retur' => 10000, 'diproses_oleh' => $kasir->id,
+        ]);
+
+        $n2 = ReturResep::generateNomorRetur();
+
+        $this->assertNotSame($n1, $n2);
+        $this->assertSame((int) substr($n1, -4) + 1, (int) substr($n2, -4));
+    }
+
+    /** @test */
+    public function nomor_transaksi_deposit_dihitung_per_hari_bukan_global(): void
+    {
+        $pasien = $this->buatPasien();
+        $kasir  = $this->buatKasir();
+
+        // Sebelum perbaikan: TransaksiDeposit::count()+1 dihitung GLOBAL
+        // sepanjang masa, bukan per hari sesuai format nomornya sendiri
+        // (TD-Ymd-XXXX). Buat banyak baris "hari lain" utk membuktikan
+        // baris-baris ini TIDAK ikut mempengaruhi nomor hari ini.
+        for ($i = 0; $i < 15; $i++) {
+            TransaksiDeposit::create([
+                'pasien_id' => $pasien->id, 'user_id' => $kasir->id,
+                'nomor_transaksi' => 'TD-20200101-' . str_pad($i + 1, 4, '0', STR_PAD_LEFT),
+                'tipe' => 'topup', 'jumlah' => 1000, 'saldo_sebelum' => 0, 'saldo_sesudah' => 1000,
+            ]);
+        }
+
+        $service   = app(ReturResepService::class);
+        $generator = new \ReflectionMethod($service, 'generateNomorTransaksiDeposit');
+        $generator->setAccessible(true);
+
+        $nomor = $generator->invoke($service);
+
+        $this->assertSame('TD-' . now()->format('Ymd') . '-0001', $nomor,
+            'Baris 15 hari lain tidak boleh mempengaruhi nomor hari ini -- harusnya tetap 0001, bukan 0016.');
+    }
+
+    /** @test */
+    public function nomor_retur_gr_tetap_bisa_dibuat_setelah_ditambah_lock(): void
+    {
+        $nomor = ReturGr::generateNomorRetur();
+        $this->assertMatchesRegularExpression('/^RGR-\d{4}-\d{2}-0001$/', $nomor);
     }
 }

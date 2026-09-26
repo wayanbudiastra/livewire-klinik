@@ -51,11 +51,19 @@ class ReturResep extends Model
         return $this->belongsTo(User::class, 'diproses_oleh');
     }
 
+    /**
+     * Dipanggil dari dalam DB::transaction() di ReturResepService::proses()
+     * -- lockForUpdate() di sini penting supaya baris yang dibaca benar-benar
+     * terkunci sampai transaksi itu commit, mencegah 2 retur diproses
+     * bersamaan dapat nomor yang sama (kolom nomor_retur unique di DB jadi
+     * jaring pengaman terakhir, tapi lock ini mencegah gagalnya duluan).
+     */
     public static function generateNomorRetur(): string
     {
         $prefix = 'RRX-' . now()->format('Ymd') . '-';
         $last   = static::where('nomor_retur', 'like', $prefix . '%')
                     ->orderByDesc('nomor_retur')
+                    ->lockForUpdate()
                     ->value('nomor_retur');
         $seq    = $last ? (int) substr($last, -4) + 1 : 1;
         return $prefix . str_pad($seq, 4, '0', STR_PAD_LEFT);
