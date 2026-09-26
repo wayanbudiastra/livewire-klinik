@@ -40,10 +40,12 @@ class JurnalUmum extends Model
     }
 
     /** Generate nomor jurnal otomatis: JU-YYYYMM-XXXX */
+    /** Dipanggil dari dalam DB::transaction() JurnalService::posting() -- lockForUpdate() aman, gabung transaksi yang sama. */
     public static function generateNomor(): string
     {
         $prefix = 'JU-' . now()->format('Ym') . '-';
         $last = static::where('nomor_jurnal', 'like', "{$prefix}%")
+            ->lockForUpdate()
             ->orderByDesc('nomor_jurnal')
             ->value('nomor_jurnal');
 

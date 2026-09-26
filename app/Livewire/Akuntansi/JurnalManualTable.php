@@ -40,6 +40,15 @@ class JurnalManualTable extends Component
 
     public function batalkan(int $id, JurnalManualService $service): void
     {
+        // Audit Priority 3 (Sedang): route /akuntansi/jurnal-manual cuma
+        // digate permission:akuntansi.jurnal.view (lebih longgar dari
+        // akuntansi.jurnal_manual.create yg seharusnya utk aksi tulis
+        // spt ini) -- authorize() di sini jadi lapis kedua (defense in
+        // depth). Saat ini tidak ada privilege escalation nyata (ketiga
+        // role dgn akuntansi.jurnal.view jg py akuntansi.jurnal_manual.create),
+        // tapi konsisten dgn pola yang sudah dibenahi di komponen lain.
+        $this->authorize('akuntansi.jurnal_manual.create');
+
         try {
             $jm = JurnalManual::findOrFail($id);
             $service->batalkan($jm, auth()->id());

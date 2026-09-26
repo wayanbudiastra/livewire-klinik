@@ -103,25 +103,35 @@ class JurnalService
     /** Tandai baris jurnal_pending sebagai diabaikan (tidak diposting). */
     public function abaikan(int $jurnalPendingId, ?string $alasan = null): JurnalPending
     {
-        $row = JurnalPending::pending()->findOrFail($jurnalPendingId);
+        return DB::transaction(function () use ($jurnalPendingId, $alasan) {
+            // Kunci ulang & cek ulang status DI DALAM transaksi -- sebelumnya
+            // tanpa lock, jadi 2 klik "Abaikan" bersamaan pada baris yang
+            // sama bisa sama2 lolos cek status='pending' dan menambahkan
+            // teks "[Diabaikan: ...]" dobel ke kolom keterangan.
+            $row = JurnalPending::where('id', $jurnalPendingId)->lockForUpdate()->firstOrFail();
 
-        $keterangan = $row->keterangan;
-        if ($alasan) {
-            $keterangan .= " [Diabaikan: {$alasan}]";
-        }
+            if ($row->status !== 'pending') {
+                throw new \DomainException('Baris jurnal ini sudah bukan berstatus pending (kemungkinan sudah diproses proses lain).');
+            }
 
-        $row->update([
-            'status'     => 'diabaikan',
-            'keterangan' => $keterangan,
-        ]);
+            $keterangan = $row->keterangan;
+            if ($alasan) {
+                $keterangan .= " [Diabaikan: {$alasan}]";
+            }
 
-        activity('akuntansi_jurnal')
-            ->performedOn($row)
-            ->causedBy(auth()->user())
-            ->withProperties(['alasan' => $alasan])
-            ->log('Baris jurnal pending diabaikan (tidak diposting)');
+            $row->update([
+                'status'     => 'diabaikan',
+                'keterangan' => $keterangan,
+            ]);
 
-        return $row;
+            activity('akuntansi_jurnal')
+                ->performedOn($row)
+                ->causedBy(auth()->user())
+                ->withProperties(['alasan' => $alasan])
+                ->log('Baris jurnal pending diabaikan (tidak diposting)');
+
+            return $row;
+        });
     }
 
     /**
