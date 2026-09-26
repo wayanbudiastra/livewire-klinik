@@ -15,6 +15,18 @@ class ResepObat extends Component
     public int    $kunjunganId;
     public string $activeTab = 'non_racikan';
 
+    /**
+     * Sebelumnya komponen ini TIDAK ADA pengecekan otorisasi sama sekali --
+     * halaman /pemeriksaan cuma digerbang asesmen.view (dimiliki dokter
+     * maupun perawat), padahal ini adalah antarmuka PERESEPAN dokter.
+     * Perawat (tanpa resep.*) sebelumnya bisa membuat resep yang akhirnya
+     * tersimpan dengan dokter_id NULL (lihat ResepObat::getOrCreateResep()).
+     */
+    public function mount(): void
+    {
+        $this->authorize('resep.create');
+    }
+
     // ── Non-racikan ─────────────────────────────────────────
     public string $searchObat = '';
     public array  $cartObat   = [];

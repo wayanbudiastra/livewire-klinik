@@ -118,6 +118,12 @@ class CetakSurat extends Component
 
     public function buka(string $tipe): void
     {
+        // Sebelumnya TIDAK dicek di sini -- tombolnya memang disembunyikan
+        // di Blade lewat @canany(['surat.cetak']), tapi method-nya sendiri
+        // tidak digerbang server-side (beda dari mulaiEdit()/
+        // konfirmasiRevisi() yang sudah benar pakai authorize('surat.revisi')).
+        $this->authorize('surat.cetak');
+
         $this->reset(['errorMsg', 'keperluan', 'butaWarna', 'tujuanFasilitas', 'tujuanDokter',
                       'indikasi', 'instruksi', 'tampilkanDiagnosa', 'sertakanPenunjang',
                       'escorted', 'flight', 'recommendation', 'fasilitasBandara',
@@ -232,6 +238,10 @@ class CetakSurat extends Component
 
     public function cetak(): ?StreamedResponse
     {
+        // Titik enforcement utama -- buka() sudah dicek juga di atas, tapi
+        // cetak() ini yang benar-benar menerbitkan & menyimpan suratnya.
+        $this->authorize('surat.cetak');
+
         $this->errorMsg = null;
 
         $rules = ['dokterId' => 'required|exists:dokter,id'];

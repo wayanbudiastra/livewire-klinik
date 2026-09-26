@@ -165,11 +165,19 @@
                     'identitas' => ['label' => 'Data Identitas',      'icon' => 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'],
                     'vitals'    => ['label' => 'Asesmen & Vital',      'icon' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'],
                     'riwayat'   => ['label' => 'Riwayat Kunjungan',   'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'],
-                    'notes'     => ['label' => 'Medical Notes',        'icon' => 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'],
-                    'penunjang' => ['label' => 'Penunjang Medis',      'icon' => 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z'],
+                    // Medical Notes/Penunjang/Medication sengaja eksklusif
+                    // dokter (permission soap.view/penunjang.create/
+                    // resep.create) -- sebelumnya tab ini tampil ke siapa
+                    // saja yang bisa buka halaman /pemeriksaan (termasuk
+                    // perawat), padahal komponennya sendiri kini menolak
+                    // akses lewat authorize(). Disembunyikan di sini juga
+                    // supaya tidak nampilkan tab yang ujung-ujungnya 403.
+                    'notes'     => ['label' => 'Medical Notes',        'icon' => 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z', 'permission' => 'soap.view'],
+                    'penunjang' => ['label' => 'Penunjang Medis',      'icon' => 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z', 'permission' => 'penunjang.create'],
                     'tindakan'  => ['label' => 'Procedure & Equipment','icon' => 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z'],
-                    'obat'      => ['label' => 'Medication',            'icon' => 'M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18'],
+                    'obat'      => ['label' => 'Medication',            'icon' => 'M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18', 'permission' => 'resep.create'],
                 ] as $key => $item)
+                @continue(isset($item['permission']) && ! auth()->user()->can($item['permission']))
                 <button type="button" wire:click="$set('activeSection', '{{ $key }}')"
                         @class([
                             'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm transition-colors',

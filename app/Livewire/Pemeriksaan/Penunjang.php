@@ -12,6 +12,17 @@ class Penunjang extends Component
     public int    $kunjunganId;
     public string $activeTab = 'lab';
 
+    /**
+     * Sebelumnya komponen ini TIDAK ADA pengecekan otorisasi sama sekali --
+     * halaman /pemeriksaan cuma digerbang asesmen.view (dimiliki dokter
+     * maupun perawat), padahal permintaan lab/radiologi seharusnya
+     * eksklusif dokter (permission penunjang.create).
+     */
+    public function mount(): void
+    {
+        $this->authorize('penunjang.create');
+    }
+
     // ── Lab ───────────────────────────────────────────────────
     public string $searchLab = '';
     public array  $cartLab   = [];

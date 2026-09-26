@@ -71,6 +71,14 @@ class SoapNote extends Component
 
     public function mount(): void
     {
+        // Sebelumnya TIDAK ADA pengecekan otorisasi sama sekali di sini --
+        // halaman /pemeriksaan cuma digerbang permission asesmen.view, yang
+        // dimiliki dokter MAUPUN perawat, padahal permission soap.view/
+        // create/edit sudah ada khusus utk membatasi SOAP Note ke dokter.
+        // Perawat (asesmen.view tanpa soap.*) sebelumnya bisa buka tab
+        // Medical Notes dan bahkan memfinalisasi SOAP Note dokter.
+        $this->authorize('soap.view');
+
         $this->loadExisting();
         $this->autoFillAllergies();
         $this->autoFillChiefComplaint();
@@ -439,6 +447,11 @@ class SoapNote extends Component
 
     private function doSimpan(): void
     {
+        // Satu titik enforcement utk simpan()/finalisasi()/simpanRevisi()
+        // (ketiganya lewat sini). soap.revisi sudah dicek sebelumnya di
+        // simpanRevisi() sendiri, jadi ini aman jalan bareng.
+        $this->authorize($this->soapId ? 'soap.edit' : 'soap.create');
+
         $this->validate([
             'diagnoses' => 'required|array|min:1',
         ], [

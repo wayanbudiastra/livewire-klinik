@@ -136,6 +136,12 @@ class RevisiSoapNoteTest extends TestCase
             'is_active' => true,
         ]);
         $perawatUser->assignRole('perawat');
+        // "walau punya soap view" -- perawat biasa tidak lolos mount() sama
+        // sekali (soap.view eksklusif dokter, lihat audit modul Pemeriksaan),
+        // jadi di sini disimulasikan kasus yang judul test ini maksud:
+        // perawat yang KEBETULAN dapat soap.view/edit lewat Hak Akses
+        // Tambahan -- tetap harus ditolak khusus di soap.revisi.
+        $perawatUser->givePermissionTo(['soap.view', 'soap.edit']);
         $this->actingAs($perawatUser);
 
         Livewire::test(SoapNoteLivewire::class, ['kunjunganId' => $data['kunjungan']->id])
