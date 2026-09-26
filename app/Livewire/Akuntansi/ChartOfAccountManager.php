@@ -55,6 +55,11 @@ class ChartOfAccountManager extends Component
 
     public function simpan(): void
     {
+        // Audit Priority 1 (Sedang): route /akuntansi/coa sudah digate
+        // permission:akuntansi.coa.manage, authorize() di sini jadi lapis
+        // kedua (defense in depth) utk aksi yang benar2 mengubah data.
+        $this->authorize('akuntansi.coa.manage');
+
         $this->validate([
             'kode'        => 'required|string|max:10|regex:/^[0-9]-[0-9]{4}$/' . ($this->editId ? '' : '|unique:chart_of_accounts,kode'),
             'nama'        => 'required|string|max:100',
@@ -85,6 +90,8 @@ class ChartOfAccountManager extends Component
 
     public function toggleAktif(int $id): void
     {
+        $this->authorize('akuntansi.coa.manage');
+
         $akun = ChartOfAccount::findOrFail($id);
         $akun->update(['is_aktif' => !$akun->is_aktif]);
     }

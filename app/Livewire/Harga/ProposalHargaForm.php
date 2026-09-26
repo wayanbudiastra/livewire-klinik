@@ -27,6 +27,12 @@ class ProposalHargaForm extends Component
 
     public function mount(): void
     {
+        // Audit Priority 1 (Sedang): route /harga/proposal/create sudah
+        // digate permission:harga.proposal, authorize() di sini jadi lapis
+        // kedua (defense in depth) kalau suatu saat komponen ini di-embed
+        // di tempat lain tanpa gate route yang benar.
+        $this->authorize('harga.proposal');
+
         $this->tahun          = now()->addYear()->year;
         $this->tanggalEfektif = now()->addYear()->startOfYear()->format('Y-m-d');
         $this->loadKategoriTindakan();

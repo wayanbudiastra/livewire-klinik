@@ -242,11 +242,21 @@ Route::middleware(['auth', 'active'])->group(function () {
 
         // PO
         Route::get('/po', fn () => view('inventory.index', ['tab' => 'po']))->name('po.index');
-        Route::get('/po/create', fn () => view('inventory.po-create'))->name('po.create');
+        // Audit Priority 1 (Rendah): sebelumnya cuma ikut permission:obat.view
+        // level prefix (beda dgn retur-gr/create, bhp/create, opname/create
+        // yg sudah eksplisit obat.edit) -- tidak berdampak nyata sekarang
+        // krn satu2nya role dgn obat.view (apoteker) juga otomatis punya
+        // obat.create, tapi ditambahkan eksplisit utk konsistensi & antisipasi
+        // kalau nanti ada role baru yg cuma obat.view (mis. staf gudang).
+        Route::get('/po/create', fn () => view('inventory.po-create'))
+             ->name('po.create')
+             ->middleware('permission:obat.create');
 
         // GR
         Route::get('/gr', fn () => view('inventory.index', ['tab' => 'gr']))->name('gr.index');
-        Route::get('/gr/create', fn () => view('inventory.gr-create'))->name('gr.create');
+        Route::get('/gr/create', fn () => view('inventory.gr-create'))
+             ->name('gr.create')
+             ->middleware('permission:obat.create');
 
         // Retur ke Supplier
         Route::prefix('retur-gr')->name('retur-gr.')->group(function () {

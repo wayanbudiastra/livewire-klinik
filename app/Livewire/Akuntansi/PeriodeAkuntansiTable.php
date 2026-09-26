@@ -66,6 +66,11 @@ class PeriodeAkuntansiTable extends Component
 
     public function tutup(int $tahun, int $bulan, PeriodeAkuntansiService $service): void
     {
+        // Audit Priority 1 (Sedang): route /akuntansi/periode sudah digate
+        // permission:akuntansi.periode.tutup, authorize() di sini jadi
+        // lapis kedua (defense in depth).
+        $this->authorize('akuntansi.periode.tutup');
+
         try {
             $service->tutup($tahun, $bulan, auth()->id());
             unset($this->periodeList);
@@ -86,6 +91,8 @@ class PeriodeAkuntansiTable extends Component
 
     public function bukaKembali(PeriodeAkuntansiService $service): void
     {
+        $this->authorize('akuntansi.periode.tutup');
+
         $this->validate([
             'passwordBukaKembali' => ['required', 'string'],
             'alasanBukaKembali'   => ['required', 'string', 'min:10'],

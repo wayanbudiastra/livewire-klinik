@@ -34,6 +34,11 @@ class JurnalManualForm extends Component
 
     public function mount(): void
     {
+        // Audit Priority 1 (Sedang): route /akuntansi/jurnal-manual/create
+        // sudah digate permission:akuntansi.jurnal_manual.create, authorize()
+        // di sini jadi lapis kedua (defense in depth).
+        $this->authorize('akuntansi.jurnal_manual.create');
+
         $this->tanggal = now()->format('Y-m-d');
     }
 
