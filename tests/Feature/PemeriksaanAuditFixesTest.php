@@ -3,13 +3,17 @@
 namespace Tests\Feature;
 
 use App\Livewire\Pemeriksaan\CetakSurat;
+use App\Livewire\Pemeriksaan\DetailPemeriksaan;
 use App\Livewire\Pemeriksaan\Penunjang;
 use App\Livewire\Pemeriksaan\ResepObat;
 use App\Livewire\Pemeriksaan\SoapNote as SoapNoteLivewire;
+use App\Livewire\Pemeriksaan\WaitingArea;
 use App\Models\Dokter;
 use App\Models\Kunjungan;
 use App\Models\Pasien;
+use App\Models\SoapNote as SoapNoteModel;
 use App\Models\User;
+use App\Services\KunjunganService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
@@ -38,6 +42,29 @@ use Tests\TestCase;
  * - Tab Medical Notes/Penunjang/Medication disembunyikan di
  *   detail-pemeriksaan.blade.php dari user yang tidak punya permission
  *   terkait (defense in depth, bukan pengganti authorize() di atas).
+ *
+ * ...dan temuan Tinggi, Sedang, Rendah dari audit yang sama:
+ *
+ * [Tinggi] KunjunganService::selesaiPemeriksaan() tidak cek apa pun --
+ * kunjungan bisa "Selesai" dan lanjut ke kasir walau SOAP Note dokter
+ * belum pernah difinalisasi (bahkan belum dibuat sama sekali). Sekarang
+ * menolak dengan pesan jelas kalau soapNote belum ada / belum is_final.
+ * Sekalian perbaiki pesan notify DetailPemeriksaan::selesaiPemeriksaan()
+ * yang sebelumnya salah ("Pasien siap diperiksa dokter" -- padahal
+ * aksinya justru menandai kunjungan SELESAI, bukan status antara).
+ *
+ * [Sedang] SoapNote tidak cek status kunjungan -- SOAP Note masih bisa
+ * disimpan/difinalisasi/direvisi utk kunjungan yang sudah dibatalkan.
+ * Sekarang doSimpan() menolak kalau kunjungan->status === 'dibatalkan'.
+ *
+ * [Rendah] Validasi "minimal 1 diagnosa ICD-10" sebelumnya berlaku juga
+ * utk Simpan Draft (bukan cuma Finalisasi), jadi dokter yang baru mulai
+ * isi Subjective/Objective tidak bisa menyimpan progresnya. Sekarang
+ * cuma wajib saat finalisasi()/simpanRevisi().
+ *
+ * ([Rendah] ResepObat::getOrCreateResep() yang bisa menyimpan dokter_id
+ * NULL kalau dipanggil non-dokter otomatis selesai sebagai konsekuensi
+ * dari perbaikan Kritikal di atas -- tidak perlu perubahan kode terpisah.)
  *
  * Pakai DatabaseTransactions -- bukan RefreshDatabase (lihat catatan yang
  * sama di SensitiveActionAuthorizationTest.php).
@@ -199,5 +226,113 @@ class PemeriksaanAuditFixesTest extends TestCase
         $response->assertSee('Medical Notes');
         $response->assertSee('Penunjang Medis');
         $response->assertSee('Medication');
+    }
+
+    // ── [Tinggi] selesaiPemeriksaan() wajib SOAP Note final ──────────
+
+    /** @test */
+    public function selesai_pemeriksaan_ditolak_kalau_belum_ada_soap_note_sama_sekali(): void
+    {
+        $ctx = $this->buatKunjungan();
+
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        app(KunjunganService::class)->selesaiPemeriksaan($ctx['kunjungan']->id);
+    }
+
+    /** @test */
+    public function selesai_pemeriksaan_ditolak_kalau_soap_note_belum_final(): void
+    {
+        $ctx = $this->buatKunjungan();
+        SoapNoteModel::create(['kunjungan_id' => $ctx['kunjungan']->id, 'is_final' => false]);
+
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+        app(KunjunganService::class)->selesaiPemeriksaan($ctx['kunjungan']->id);
+    }
+
+    /** @test */
+    public function selesai_pemeriksaan_berhasil_kalau_soap_note_sudah_final(): void
+    {
+        $ctx = $this->buatKunjungan();
+        SoapNoteModel::create([
+            'kunjungan_id' => $ctx['kunjungan']->id, 'is_final' => true,
+            'finalized_at' => now(), 'finalized_by' => $ctx['dokterUser']->id,
+        ]);
+
+        $hasil = app(KunjunganService::class)->selesaiPemeriksaan($ctx['kunjungan']->id);
+        $this->assertSame('selesai', $hasil->status);
+    }
+
+    /** @test */
+    public function waiting_area_menampilkan_error_saat_selesai_ditolak_karena_soap_belum_final(): void
+    {
+        $ctx = $this->buatKunjungan();
+        $this->actingAs($ctx['dokterUser']);
+
+        Livewire::test(WaitingArea::class)->call('selesai', $ctx['kunjungan']->id);
+
+        $this->assertSame('dalam_pemeriksaan', $ctx['kunjungan']->fresh()->status);
+    }
+
+    /** @test */
+    public function detail_pemeriksaan_menampilkan_error_saat_selesai_ditolak_karena_soap_belum_final(): void
+    {
+        $ctx = $this->buatKunjungan();
+        $this->actingAs($ctx['dokterUser']);
+
+        Livewire::test(DetailPemeriksaan::class, ['kunjunganId' => $ctx['kunjungan']->id])
+            ->call('selesaiPemeriksaan');
+
+        $this->assertSame('dalam_pemeriksaan', $ctx['kunjungan']->fresh()->status);
+    }
+
+    // ── [Sedang] SoapNote tidak bisa disimpan utk kunjungan dibatalkan ──
+
+    /** @test */
+    public function soap_note_tidak_bisa_disimpan_untuk_kunjungan_yang_dibatalkan(): void
+    {
+        $ctx = $this->buatKunjungan();
+        $ctx['kunjungan']->update(['status' => 'dibatalkan']);
+        $this->actingAs($ctx['dokterUser']);
+
+        Livewire::test(SoapNoteLivewire::class, ['kunjunganId' => $ctx['kunjungan']->id])
+            ->set('sChiefComplaint', 'Demam')
+            ->call('addDiagnosis', 'A09', 'Diarrhoea')
+            ->call('simpan');
+
+        $this->assertDatabaseMissing('soap_note', ['kunjungan_id' => $ctx['kunjungan']->id]);
+    }
+
+    // ── [Rendah] Simpan Draft tidak wajib diagnosa, Finalisasi tetap wajib ──
+
+    /** @test */
+    public function simpan_draft_soap_note_tidak_wajib_diagnosa(): void
+    {
+        $ctx = $this->buatKunjungan();
+        $this->actingAs($ctx['dokterUser']);
+
+        Livewire::test(SoapNoteLivewire::class, ['kunjunganId' => $ctx['kunjungan']->id])
+            ->set('sChiefComplaint', 'Baru mulai anamnesis, belum sampai assessment')
+            ->call('simpan')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('soap_note', [
+            'kunjungan_id' => $ctx['kunjungan']->id,
+            's_chief_complaint' => 'Baru mulai anamnesis, belum sampai assessment',
+        ]);
+    }
+
+    /** @test */
+    public function finalisasi_soap_note_tetap_wajib_diagnosa(): void
+    {
+        $ctx = $this->buatKunjungan();
+        $this->actingAs($ctx['dokterUser']);
+
+        Livewire::test(SoapNoteLivewire::class, ['kunjunganId' => $ctx['kunjungan']->id])
+            ->set('sChiefComplaint', 'Demam')
+            ->call('finalisasi')
+            ->assertHasErrors(['diagnoses' => 'required']);
+
+        $soap = SoapNoteModel::where('kunjungan_id', $ctx['kunjungan']->id)->first();
+        $this->assertTrue(! $soap || ! $soap->is_final, 'SOAP Note tidak boleh berhasil difinalisasi tanpa diagnosa.');
     }
 }

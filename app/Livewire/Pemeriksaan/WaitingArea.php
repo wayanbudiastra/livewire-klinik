@@ -129,9 +129,13 @@ class WaitingArea extends Component
 
     public function selesai(int $id, KunjunganService $service): void
     {
-        $service->selesaiPemeriksaan($id);
-        unset($this->kunjungan);
-        $this->dispatch('notify', type: 'success', message: 'Pemeriksaan selesai.');
+        try {
+            $service->selesaiPemeriksaan($id);
+            unset($this->kunjungan);
+            $this->dispatch('notify', type: 'success', message: 'Pemeriksaan selesai.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->dispatch('notify', type: 'error', message: $e->errors()[array_key_first($e->errors())][0]);
+        }
     }
 
     public function render()

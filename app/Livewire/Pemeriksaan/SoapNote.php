@@ -351,14 +351,15 @@ class SoapNote extends Component
     public function simpan(): void
     {
         if ($this->isFinal) return;
-        $this->doSimpan();
+        if (! $this->doSimpan()) return;
         $this->dispatch('notify', type: 'success', message: 'SOAP Note berhasil disimpan.');
     }
 
     public function finalisasi(): void
     {
         if ($this->isFinal) return;
-        $this->doSimpan();
+        $this->validateMinimalDiagnosis();
+        if (! $this->doSimpan()) return;
 
         SoapNoteModel::where('id', $this->soapId)->update([
             'is_final'     => true,
@@ -417,10 +418,11 @@ class SoapNote extends Component
     {
         if (! $this->isFinal || ! $this->sedangRevisi) return;
         $this->authorize('soap.revisi');
+        $this->validateMinimalDiagnosis();
 
         $sebelum = SoapNoteModel::find($this->soapId)?->only(self::KOLOM_ISI);
 
-        $this->doSimpan();
+        if (! $this->doSimpan()) return;
 
         $soap = SoapNoteModel::find($this->soapId);
         $soap->update([
@@ -445,19 +447,38 @@ class SoapNote extends Component
         $this->dispatch('notify', type: 'success', message: 'Revisi SOAP Note berhasil disimpan.');
     }
 
-    private function doSimpan(): void
+    /**
+     * Wajib minimal 1 diagnosa ICD-10 -- tapi cuma dicek saat FINALISASI/
+     * REVISI, bukan saat Simpan Draft. Sebelumnya validasi ini ada di
+     * doSimpan() (jalan utk ketiga aksi termasuk Simpan Draft), jadi
+     * dokter yang baru mulai isi Subjective/Objective dan belum sampai ke
+     * tab Assessment tidak bisa menyimpan progresnya sama sekali.
+     */
+    private function validateMinimalDiagnosis(): void
+    {
+        $this->validate([
+            'diagnoses' => 'required|array|min:1',
+        ], [
+            'diagnoses.required' => 'Minimal satu diagnosa ICD-10 wajib diisi sebelum finalisasi.',
+            'diagnoses.min'      => 'Minimal satu diagnosa ICD-10 wajib diisi sebelum finalisasi.',
+        ]);
+    }
+
+    /** @return bool berhasil disimpan atau tidak -- caller pakai ini utk memutuskan lanjut dispatch notify sukses atau tidak. */
+    private function doSimpan(): bool
     {
         // Satu titik enforcement utk simpan()/finalisasi()/simpanRevisi()
         // (ketiganya lewat sini). soap.revisi sudah dicek sebelumnya di
         // simpanRevisi() sendiri, jadi ini aman jalan bareng.
         $this->authorize($this->soapId ? 'soap.edit' : 'soap.create');
 
-        $this->validate([
-            'diagnoses' => 'required|array|min:1',
-        ], [
-            'diagnoses.required' => 'Minimal satu diagnosa ICD-10 wajib diisi.',
-            'diagnoses.min'      => 'Minimal satu diagnosa ICD-10 wajib diisi.',
-        ]);
+        // Sebelumnya TIDAK ADA pengecekan status kunjungan sama sekali --
+        // SOAP Note bisa terus disimpan/difinalisasi/direvisi walau
+        // kunjungannya sendiri sudah dibatalkan.
+        if ($this->kunjungan?->status === 'dibatalkan') {
+            $this->dispatch('notify', type: 'error', message: 'SOAP Note tidak bisa disimpan -- kunjungan ini sudah dibatalkan.');
+            return false;
+        }
 
         $soap = SoapNoteModel::updateOrCreate(
             ['kunjungan_id' => $this->kunjunganId],
@@ -483,6 +504,8 @@ class SoapNote extends Component
 
         $this->soapId = $soap->id;
         unset($this->kunjungan, $this->soapModel);
+
+        return true;
     }
 
     public function render()

@@ -235,11 +235,28 @@ class KunjunganService
         return $kunjungan;
     }
 
-    // ── Selesai Pemeriksaan Perawat ───────────────────────────
+    // ── Selesai Pemeriksaan ────────────────────────────────────
 
+    /**
+     * Menandai kunjungan selesai -- status ini yang jadi syarat pasien
+     * boleh masuk alur billing (lihat TagihanPasien::prosesPembayaran()).
+     * Sebelumnya TIDAK ADA pengecekan apa pun: kunjungan bisa "Selesai"
+     * dan lanjut ke kasir walau dokter belum pernah menulis/
+     * memfinalisasi SOAP Note-nya sama sekali -- rekam medis kunjungan
+     * bisa jadi kosong padahal sudah ditagih ke pasien. Dibandingkan
+     * dengan hasPendingResep yang SUDAH benar dicek sebelum pembayaran
+     * bisa diproses, tapi finalisasi SOAP Note tidak.
+     */
     public function selesaiPemeriksaan(int $kunjunganId): Kunjungan
     {
-        $kunjungan = Kunjungan::findOrFail($kunjunganId);
+        $kunjungan = Kunjungan::with('soapNote')->findOrFail($kunjunganId);
+
+        if (! $kunjungan->soapNote || ! $kunjungan->soapNote->is_final) {
+            throw ValidationException::withMessages([
+                'id' => 'Pemeriksaan belum bisa diselesaikan -- SOAP Note dokter belum difinalisasi.',
+            ]);
+        }
+
         $kunjungan->update(['status' => 'selesai']);
 
         activity('kunjungan')

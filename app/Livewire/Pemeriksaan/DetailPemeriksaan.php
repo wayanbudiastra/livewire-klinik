@@ -170,9 +170,16 @@ class DetailPemeriksaan extends Component
 
     public function selesaiPemeriksaan(KunjunganService $service): void
     {
-        $service->selesaiPemeriksaan($this->kunjunganId);
-        unset($this->kunjungan);
-        $this->dispatch('notify', type: 'success', message: 'Pemeriksaan selesai. Pasien siap diperiksa dokter.');
+        try {
+            $service->selesaiPemeriksaan($this->kunjunganId);
+            unset($this->kunjungan);
+            // Pesan sebelumnya "Pasien siap diperiksa dokter" tidak nyambung
+            // dengan aksinya sendiri (status kunjungan ini justru berubah
+            // jadi 'selesai', bukan status antara "siap diperiksa dokter").
+            $this->dispatch('notify', type: 'success', message: 'Pemeriksaan selesai.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->dispatch('notify', type: 'error', message: $e->errors()[array_key_first($e->errors())][0]);
+        }
     }
 
     public function render()
