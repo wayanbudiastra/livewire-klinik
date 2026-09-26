@@ -9,29 +9,45 @@ class SesiKasService
 {
     public function bukaKas(int $userId, float $saldoAwal, ?string $catatan = null): SesiKas
     {
-        $existing = SesiKas::where('user_id', $userId)
-            ->where('status', 'buka')
-            ->whereDate('tanggal', today())
-            ->first();
+        return DB::transaction(function () use ($userId, $saldoAwal, $catatan) {
+            // Cek-lalu-buat ini sebelumnya tanpa transaksi/lock, dan tabel
+            // sesi_kas juga tidak punya unique constraint -- double-click
+            // "Buka Kas" (atau 2 tab) bisa membuat 2 baris sesi 'buka'
+            // sekaligus utk kasir yang sama di hari yang sama. sesi_kas
+            // sendiri belum tentu punya baris utk hari ini (kasus paling
+            // umum: baru pertama kali buka kas), jadi tidak ada baris
+            // sesi_kas yang bisa langsung di-lockForUpdate(). Sebagai
+            // gantinya kunci baris users milik kasir ini (yang pasti ada)
+            // sbg proxy lock -- ini menyerialkan 2 request "Buka Kas"
+            // bersamaan dari user yang sama, request kedua akan menunggu
+            // request pertama commit lalu membaca ulang data yang sudah
+            // ter-commit itu.
+            User::where('id', $userId)->lockForUpdate()->first();
 
-        if ($existing) {
-            throw new \RuntimeException('Anda sudah memiliki sesi kas yang aktif hari ini.');
-        }
+            $existing = SesiKas::where('user_id', $userId)
+                ->where('status', 'buka')
+                ->whereDate('tanggal', today())
+                ->first();
 
-        $sesi = SesiKas::create([
-            'user_id'     => $userId,
-            'tanggal'     => today(),
-            'dibuka_pada' => now(),
-            'saldo_awal'  => $saldoAwal,
-            'status'      => 'buka',
-            'catatan'     => $catatan,
-        ]);
+            if ($existing) {
+                throw new \RuntimeException('Anda sudah memiliki sesi kas yang aktif hari ini.');
+            }
 
-        AuditKasirService::log('buka_kas', $userId, 'sesi_kas', $sesi->id, [
-            'saldo_awal' => $saldoAwal,
-        ]);
+            $sesi = SesiKas::create([
+                'user_id'     => $userId,
+                'tanggal'     => today(),
+                'dibuka_pada' => now(),
+                'saldo_awal'  => $saldoAwal,
+                'status'      => 'buka',
+                'catatan'     => $catatan,
+            ]);
 
-        return $sesi;
+            AuditKasirService::log('buka_kas', $userId, 'sesi_kas', $sesi->id, [
+                'saldo_awal' => $saldoAwal,
+            ]);
+
+            return $sesi;
+        });
     }
 
     public function tutupKas(SesiKas $sesi, int $userId, float $uangFisikAkhir, ?string $catatan = null): SesiKas

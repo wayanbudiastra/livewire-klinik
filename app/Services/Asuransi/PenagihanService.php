@@ -58,10 +58,34 @@ class PenagihanService
         return DB::transaction(function () use (
             $penagihan, $jumlahBayar, $metode, $tanggalBayar, $nomorReferensi, $userId
         ) {
+            // Kunci ulang & cek ulang sisa tagihan DI DALAM transaksi --
+            // sebelumnya tidak ada lock sama sekali di sini (beda dari
+            // service pembayaran lain yang sudah dibenahi), jadi 2 klik
+            // "Catat Bayar" bersamaan (atau 2 tab dgn data sisa_tagihan
+            // yang sudah basi) bisa dobel-alokasi pembayaran ke piutang
+            // yang sama (over-payment + jurnal dobel).
+            $penagihanLocked = PenagihanAsuransi::where('id', $penagihan->id)
+                ->lockForUpdate()
+                ->with('items.piutang')
+                ->firstOrFail();
+
+            if (in_array($penagihanLocked->status, ['lunas', 'ditolak'], true)) {
+                throw new \RuntimeException('Penagihan ini sudah ' . $penagihanLocked->status . '.');
+            }
+
+            $sisaTagihan = (float) $penagihanLocked->total_tagihan - (float) $penagihanLocked->total_dibayar;
+            if ($jumlahBayar > $sisaTagihan + 0.01) {
+                throw new \RuntimeException(
+                    'Jumlah bayar (Rp ' . number_format($jumlahBayar, 0, ',', '.') . ') melebihi sisa ' .
+                    'tagihan (Rp ' . number_format($sisaTagihan, 0, ',', '.') . ') -- kemungkinan sudah ' .
+                    'ada pembayaran lain yang tercatat lebih dulu. Muat ulang halaman ini.'
+                );
+            }
+
             $pembayaran = PembayaranAsuransi::create([
                 'nomor_pembayaran' => $this->generateNomorPembayaran(),
-                'penagihan_id'     => $penagihan->id,
-                'asuransi_id'      => $penagihan->asuransi_id,
+                'penagihan_id'     => $penagihanLocked->id,
+                'asuransi_id'      => $penagihanLocked->asuransi_id,
                 'dicatat_oleh'     => $userId,
                 'jumlah_bayar'     => $jumlahBayar,
                 'tanggal_bayar'    => $tanggalBayar,
@@ -70,11 +94,14 @@ class PenagihanService
             ]);
 
             $sisaBayar = $jumlahBayar;
-            foreach ($penagihan->items as $item) {
+            foreach ($penagihanLocked->items as $item) {
                 if ($sisaBayar <= 0) break;
 
-                $piutang = $item->piutang;
-                $alokasi = min($sisaBayar, $piutang->sisa_piutang);
+                $piutang = PiutangAsuransi::where('id', $item->piutang_asuransi_id)->lockForUpdate()->first();
+                if (! $piutang) continue;
+
+                $alokasi = min($sisaBayar, (float) $piutang->sisa_piutang);
+                if ($alokasi <= 0) continue;
 
                 $piutang->increment('jumlah_dibayar', $alokasi);
                 $piutang->decrement('sisa_piutang', $alokasi);
@@ -91,14 +118,14 @@ class PenagihanService
                 }
             }
 
-            $penagihan->increment('total_dibayar', $jumlahBayar);
-            $penagihan->update([
-                'status' => $penagihan->fresh()->total_dibayar >= $penagihan->total_tagihan
+            $penagihanLocked->increment('total_dibayar', $jumlahBayar);
+            $penagihanLocked->update([
+                'status' => $penagihanLocked->fresh()->total_dibayar >= $penagihanLocked->total_tagihan
                     ? 'lunas' : 'dibayar_sebagian',
             ]);
 
             activity('piutang')
-                ->performedOn($penagihan)
+                ->performedOn($penagihanLocked)
                 ->causedBy(\App\Models\User::find($userId))
                 ->withProperties([
                     'jumlah_bayar'     => $jumlahBayar,
