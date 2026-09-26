@@ -12,6 +12,8 @@ class BillingDetail extends Component
 
     public function mount(Invoice $billing): void
     {
+        $this->authorize('billing.view');
+
         $this->billing = $billing->load([
             'kunjungan.pasien',
             'kunjungan.dokter.user',
@@ -40,6 +42,8 @@ class BillingDetail extends Component
 
     public function batalkan(): void
     {
+        $this->authorize('billing.edit');
+
         $this->dispatch('openBatalkanModal', billingId: $this->billing->id);
     }
 

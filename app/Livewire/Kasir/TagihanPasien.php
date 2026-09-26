@@ -66,6 +66,16 @@ class TagihanPasien extends Component
         $this->sesiKasService = $sesiKasService;
     }
 
+    // Audit Priority 1: komponen ini sebelumnya cuma dilindungi middleware
+    // route (yg sendirinya baru ditambahkan bareng fix ini, lihat web.php),
+    // tanpa authorize() sendiri. mount() jadi lapis kedua supaya kalau
+    // suatu saat komponen ini di-embed di halaman lain tanpa gate route yg
+    // benar, akses tetap tertutup untuk role yg tidak punya billing.view.
+    public function mount(): void
+    {
+        $this->authorize('billing.view');
+    }
+
     #[Computed]
     public function activeSesi(): ?SesiKas
     {
@@ -212,6 +222,8 @@ class TagihanPasien extends Component
 
     public function updateDiskonItem(int $itemId): void
     {
+        $this->authorize('billing.edit');
+
         $item = InvoiceItem::find($itemId);
         if (! $item || $item->billing->status !== 'belum_bayar') return;
 
@@ -229,6 +241,8 @@ class TagihanPasien extends Component
 
     public function applyDiskonGlobal(): void
     {
+        $this->authorize('billing.edit');
+
         $invoice = Invoice::find($this->invoiceId);
         if (! $invoice || $invoice->status !== 'belum_bayar') return;
 
@@ -240,6 +254,8 @@ class TagihanPasien extends Component
 
     public function removeItem(int $itemId): void
     {
+        $this->authorize('billing.edit');
+
         $item = InvoiceItem::find($itemId);
         if (! $item || $item->jenis === 'obat' || $item->billing->status !== 'belum_bayar') return;
 
@@ -251,6 +267,8 @@ class TagihanPasien extends Component
 
     public function addManualItem(): void
     {
+        $this->authorize('billing.edit');
+
         $this->validate([
             'manualNama'  => 'required|string|max:255',
             'manualQty'   => 'required|numeric|min:0.01',
@@ -286,6 +304,8 @@ class TagihanPasien extends Component
 
     public function prosesPembayaran(): void
     {
+        $this->authorize('pembayaran.create');
+
         if (! $this->activeSesi) {
             session()->flash('error', 'Kas tidak aktif. Buka kas terlebih dahulu.');
             return;
@@ -499,6 +519,8 @@ class TagihanPasien extends Component
 
     public function addKomponenItem(int $refId, string $nama, float $harga, string $satuan, int $qty): void
     {
+        $this->authorize('billing.edit');
+
         $invoice = Invoice::find($this->invoiceId);
         if (! $invoice || $invoice->status !== 'belum_bayar') return;
 

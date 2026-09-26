@@ -6,6 +6,14 @@ use App\Models\ShiftKasir;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
+/**
+ * @deprecated Audit Priority 1 (sapuan otorisasi, 2026-09) -- komponen ini
+ * TIDAK direferensikan oleh route atau view mana pun di codebase (digantikan
+ * total oleh SesiKas/SesiKasPanel + PembayaranSplit). Sengaja tidak dihapus
+ * filenya dalam sesi ini (dibatasi kebijakan penghapusan file lokal), tapi
+ * jangan di-wire ulang ke UI mana pun tanpa audit permission terlebih dahulu
+ * -- kelas ini tidak punya authorize() sama sekali. Aman untuk dihapus.
+ */
 class KelolaShift extends Component
 {
     public ?ShiftKasir $shift = null;

@@ -17,6 +17,8 @@ class RiwayatPembayaran extends Component
 
     public function mount(): void
     {
+        $this->authorize('billing.view');
+
         $this->filterTanggal = today()->format('Y-m-d');
     }
 
@@ -25,6 +27,8 @@ class RiwayatPembayaran extends Component
 
     public function batalkan(int $billingId): void
     {
+        $this->authorize('billing.edit');
+
         $this->dispatch('openBatalkanModal',
             billingId:  $billingId,
             redirectTo: route('kasir.billing.index') . '?tab=riwayat',

@@ -25,6 +25,8 @@ class SesiKasPanel extends Component
 
     public function mount(): void
     {
+        $this->authorize('billing.view');
+
         $this->sesiAktif = app(SesiKasService::class)->getSesiAktif(auth()->id());
     }
 
@@ -80,6 +82,8 @@ class SesiKasPanel extends Component
 
     public function bukaKas(SesiKasService $service): void
     {
+        $this->authorize('pembayaran.create');
+
         $this->validate([
             'saldoAwal' => ['required', 'numeric', 'min:0'],
         ]);
@@ -101,6 +105,8 @@ class SesiKasPanel extends Component
 
     public function tutupKas(SesiKasService $service): void
     {
+        $this->authorize('pembayaran.create');
+
         if (!$this->sesiAktif) return;
 
         $this->validate([
@@ -131,6 +137,8 @@ class SesiKasPanel extends Component
 
     public function bukaKasKembali(SesiKasService $service): void
     {
+        $this->authorize('pembayaran.create');
+
         $this->validate([
             'passwordBukaKembali' => ['required', 'string'],
             'alasanBukaKembali'   => ['required', 'string', 'min:10'],

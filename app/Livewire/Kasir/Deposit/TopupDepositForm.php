@@ -33,6 +33,11 @@ class TopupDepositForm extends Component
     public string $alasanRefund     = '';
     public string $errorRefund      = '';
 
+    public function mount(): void
+    {
+        $this->authorize('billing.view');
+    }
+
     public function updatedSearchDeposit(): void { $this->resetPage(); }
 
     #[Computed]
@@ -110,6 +115,8 @@ class TopupDepositForm extends Component
 
     public function simpan(DepositService $depositService, SesiKasService $sesiKasService): void
     {
+        $this->authorize('pembayaran.create');
+
         $this->validate([
             'pasienId'   => ['required', 'exists:pasien,id'],
             'jumlah'     => ['required', 'numeric', 'min:1000', 'max:100000000'],
@@ -167,6 +174,8 @@ class TopupDepositForm extends Component
 
     public function prosesRefund(DepositService $depositService, SesiKasService $sesiKasService): void
     {
+        $this->authorize('pembayaran.create');
+
         $this->errorRefund = '';
 
         $this->validate([

@@ -146,21 +146,33 @@ Route::middleware(['auth', 'active'])->group(function () {
     });
 
     // Billing & Kasir
-    Route::get('/billing', fn () => view('kasir.index'))->name('billing.index');
-    Route::get('/billing/invoice/{billing}/print', function (\App\Models\Invoice $billing) {
-        $invoice = $billing->load([
-            'kunjungan.pasien',
-            'kunjungan.dokter',
-            'kunjungan.poli',
-            'items',
-            'pembayaran',
-            'shift.user',
-        ]);
-        return view('kasir.invoice-print', compact('invoice'));
-    })->name('invoice.print');
+    //
+    // ⚠ Audit Priority 1 (sapuan otorisasi): sebelum ini prefix kasir/billing
+    // TIDAK punya middleware permission sama sekali (cuma auth+active), jadi
+    // role apa pun (apoteker, rekam_medis, dokter, perawat, dst -- yang semua
+    // TIDAK punya permission billing.*/pembayaran.*) bisa buka dashboard Kasir
+    // penuh: cari & proses pembayaran tagihan pasien mana pun, top-up/refund
+    // deposit, buka/tutup sesi kas. billing.view digate di level route (dan
+    // authorize() di masing2 komponen sbg lapis kedua, lihat komponennya),
+    // sedangkan aksi yg benar2 memindahkan uang (split-payment) butuh
+    // pembayaran.create yang cuma dipegang role kasir.
+    Route::middleware('permission:billing.view')->group(function () {
+        Route::get('/billing', fn () => view('kasir.index'))->name('billing.index');
+        Route::get('/billing/invoice/{billing}/print', function (\App\Models\Invoice $billing) {
+            $invoice = $billing->load([
+                'kunjungan.pasien',
+                'kunjungan.dokter',
+                'kunjungan.poli',
+                'items',
+                'pembayaran',
+                'shift.user',
+            ]);
+            return view('kasir.invoice-print', compact('invoice'));
+        })->name('invoice.print');
+    });
 
     // Kasir v2 — Billing Detail, Split Payment, Cetak
-    Route::prefix('kasir')->name('kasir.')->group(function () {
+    Route::prefix('kasir')->name('kasir.')->middleware('permission:billing.view')->group(function () {
         Route::get('/billing', fn () => view('kasir.index'))->name('billing.index');
 
         Route::get('/billing/{billing}', function (\App\Models\Invoice $billing) {
@@ -171,7 +183,8 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/billing/{billing}/split-payment', function (\App\Models\Invoice $billing) {
             $billing->load('kunjungan.pasien');
             return view('kasir.split-payment', compact('billing'));
-        })->name('billing.split-payment');
+        })->name('billing.split-payment')
+          ->middleware('permission:pembayaran.create');
 
         Route::get('/billing/{billing}/cetak', function (\App\Models\Invoice $billing) {
             $service = app(\App\Services\Kasir\CetakInvoiceService::class);

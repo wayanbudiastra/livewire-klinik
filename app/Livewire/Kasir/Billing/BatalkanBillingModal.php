@@ -20,6 +20,8 @@ class BatalkanBillingModal extends Component
     #[On('openBatalkanModal')]
     public function open(int $billingId, string $redirectTo = ''): void
     {
+        $this->authorize('billing.edit');
+
         $this->billingId  = $billingId;
         $this->alasan     = '';
         $this->password   = '';
@@ -30,6 +32,8 @@ class BatalkanBillingModal extends Component
 
     public function batalkan(BillingService $service): void
     {
+        $this->authorize('billing.edit');
+
         $this->validate([
             'alasan'   => ['required', 'string', 'min:10', 'max:500'],
             'password' => ['required', 'string'],

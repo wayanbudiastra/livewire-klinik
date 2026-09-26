@@ -36,6 +36,8 @@ class SplitPaymentForm extends Component
 
     public function mount(Invoice $billing): void
     {
+        $this->authorize('billing.view');
+
         $this->billing     = $billing;
         $this->sisaTagihan = (float) $billing->sisa;
 
@@ -126,6 +128,8 @@ class SplitPaymentForm extends Component
 
     public function konfirmasi(BillingService $billingService, SesiKasService $sesiKasService): void
     {
+        $this->authorize('pembayaran.create');
+
         if ($this->hasPendingResep) {
             $this->addError('global', 'Masih ada resep obat yang belum dikonfirmasi apoteker. Selesaikan terlebih dahulu sebelum proses pembayaran.');
             return;
