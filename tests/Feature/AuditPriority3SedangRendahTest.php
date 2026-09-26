@@ -29,9 +29,13 @@ use Tests\TestCase;
  *    sebelumnya 2 klik "Abaikan" bersamaan pada baris yang sama bisa
  *    menambahkan teks "[Diabaikan: ...]" dobel ke kolom keterangan.
  *
- * (Temuan Tinggi -- JurnalService::reversal() tidak menandai baris asli
- * sbg sudah direversal, sehingga rentan reversal dobel via jalur Jurnal
- * Manual -- SENGAJA belum diperbaiki di sesi ini, menunggu konfirmasi user.)
+ * [Tinggi] JurnalService::reversal() sebelumnya tidak menandai
+ * sumber+tipe yang sudah direversal, sehingga rentan reversal dobel via
+ * jalur Jurnal Manual (JurnalManualTable::batalkan() tidak py lock/guard
+ * sendiri). Diperbaiki dgn cek dulu (lockForUpdate()) apakah baris
+ * 'pembatalan_<tipe>' utk sumber ini sudah ada -- kalau ya, tolak dgn
+ * \DomainException, mencegah reversal kedua yang bikin buku besar tidak
+ * balance.
  *
  * Pakai DatabaseTransactions -- bukan RefreshDatabase.
  */
@@ -150,5 +154,44 @@ class AuditPriority3SedangRendahTest extends TestCase
         $this->assertSame('diabaikan', $fresh->status);
         $this->assertSame(1, substr_count($fresh->keterangan, '[Diabaikan:'),
             'Teks [Diabaikan: ...] cuma boleh muncul 1x, bukan dobel.');
+    }
+
+    // ── Tinggi: JurnalService::reversal() tidak boleh direversal 2x ─────
+
+    /** @test */
+    public function batalkan_jurnal_manual_kedua_kali_ditolak_dan_tidak_membuat_reversal_dobel(): void
+    {
+        $this->buatAkun('5-9301', 'biaya', 'debit');
+        $this->buatAkun('1-9302', 'aset', 'debit');
+        $userId = $this->buatUserDenganRole('akuntan')->id;
+
+        $jm = app(JurnalManualService::class)->buat([
+            'tanggal' => now()->toDateString(), 'kategori' => null,
+            'kode_akun_debit' => '5-9301', 'kode_akun_kredit' => '1-9302',
+            'nominal' => 75000, 'keterangan' => 'Test reversal dobel',
+            'dokumen_pendukung' => null,
+        ], $userId);
+
+        $pending = JurnalPending::where('sumber_tipe', 'jurnal_manual')->where('sumber_id', $jm->id)->firstOrFail();
+        app(JurnalService::class)->posting([$pending->id], $userId);
+
+        $service = app(JurnalManualService::class);
+        $service->batalkan($jm, $userId); // pertama kali -- berhasil normal
+
+        try {
+            $service->batalkan($jm, $userId); // kedua kali (mis. double-click) -- harus ditolak
+            $this->fail('Panggilan batalkan() kedua harusnya ditolak (sudah pernah direversal).');
+        } catch (\DomainException $e) {
+            $this->assertStringContainsString('sudah pernah', $e->getMessage());
+        }
+
+        $this->assertSame(1, JurnalPending::where('sumber_tipe', 'jurnal_manual')
+            ->where('sumber_id', $jm->id)
+            ->where('tipe_transaksi', 'pembatalan_jurnal_manual')
+            ->count(), 'Cuma boleh ada 1 baris reversal, bukan dobel.');
+        $this->assertSame(1, JurnalUmum::where('sumber_tipe', 'jurnal_manual')
+            ->where('sumber_id', $jm->id)
+            ->where('kode_akun_debit', '1-9302') // dibalik dari akun kredit asli
+            ->count(), 'Cuma boleh ada 1 entri reversal di Jurnal Umum.');
     }
 }

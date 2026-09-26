@@ -149,15 +149,36 @@ class JurnalService
      */
     public function reversal(string $sumberTipe, int $sumberId, array $tipeTransaksi, int $userId): array
     {
-        $rows = JurnalPending::where('sumber_tipe', $sumberTipe)
-            ->where('sumber_id', $sumberId)
-            ->whereIn('tipe_transaksi', $tipeTransaksi)
-            ->whereIn('status', ['pending', 'posted'])
-            ->get();
-
         $hasilReversal = [];
 
-        DB::transaction(function () use ($rows, $userId, &$hasilReversal) {
+        DB::transaction(function () use ($sumberTipe, $sumberId, $tipeTransaksi, $userId, &$hasilReversal) {
+            // Cek dulu apakah sumber+tipe ini SUDAH pernah direversal
+            // sebelumnya (baris 'pembatalan_<tipe>' sudah ada) -- sebelum
+            // ini reversal() tidak menandai baris asli sbg "sudah
+            // direversal" sama sekali, jadi kalau method ini dipanggil
+            // lebih dari sekali utk sumber yang sama (mis. double-click
+            // "Batalkan" di JurnalManualTable, yang tidak py lock/guard
+            // sendiri), tiap panggilan membuat entri reversal BARU --
+            // buku besar jadi tidak balance (pendapatan/biaya berkurang
+            // berkali-kali lipat dari yang seharusnya).
+            $tipeReversal    = array_map(fn ($t) => 'pembatalan_' . $t, $tipeTransaksi);
+            $sudahDireversal = JurnalPending::where('sumber_tipe', $sumberTipe)
+                ->where('sumber_id', $sumberId)
+                ->whereIn('tipe_transaksi', $tipeReversal)
+                ->lockForUpdate()
+                ->exists();
+
+            if ($sudahDireversal) {
+                throw new \DomainException('Transaksi ini sudah pernah dibatalkan/direversal sebelumnya.');
+            }
+
+            $rows = JurnalPending::where('sumber_tipe', $sumberTipe)
+                ->where('sumber_id', $sumberId)
+                ->whereIn('tipe_transaksi', $tipeTransaksi)
+                ->whereIn('status', ['pending', 'posted'])
+                ->lockForUpdate()
+                ->get();
+
             foreach ($rows as $row) {
                 if ($row->status === 'pending') {
                     $this->abaikan(
