@@ -159,9 +159,13 @@ class DetailPemeriksaan extends Component
 
     public function batalkanRegistrasi(KunjunganService $service): void
     {
-        $service->cancelKunjungan($this->kunjunganId);
-        unset($this->kunjungan);
-        $this->dispatch('notify', type: 'success', message: 'Registrasi berhasil dibatalkan.');
+        try {
+            $service->cancelKunjungan($this->kunjunganId);
+            unset($this->kunjungan);
+            $this->dispatch('notify', type: 'success', message: 'Registrasi berhasil dibatalkan.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->dispatch('notify', type: 'error', message: $e->errors()[array_key_first($e->errors())][0]);
+        }
     }
 
     public function selesaiPemeriksaan(KunjunganService $service): void

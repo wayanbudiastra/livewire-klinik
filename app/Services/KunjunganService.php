@@ -21,15 +21,36 @@ class KunjunganService
         return DB::transaction(function () use ($poliId, $tanggal, $isAppointment) {
             $prefix = $isAppointment ? 'A' : 'W';
 
-            // Hitung berdasarkan prefix masing-masing
-            $count = Kunjungan::whereDate('tanggal', $tanggal)
-                ->where('poli_id', $poliId)
+            // whereDate('tanggal', ...) sebelumnya membungkus kolom tanggal
+            // dalam fungsi (DATE(tanggal) = ?), yang mencegah MySQL memakai
+            // index range scan pada kolom ini -- lockForUpdate() jadi tidak
+            // efektif mengunci baris yang relevan sehingga rawan race
+            // condition kalau 2 pendaftaran poli+hari yang sama terjadi
+            // bersamaan. Diganti whereBetween supaya sargable dan lock
+          // benar-benar berlaku pada baris yang dihitung di bawah.
+            $awal  = "{$tanggal} 00:00:00";
+            $akhir = "{$tanggal} 23:59:59";
+
+            $nomorAktif = Kunjungan::where('poli_id', $poliId)
+                ->whereBetween('tanggal', [$awal, $akhir])
                 ->where('nomor_antrean', 'like', "{$prefix}-%")
                 ->whereNotIn('status', ['dibatalkan'])
                 ->lockForUpdate()
-                ->count();
+                ->pluck('nomor_antrean')
+                ->all();
 
-            $nomor = $count + 1;
+            $nomor    = count($nomorAktif) + 1;
+            $terpakai = array_flip($nomorAktif);
+
+            // Pengaman tambahan: kalau angka hasil hitungan di atas ternyata
+            // sudah dipakai kunjungan AKTIF lain, naikkan sampai ketemu yang
+            // benar-benar kosong. Kunjungan yang sudah dibatalkan sengaja
+            // TIDAK dihitung di sini (dan boleh nomornya dipakai ulang) --
+            // itu perilaku existing yang sengaja dipertahankan, bukan bug.
+            while (isset($terpakai[$prefix . '-' . str_pad($nomor, 3, '0', STR_PAD_LEFT)])) {
+                $nomor++;
+            }
+
             return $prefix . '-' . str_pad($nomor, 3, '0', STR_PAD_LEFT);
         });
     }
@@ -245,12 +266,21 @@ class KunjunganService
 
     public function cancelKunjungan(int $kunjunganId): Kunjungan
     {
-        $kunjungan = Kunjungan::with('appointment')->findOrFail($kunjunganId);
+        $kunjungan = Kunjungan::with(['appointment', 'invoice'])->findOrFail($kunjunganId);
 
-        // Cek status billing (placeholder — billing belum diimplementasi)
-        // if ($kunjungan->billing && $kunjungan->billing->status === 'closed') {
-        //     throw ValidationException::withMessages(['id' => 'Billing sudah ditutup.']);
-        // }
+        // Billing sudah diimplementasi penuh (tabel billing/Invoice) --
+        // cek ini sebelumnya cuma placeholder ter-comment dan lupa
+        // diaktifkan lagi setelah modul billing jadi. Kunjungan yang
+        // sudah punya tagihan (apa pun statusnya selain 'dibatalkan')
+        // tidak boleh dibatalkan langsung -- tagihannya harus diurus dulu,
+        // supaya tidak ada kunjungan berstatus "dibatalkan" tapi masih
+        // punya tagihan aktif/lunas yang menggantung.
+        if ($kunjungan->invoice && $kunjungan->invoice->status !== 'dibatalkan') {
+            throw ValidationException::withMessages([
+                'id' => "Kunjungan tidak bisa dibatalkan -- sudah ada tagihan #{$kunjungan->invoice->nomor_invoice} "
+                      . "berstatus \"{$kunjungan->invoice->status}\". Batalkan/selesaikan tagihannya terlebih dahulu.",
+            ]);
+        }
 
         $kunjungan->update(['status' => 'dibatalkan']);
 

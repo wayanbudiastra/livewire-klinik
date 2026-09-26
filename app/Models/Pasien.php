@@ -8,6 +8,19 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Pasien extends Model
 {
+    /**
+     * ⚠ PERINGATAN utk siapa pun yang membangun fitur "hapus pasien":
+     * kolom nik/no_bpjs/no_paspor/nomor_rm di tabel pasien punya unique
+     * index BIASA di database (bukan yang mengabaikan baris ber-
+     * deleted_at) -- soft delete TIDAK membebaskan nilai-nilai itu utk
+     * dipakai ulang pasien lain. Sengaja belum diperbaiki di level DB
+     * (butuh drop+rebuild unique index yang sedang aktif melindungi data
+     * pasien real, risikonya tidak sepadan selama belum ada fitur hapus
+     * pasien sungguhan -- lihat audit masterdata). Kalau fitur hapus
+     * pasien dibuat, desain ulang bareng: apakah NIK dikosongkan saat
+     * dihapus, generated column ber-index yang NULL saat trashed, atau
+     * hard delete utk kasus ini.
+     */
     use SoftDeletes;
 
     protected $table = 'pasien';

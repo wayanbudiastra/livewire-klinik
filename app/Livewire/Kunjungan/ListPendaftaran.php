@@ -60,9 +60,17 @@ class ListPendaftaran extends Component
     public function cancel(int $id, KunjunganService $service): void
     {
         $this->authorize('kunjungan.edit');
-        $service->cancelKunjungan($id);
-        unset($this->kunjungan);
-        $this->dispatch('notify', type: 'success', message: 'Kunjungan berhasil dibatalkan.');
+
+        try {
+            $service->cancelKunjungan($id);
+            unset($this->kunjungan);
+            $this->dispatch('notify', type: 'success', message: 'Kunjungan berhasil dibatalkan.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // cancelKunjungan() menolak (mis. sudah ada tagihan aktif) --
+            // sebelumnya exception ini tidak ditangkap di sini sama sekali,
+            // jadi pesannya tidak pernah terlihat oleh user.
+            $this->dispatch('notify', type: 'error', message: $e->errors()[array_key_first($e->errors())][0]);
+        }
     }
 
     #[On('kunjungan-created')]

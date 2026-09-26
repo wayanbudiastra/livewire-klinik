@@ -93,6 +93,18 @@ class PasienTable extends Component
         }
     }
 
+    /**
+     * Batas jumlah pasien diproses per klik "Fetch Semua" -- sebelumnya
+     * TIDAK ADA batas sama sekali, jadi klinik dengan banyak pasien belum
+     * ber-IHS bisa gampang melewati timeout PHP-FPM/Nginx (set_time_limit(0)
+     * cuma matikan timeout PHP sendiri, tidak menyentuh timeout web
+     * server/reverse proxy di depannya) karena ini jalan sinkron dalam satu
+     * request HTTP, bukan lewat queue job. Dibatasi per-batch + tombol bisa
+     * diklik lagi utk lanjutkan sisanya, supaya request selalu selesai
+     * dalam waktu wajar walau jumlah pasiennya ribuan.
+     */
+    private const IHS_BATCH_SIZE = 20;
+
     public function fetchIhsSemua(): void
     {
         if (! ConfigSatuSehat::aktif()) {
@@ -104,9 +116,9 @@ class PasienTable extends Component
 
         $service = app(SatuSehatIhsService::class);
 
-        $ids = Pasien::whereNull('ihs_status')
-            ->orWhere('ihs_status', 'error')
-            ->pluck('id');
+        $query = Pasien::whereNull('ihs_status')->orWhere('ihs_status', 'error');
+        $sisaSebelum = (clone $query)->count();
+        $ids = (clone $query)->orderBy('id')->limit(self::IHS_BATCH_SIZE)->pluck('id');
 
         $this->ihsRunning = true;
         $this->ihsSelesai = false;
@@ -115,7 +127,7 @@ class PasienTable extends Component
         $this->ihsOk      = 0;
         $this->ihsGagal   = 0;
 
-        if ($this->ihsTotal === 0) {
+        if ($sisaSebelum === 0) {
             $this->ihsRunning = false;
             $this->ihsSelesai = true;
             $this->dispatch('notify', type: 'success', message: 'Semua pasien sudah memiliki IHS ID.');
@@ -150,8 +162,14 @@ class PasienTable extends Component
         $this->ihsSelesai = true;
         unset($this->pasien);
 
-        $this->dispatch('notify', type: 'success',
-            message: "Selesai: {$this->ihsOk} berhasil, {$this->ihsGagal} gagal dari {$this->ihsTotal} pasien.");
+        $sisaSesudah = $sisaSebelum - $this->ihsTotal;
+        $ringkasan   = "Batch ini: {$this->ihsOk} berhasil, {$this->ihsGagal} gagal dari {$this->ihsTotal} pasien.";
+
+        if ($sisaSesudah > 0) {
+            $ringkasan .= " Masih ada {$sisaSesudah} pasien lagi -- klik \"Fetch Semua\" sekali lagi untuk lanjutkan.";
+        }
+
+        $this->dispatch('notify', type: 'success', message: $ringkasan);
     }
 
     public function resetIhsBulk(): void

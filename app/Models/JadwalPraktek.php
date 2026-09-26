@@ -53,6 +53,15 @@ class JadwalPraktek extends Model
                 $newSelesai = strtotime($jamSelesai);
                 $exMulai    = strtotime($j->jam_mulai);
                 $exSelesai  = strtotime($j->jam_selesai);
+
+                // Jadwal yang melewati tengah malam (mis. 22:00-02:00): jam
+                // selesai jadi lebih kecil dari jam mulai kalau dibandingkan
+                // di hari kalender yang sama (strtotime() tanpa tanggal
+                // selalu pakai "hari ini" sebagai acuan) -- tambah 1 hari
+                // dulu supaya urutannya benar sebelum dibandingkan.
+                if ($newSelesai <= $newMulai) $newSelesai += 86400;
+                if ($exSelesai <= $exMulai)   $exSelesai   += 86400;
+
                 return $newMulai < $exSelesai && $newSelesai > $exMulai;
             });
     }
