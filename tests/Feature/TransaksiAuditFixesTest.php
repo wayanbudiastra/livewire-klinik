@@ -18,7 +18,10 @@ use App\Models\Poli;
 use App\Models\Racikan;
 use App\Models\Resep;
 use App\Models\SesiKas;
+use App\Models\StokOpname;
+use App\Models\StokOpnameItem;
 use App\Models\User;
+use App\Services\Inventory\StokOpnameService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
@@ -40,6 +43,20 @@ use Tests\TestCase;
  *    sudah tidak cukup. Diperbaiki dengan pakai Barang::pastikanCukup()
  *    (pola yang sudah benar dipakai ObatRitelService) di dalam transaksi.
  *    -> app/Livewire/Farmasi/ResepFarmasi.php
+ *
+ * ...dan temuan Sedang:
+ *
+ * 3. [Sedang] ResepFarmasi::saveEditItem()/saveEditRacikan() tidak
+ *    mengecek is_locked di server (beda dari hapusItem()/hapusRacikan()
+ *    yang sudah benar) -- sekarang ditambahkan.
+ * 4. [Sedang] ResepFarmasi::batalkanKonfirmasi() mengembalikan stok tapi
+ *    tidak pernah mencatat MutasiStok utk pengembaliannya -- sekarang
+ *    tiap pengembalian dicatat (tipe penyesuaian_masuk).
+ * 5. [Sedang] StokOpnameService::verifikasi() menimpa stok langsung ke
+ *    stok_fisik (hasil hitung lama), bukan menerapkan selisihnya ke
+ *    stok terkini -- transaksi lain yang terjadi di jeda
+ *    input-fisik-ke-verifikasi bisa tertimpa hilang. Sekarang selisih
+ *    diterapkan ke stok terkini (yang sudah dikunci row-nya).
  *
  * Pakai DatabaseTransactions -- bukan RefreshDatabase (lihat catatan yang
  * sama di SensitiveActionAuthorizationTest.php).
@@ -314,5 +331,149 @@ class TransaksiAuditFixesTest extends TestCase
             'Stok tidak boleh dipotong sama sekali oleh percobaan konfirmasi kedua ini.');
         $this->assertSame(0, MutasiStok::where('referensi_tipe', 'resep')->where('referensi_id', $resep->id)->count(),
             'Percobaan konfirmasi kedua ini tidak boleh membuat mutasi stok apa pun.');
+    }
+
+    // ── #3: saveEditItem()/saveEditRacikan() harus cek is_locked ────
+
+    /** @test */
+    public function edit_item_resep_ditolak_kalau_resep_sudah_terkunci(): void
+    {
+        $apoteker  = $this->buatApoteker();
+        $kunjungan = $this->buatKunjunganSelesai();
+        $barang    = $this->buatBarang(10);
+
+        $resep = Resep::create([
+            'kunjungan_id' => $kunjungan->id, 'dokter_id' => $kunjungan->dokter_id,
+            'status' => 'siap', 'is_locked' => true, 'locked_by' => $apoteker->id, 'locked_at' => now(),
+        ]);
+        $item = ItemResep::create(['resep_id' => $resep->id, 'barang_id' => $barang->id, 'jumlah' => 3, 'aturan_pakai' => '3x1']);
+
+        $this->actingAs($apoteker);
+
+        Livewire::test(ResepFarmasi::class)
+            ->set('editingItemId', $item->id)
+            ->set('editJumlah', 9)
+            ->set('editSigna', '4x1')
+            ->call('saveEditItem');
+
+        $this->assertSame(3, $item->fresh()->jumlah, 'Jumlah item resep yang sudah terkunci tidak boleh berubah.');
+    }
+
+    /** @test */
+    public function edit_racikan_ditolak_kalau_resep_sudah_terkunci(): void
+    {
+        $apoteker  = $this->buatApoteker();
+        $kunjungan = $this->buatKunjunganSelesai();
+        $bahan     = $this->buatBarang(20);
+
+        $resep = Resep::create([
+            'kunjungan_id' => $kunjungan->id, 'dokter_id' => $kunjungan->dokter_id,
+            'status' => 'siap', 'is_locked' => true, 'locked_by' => $apoteker->id, 'locked_at' => now(),
+        ]);
+        $racikan = Racikan::create(['resep_id' => $resep->id, 'nama_racikan' => 'Puyer Batuk', 'jumlah_sediaan' => 10]);
+        BahanRacikan::create(['racikan_id' => $racikan->id, 'barang_id' => $bahan->id, 'jumlah' => 15, 'satuan' => 'tablet']);
+
+        $this->actingAs($apoteker);
+
+        Livewire::test(ResepFarmasi::class)
+            ->set('editingRacikanId', $racikan->id)
+            ->set('editJumlahSediaan', 25)
+            ->set('editAturanPakai', 'baru')
+            ->call('saveEditRacikan');
+
+        $this->assertSame(10, $racikan->fresh()->jumlah_sediaan, 'Racikan pada resep yang sudah terkunci tidak boleh berubah.');
+    }
+
+    /** @test */
+    public function edit_item_resep_tetap_bisa_kalau_belum_terkunci(): void
+    {
+        $apoteker  = $this->buatApoteker();
+        $kunjungan = $this->buatKunjunganSelesai();
+        $barang    = $this->buatBarang(10);
+
+        $resep = Resep::create(['kunjungan_id' => $kunjungan->id, 'dokter_id' => $kunjungan->dokter_id, 'status' => 'menunggu']);
+        $item  = ItemResep::create(['resep_id' => $resep->id, 'barang_id' => $barang->id, 'jumlah' => 3, 'aturan_pakai' => '3x1']);
+
+        $this->actingAs($apoteker);
+
+        Livewire::test(ResepFarmasi::class)
+            ->set('editingItemId', $item->id)
+            ->set('editJumlah', 6)
+            ->set('editSigna', '2x1')
+            ->call('saveEditItem');
+
+        $this->assertSame(6, $item->fresh()->jumlah);
+    }
+
+    // ── #4: batalkanKonfirmasi() harus mencatat MutasiStok ─────────
+
+    /** @test */
+    public function batalkan_konfirmasi_mengembalikan_stok_dan_mencatat_mutasi_stok(): void
+    {
+        $apoteker  = $this->buatApoteker();
+        $kunjungan = $this->buatKunjunganSelesai();
+        $barang    = $this->buatBarang(10);
+
+        $resep = Resep::create(['kunjungan_id' => $kunjungan->id, 'dokter_id' => $kunjungan->dokter_id, 'status' => 'menunggu']);
+        ItemResep::create(['resep_id' => $resep->id, 'barang_id' => $barang->id, 'jumlah' => 3, 'aturan_pakai' => '3x1']);
+
+        $this->actingAs($apoteker);
+
+        $component = Livewire::test(ResepFarmasi::class);
+        $component->call('konfirmasi', $resep->id);
+        $this->assertSame(7, $barang->fresh()->stok);
+
+        $component->call('batalkanKonfirmasi', $resep->id);
+
+        $this->assertSame(10, $barang->fresh()->stok, 'Stok harus kembali penuh setelah konfirmasi dibatalkan.');
+        $this->assertFalse($resep->fresh()->is_locked);
+
+        $mutasiPengembalian = MutasiStok::where('referensi_tipe', 'resep')
+            ->where('referensi_id', $resep->id)
+            ->where('tipe', 'penyesuaian_masuk')
+            ->first();
+
+        $this->assertNotNull($mutasiPengembalian, 'Harus ada MutasiStok yang mencatat pengembalian stok saat batal konfirmasi.');
+        $this->assertSame(3, (int) $mutasiPengembalian->jumlah);
+        $this->assertSame(7, (int) $mutasiPengembalian->stok_sebelum);
+        $this->assertSame(10, (int) $mutasiPengembalian->stok_sesudah);
+
+        // Total mutasi utk resep ini: 1 keluar_resep (konfirmasi) + 1 penyesuaian_masuk (batal).
+        $this->assertSame(2, MutasiStok::where('referensi_tipe', 'resep')->where('referensi_id', $resep->id)->count());
+    }
+
+    // ── #5: StokOpnameService::verifikasi() menerapkan selisih, bukan menimpa ──
+
+    /** @test */
+    public function verifikasi_opname_menerapkan_selisih_ke_stok_terkini_bukan_menimpa_stok_fisik_lama(): void
+    {
+        $admin  = User::where('email', 'admin@emr.app')->firstOrFail();
+        $barang = $this->buatBarang(50); // stok_sistem saat opname dibuat = 50
+
+        $service = app(StokOpnameService::class);
+
+        $opname = $service->buatOpname([
+            'tanggal_opname' => now()->toDateString(),
+        ], $admin->id);
+
+        $item = StokOpnameItem::where('stok_opname_id', $opname->id)->where('barang_id', $barang->id)->firstOrFail();
+
+        // Hitung fisik: ketemu 45 (selisih -5 dari stok_sistem=50).
+        $service->inputStokFisik($item, 45);
+        $service->submitUntukVerifikasi($opname->fresh());
+
+        // Selama menunggu verifikasi, ada transaksi LAIN yang menambah stok
+        // 20 (mis. barang baru datang dari pembelian) -- stok terkini
+        // sekarang 70, BUKAN 50 lagi.
+        $barang->increment('stok', 20);
+        $this->assertSame(70, $barang->fresh()->stok);
+
+        $service->verifikasi($opname->fresh(), $admin->id);
+
+        // Selisih opname (-5) harus diterapkan ke stok TERKINI (70), bukan
+        // menimpa langsung ke stok_fisik (45) yang akan menghilangkan
+        // penambahan 20 unit yang masuk di tengah jalan.
+        $this->assertSame(65, $barang->fresh()->stok,
+            'Stok akhir harus 70 (terkini) - 5 (selisih opname) = 65, bukan ditimpa jadi 45.');
     }
 }

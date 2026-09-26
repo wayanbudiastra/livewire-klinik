@@ -88,7 +88,18 @@ class StokOpnameService
                 $barang   = Barang::lockForUpdate()->findOrFail($item->barang_id);
                 $stokLama = $barang->stok;
 
-                $barang->update(['stok' => $item->stok_fisik]);
+                // Terapkan SELISIH (hasil hitung fisik dibanding stok_sistem
+                // saat opname dibuat) ke stok TERKINI, jangan menimpa
+                // langsung ke stok_fisik -- opname ini sengaja 2 tahap
+                // (input fisik lalu menunggu_verifikasi, dgn orang berbeda
+                // yang memverifikasi), jadi ada jeda waktu; kalau ada
+                // transaksi lain (resep keluar, ritel, retur, dll) yang
+                // terjadi di jeda itu, menimpa langsung ke stok_fisik akan
+                // menghapus perubahan tsb tanpa jejak. Menambahkan selisih
+                // ke stok terkini mempertahankan perubahan itu.
+                $stokBaru = max(0, $stokLama + $item->selisih);
+
+                $barang->update(['stok' => $stokBaru]);
 
                 $tipeMutasi = $item->tipe_selisih === 'lebih'
                     ? 'penyesuaian_masuk'
@@ -100,7 +111,7 @@ class StokOpnameService
                     'tipe'           => $tipeMutasi,
                     'jumlah'         => abs($item->selisih),
                     'stok_sebelum'   => $stokLama,
-                    'stok_sesudah'   => $item->stok_fisik,
+                    'stok_sesudah'   => $stokBaru,
                     'hpr_sebelum'    => $item->hpr_saat_itu,
                     'hpr_sesudah'    => $item->hpr_saat_itu,
                     'referensi_tipe' => 'stok_opname',

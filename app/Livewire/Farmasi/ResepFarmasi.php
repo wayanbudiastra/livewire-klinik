@@ -73,7 +73,14 @@ class ResepFarmasi extends Component
         ]);
 
         $item = ItemResep::find($this->editingItemId);
-        if (! $item) return;
+        // Tombol edit memang disembunyikan di Blade kalau resep sudah
+        // terkunci, tapi itu cuma proteksi UI -- hapusItem() di bawah sudah
+        // benar mengecek is_locked di server, saveEditItem() ini tadinya
+        // lupa. Kalau resep sudah dikonfirmasi, stok sudah dipotong sesuai
+        // jumlah LAMA; mengubah jumlah di sini tanpa itu akan bikin jumlah
+        // tercatat tidak nyambung lagi dengan stok yang sudah benar-benar
+        // keluar.
+        if (! $item || $item->resep?->is_locked) return;
 
         $barang = Barang::find($item->barang_id);
         if ($barang && $barang->stok < $this->editJumlah) {
@@ -114,7 +121,9 @@ class ResepFarmasi extends Component
         ]);
 
         $r = Racikan::find($this->editingRacikanId);
-        if ($r) {
+        // Sama seperti saveEditItem() -- is_locked wajib dicek di server,
+        // bukan cuma disembunyikan tombolnya di Blade.
+        if ($r && ! $r->resep?->is_locked) {
             $r->update([
                 'jumlah_sediaan' => $this->editJumlahSediaan,
                 'aturan_pakai'   => $this->editAturanPakai ?: null,
@@ -251,23 +260,63 @@ class ResepFarmasi extends Component
             return;
         }
 
-        // Kembalikan stok
-        foreach ($resep->itemResep as $item) {
-            $item->barang?->increment('stok', $item->jumlah);
-        }
+        \Illuminate\Support\Facades\DB::transaction(function () use ($resep) {
+            // Kembalikan stok + catat MutasiStok utk tiap pengembalian --
+            // sebelumnya stok dikembalikan tapi TIDAK ada MutasiStok yang
+            // dibuat, jadi Kartu Stok cuma menunjukkan stok berkurang saat
+            // konfirmasi tanpa pernah menunjukkan kapan/kenapa naik lagi
+            // saat dibatalkan (riwayat auditnya bolong).
+            foreach ($resep->itemResep as $item) {
+                if (! $item->barang) continue;
 
-        foreach ($resep->racikan as $racikan) {
-            foreach ($racikan->bahanRacikan as $bahan) {
-                $bahan->barang?->increment('stok', $bahan->jumlah);
+                $stokSebelum = $item->barang->stok;
+                $item->barang->increment('stok', $item->jumlah);
+
+                MutasiStok::create([
+                    'barang_id'      => $item->barang->id,
+                    'user_id'        => auth()->id(),
+                    'tipe'           => 'penyesuaian_masuk',
+                    'jumlah'         => $item->jumlah,
+                    'stok_sebelum'   => $stokSebelum,
+                    'stok_sesudah'   => $stokSebelum + $item->jumlah,
+                    'hpr_sebelum'    => $item->barang->harga_pokok,
+                    'hpr_sesudah'    => $item->barang->harga_pokok,
+                    'referensi_tipe' => 'resep',
+                    'referensi_id'   => $resep->id,
+                    'keterangan'     => "Batal konfirmasi Resep #{$resep->id}: {$item->barang->nama}",
+                ]);
             }
-        }
 
-        $resep->update([
-            'is_locked'  => false,
-            'locked_by'  => null,
-            'locked_at'  => null,
-            'status'     => 'menunggu',
-        ]);
+            foreach ($resep->racikan as $racikan) {
+                foreach ($racikan->bahanRacikan as $bahan) {
+                    if (! $bahan->barang) continue;
+
+                    $stokSebelum = $bahan->barang->stok;
+                    $bahan->barang->increment('stok', $bahan->jumlah);
+
+                    MutasiStok::create([
+                        'barang_id'      => $bahan->barang->id,
+                        'user_id'        => auth()->id(),
+                        'tipe'           => 'penyesuaian_masuk',
+                        'jumlah'         => $bahan->jumlah,
+                        'stok_sebelum'   => $stokSebelum,
+                        'stok_sesudah'   => $stokSebelum + $bahan->jumlah,
+                        'hpr_sebelum'    => $bahan->barang->harga_pokok,
+                        'hpr_sesudah'    => $bahan->barang->harga_pokok,
+                        'referensi_tipe' => 'resep',
+                        'referensi_id'   => $resep->id,
+                        'keterangan'     => "Batal konfirmasi Resep #{$resep->id} (racikan {$racikan->nama_racikan}): {$bahan->barang->nama}",
+                    ]);
+                }
+            }
+
+            $resep->update([
+                'is_locked'  => false,
+                'locked_by'  => null,
+                'locked_at'  => null,
+                'status'     => 'menunggu',
+            ]);
+        });
 
         unset($this->resepList);
         $this->dispatch('notify', ['type' => 'success',
