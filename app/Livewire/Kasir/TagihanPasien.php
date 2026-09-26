@@ -323,40 +323,58 @@ class TagihanPasien extends Component
             'namaAsuransi.required'   => 'Nama asuransi wajib diisi.',
         ]);
 
-        DB::transaction(function () use ($invoice) {
-            $jumlah = $invoice->sisa;
+        try {
+            DB::transaction(function () use ($invoice) {
+                // Kunci ulang & cek ulang status DI DALAM transaksi --
+                // sebelumnya status "lunas/dibatalkan" cuma dicek sekali di
+                // luar transaksi tanpa lock, jadi klik dobel tombol "Bayar"
+                // (atau 2 request bersamaan) bisa sama-sama lolos dan
+                // sama-sama mencatat pembayaran penuh utk invoice yang sama
+                // (dobel bayar + jurnal & sharing fee ikut dobel).
+                $invoiceLocked = Invoice::where('id', $invoice->id)->lockForUpdate()->firstOrFail();
 
-            // Map metode pembayaran ke format PembayaranSplit
-            $metodeSplit = match ($this->metodePembayaran) {
-                'tunai'     => 'tunai',
-                'non_tunai' => $this->tipeKartu ?? 'transfer',
-                'asuransi'  => 'asuransi',
-            };
+                if (in_array($invoiceLocked->status, ['lunas', 'dibatalkan'], true)) {
+                    throw new \DomainException('Tagihan ini sudah diproses (kemungkinan oleh transaksi lain yang berjalan bersamaan). Silakan muat ulang halaman.');
+                }
 
-            PembayaranSplit::create([
-                'billing_id'    => $invoice->id,
-                'sesi_kas_id'   => $this->activeSesi->id,
-                'user_id'       => Auth::id(),
-                'metode'        => $metodeSplit,
-                'jumlah'        => $jumlah,
-                'referensi'     => $this->nomorReferensi ?: null,
-                'nama_asuransi' => $this->namaAsuransi ?: null,
-                'tanggal_bayar' => now(),
-            ]);
+                $jumlah = $invoiceLocked->sisa;
 
-            $this->invoiceService->recalcTotal($invoice);
-            $invoice->refresh();
+                // Map metode pembayaran ke format PembayaranSplit
+                $metodeSplit = match ($this->metodePembayaran) {
+                    'tunai'     => 'tunai',
+                    'non_tunai' => $this->tipeKartu ?? 'transfer',
+                    'asuransi'  => 'asuransi',
+                };
 
-            if ($invoice->sisa <= 0) {
-                $invoice->update(['status' => 'lunas']);
-
-                $invoiceFresh = $invoice->fresh(['items', 'kunjungan.dokter']);
-                app(BillingJurnalService::class)->catatPelunasan($invoiceFresh, [
-                    ['metode' => $metodeSplit, 'jumlah' => $jumlah],
+                PembayaranSplit::create([
+                    'billing_id'    => $invoiceLocked->id,
+                    'sesi_kas_id'   => $this->activeSesi->id,
+                    'user_id'       => Auth::id(),
+                    'metode'        => $metodeSplit,
+                    'jumlah'        => $jumlah,
+                    'referensi'     => $this->nomorReferensi ?: null,
+                    'nama_asuransi' => $this->namaAsuransi ?: null,
+                    'tanggal_bayar' => now(),
                 ]);
-                app(SharingFeeService::class)->catatSharingFee($invoiceFresh);
-            }
-        });
+
+                $this->invoiceService->recalcTotal($invoiceLocked);
+                $invoiceLocked->refresh();
+
+                if ($invoiceLocked->sisa <= 0) {
+                    $invoiceLocked->update(['status' => 'lunas']);
+
+                    $invoiceFresh = $invoiceLocked->fresh(['items', 'kunjungan.dokter']);
+                    app(BillingJurnalService::class)->catatPelunasan($invoiceFresh, [
+                        ['metode' => $metodeSplit, 'jumlah' => $jumlah],
+                    ]);
+                    app(SharingFeeService::class)->catatSharingFee($invoiceFresh);
+                }
+            });
+        } catch (\DomainException $e) {
+            session()->flash('error', $e->getMessage());
+            unset($this->invoice, $this->activeSesi);
+            return;
+        }
 
         $this->reset([
             'jumlahTunai', 'bankNama', 'nomorReferensi',

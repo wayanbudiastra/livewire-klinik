@@ -156,81 +156,80 @@ class ResepFarmasi extends Component
         $resep = Resep::with(['itemResep.barang', 'racikan.bahanRacikan.barang'])->find($resepId);
         if (! $resep || $resep->is_locked) return;
 
-        // Validasi stok cukup dulu (sebelum ada yang dipotong)
-        foreach ($resep->itemResep as $item) {
-            $barang = $item->barang;
-            if ($barang && $barang->stok < $item->jumlah) {
-                $this->dispatch('notify', ['type' => 'error',
-                    'message' => "Stok {$barang->nama} tidak mencukupi untuk konfirmasi."]);
-                return;
-            }
-        }
-        foreach ($resep->racikan as $racikan) {
-            foreach ($racikan->bahanRacikan as $bahan) {
-                if ($bahan->barang && $bahan->barang->stok < $bahan->jumlah) {
-                    $this->dispatch('notify', ['type' => 'error',
-                        'message' => "Stok bahan {$bahan->barang->nama} tidak mencukupi untuk konfirmasi."]);
-                    return;
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($resep) {
+                // Kunci ulang resep DI DALAM transaksi -- mencegah 2 apoteker
+                // konfirmasi resep yang sama bersamaan.
+                $resepLocked = Resep::where('id', $resep->id)->lockForUpdate()->firstOrFail();
+                if ($resepLocked->is_locked) {
+                    throw new \DomainException('Resep ini sudah dikonfirmasi (kemungkinan oleh proses lain yang berjalan bersamaan).');
                 }
-            }
-        }
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($resep) {
-            // Potong stok barang jadi + catat MutasiStok
-            foreach ($resep->itemResep as $item) {
-                $barang = $item->barang;
-                if (! $barang) continue;
+                // Barang::pastikanCukup() mengunci row barang & mengecek ulang
+                // stok DI DALAM transaksi ini (pola yang sama seperti yang
+                // sudah benar dipakai ObatRitelService) -- sebelumnya stok
+                // dicek sekali sebelum transaksi lalu dipotong tanpa lock,
+                // jadi 2 resep beda yang sama-sama pakai obat yang sama bisa
+                // lolos cek "stok cukup" bersamaan padahal digabung sudah
+                // tidak cukup.
+                foreach ($resep->itemResep as $item) {
+                    if (! $item->barang_id) continue;
 
-                $stokSebelum = $barang->stok;
-                $barang->decrement('stok', $item->jumlah);
-
-                MutasiStok::create([
-                    'barang_id'      => $barang->id,
-                    'user_id'        => auth()->id(),
-                    'tipe'           => 'keluar_resep',
-                    'jumlah'         => $item->jumlah,
-                    'stok_sebelum'   => $stokSebelum,
-                    'stok_sesudah'   => $stokSebelum - $item->jumlah,
-                    'hpr_sebelum'    => $barang->harga_pokok,
-                    'hpr_sesudah'    => $barang->harga_pokok,
-                    'referensi_tipe' => 'resep',
-                    'referensi_id'   => $resep->id,
-                    'keterangan'     => "Resep #{$resep->id}: {$barang->nama}",
-                ]);
-            }
-
-            // Potong stok bahan racikan + catat MutasiStok
-            foreach ($resep->racikan as $racikan) {
-                foreach ($racikan->bahanRacikan as $bahan) {
-                    $barang = $bahan->barang;
-                    if (! $barang) continue;
-
+                    $barang      = Barang::pastikanCukup($item->barang_id, $item->jumlah);
                     $stokSebelum = $barang->stok;
-                    $barang->decrement('stok', $bahan->jumlah);
+                    $barang->decrement('stok', $item->jumlah);
 
                     MutasiStok::create([
                         'barang_id'      => $barang->id,
                         'user_id'        => auth()->id(),
                         'tipe'           => 'keluar_resep',
-                        'jumlah'         => $bahan->jumlah,
+                        'jumlah'         => $item->jumlah,
                         'stok_sebelum'   => $stokSebelum,
-                        'stok_sesudah'   => $stokSebelum - $bahan->jumlah,
+                        'stok_sesudah'   => $stokSebelum - $item->jumlah,
                         'hpr_sebelum'    => $barang->harga_pokok,
                         'hpr_sesudah'    => $barang->harga_pokok,
                         'referensi_tipe' => 'resep',
                         'referensi_id'   => $resep->id,
-                        'keterangan'     => "Resep #{$resep->id} (racikan {$racikan->nama_racikan}): {$barang->nama}",
+                        'keterangan'     => "Resep #{$resep->id}: {$barang->nama}",
                     ]);
                 }
-            }
 
-            $resep->update([
-                'is_locked'  => true,
-                'locked_by'  => auth()->id(),
-                'locked_at'  => now(),
-                'status'     => 'siap',
-            ]);
-        });
+                // Potong stok bahan racikan + catat MutasiStok
+                foreach ($resep->racikan as $racikan) {
+                    foreach ($racikan->bahanRacikan as $bahan) {
+                        if (! $bahan->barang_id) continue;
+
+                        $barang      = Barang::pastikanCukup($bahan->barang_id, $bahan->jumlah);
+                        $stokSebelum = $barang->stok;
+                        $barang->decrement('stok', $bahan->jumlah);
+
+                        MutasiStok::create([
+                            'barang_id'      => $barang->id,
+                            'user_id'        => auth()->id(),
+                            'tipe'           => 'keluar_resep',
+                            'jumlah'         => $bahan->jumlah,
+                            'stok_sebelum'   => $stokSebelum,
+                            'stok_sesudah'   => $stokSebelum - $bahan->jumlah,
+                            'hpr_sebelum'    => $barang->harga_pokok,
+                            'hpr_sesudah'    => $barang->harga_pokok,
+                            'referensi_tipe' => 'resep',
+                            'referensi_id'   => $resep->id,
+                            'keterangan'     => "Resep #{$resep->id} (racikan {$racikan->nama_racikan}): {$barang->nama}",
+                        ]);
+                    }
+                }
+
+                $resepLocked->update([
+                    'is_locked'  => true,
+                    'locked_by'  => auth()->id(),
+                    'locked_at'  => now(),
+                    'status'     => 'siap',
+                ]);
+            });
+        } catch (\DomainException $e) {
+            $this->dispatch('notify', ['type' => 'error', 'message' => $e->getMessage()]);
+            return;
+        }
 
         unset($this->resepList);
         $this->dispatch('notify', ['type' => 'success', 'message' => 'Resep dikonfirmasi dan stok telah dipotong.']);
