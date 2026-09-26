@@ -5,11 +5,13 @@ namespace App\Services\Akuntansi;
 use App\Models\Akuntansi\JurnalPending;
 use App\Models\Akuntansi\PeriodeAkuntansi;
 use App\Models\User;
+use App\Services\Concerns\VerifiesSuperAdminPassword;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Hash;
 
 class PeriodeAkuntansiService
 {
+    use VerifiesSuperAdminPassword;
+
     /** Ambil periode (tahun, bulan), lazy-create kalau belum ada (default status: terbuka). */
     public function getAtauBuat(int $tahun, int $bulan): PeriodeAkuntansi
     {
@@ -114,14 +116,4 @@ class PeriodeAkuntansiService
         return $periode->fresh();
     }
 
-    public function verifySuperAdminPassword(string $password): User
-    {
-        $superAdmin = User::role('super_admin')->where('is_active', true)->first();
-
-        if (! $superAdmin || ! Hash::check($password, $superAdmin->password)) {
-            throw new \RuntimeException('Password SuperAdmin tidak valid.');
-        }
-
-        return $superAdmin;
-    }
 }

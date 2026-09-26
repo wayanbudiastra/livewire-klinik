@@ -55,6 +55,11 @@ class PenagihanForm extends Component
 
     public function buat(PenagihanService $service): void
     {
+        // Audit Priority 2 (Sedang): route /keuangan/penagihan/create sudah
+        // digate permission:piutang.tagih, authorize() di sini jadi lapis
+        // kedua (defense in depth), pola sama dgn komponen Akuntansi/Harga.
+        $this->authorize('piutang.tagih');
+
         $this->validate([
             'asuransiId' => ['required', 'exists:asuransi,id'],
             'piutangIds' => ['required', 'array', 'min:1'],

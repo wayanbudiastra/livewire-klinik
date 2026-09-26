@@ -20,10 +20,19 @@ class DepositService
         }
 
         return DB::transaction(function () use ($pasien, $jumlah, $userId, $sesiKas, $keterangan) {
-            $deposit = DepositPasien::firstOrCreate(
-                ['pasien_id' => $pasien->id],
-                ['saldo' => 0, 'total_topup' => 0, 'total_terpakai' => 0]
-            );
+            // Beda dari pakai()/refund()/refundManual() di bawah (yang
+            // sudah benar mengunci baris sebelum membaca saldo), topup()
+            // ini sebelumnya baca saldo_sebelum tanpa lockForUpdate() --
+            // kolom saldo aktual tetap benar (pakai increment() yang
+            // atomic di DB), tapi audit trail saldo_sebelum/saldo_sesudah
+            // di TransaksiDeposit bisa tidak akurat kalau ada topup/pakai/
+            // refund lain yang terjadi persis di jeda baca-lalu-tulis ini.
+            $deposit = DepositPasien::where('pasien_id', $pasien->id)->lockForUpdate()->first();
+            if (! $deposit) {
+                $deposit = DepositPasien::create([
+                    'pasien_id' => $pasien->id, 'saldo' => 0, 'total_topup' => 0, 'total_terpakai' => 0,
+                ]);
+            }
 
             $saldoSebelum = (float) $deposit->saldo;
             $saldoSesudah = $saldoSebelum + $jumlah;
@@ -184,10 +193,16 @@ class DepositService
         });
     }
 
+    /**
+     * Dipanggil dari dalam DB::transaction() masing2 method di atas --
+     * lockForUpdate() aman karena bergabung ke transaksi yang sama (bukan
+     * transaksi terpisah), pola sama dgn ReturResep/ReturGr::generateNomorRetur().
+     */
     private function generateNomorTransaksi(): string
     {
         $prefix = 'DEP-' . now()->format('Y-m-');
         $last   = TransaksiDeposit::where('nomor_transaksi', 'like', $prefix . '%')
+            ->lockForUpdate()
             ->orderByDesc('nomor_transaksi')
             ->value('nomor_transaksi');
         $seq    = $last ? (int) substr($last, -4) + 1 : 1;

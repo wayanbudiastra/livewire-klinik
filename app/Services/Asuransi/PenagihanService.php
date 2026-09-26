@@ -11,9 +11,15 @@ class PenagihanService
     public function buatPenagihan(int $asuransiId, array $piutangIds, int $userId): PenagihanAsuransi
     {
         return DB::transaction(function () use ($asuransiId, $piutangIds, $userId) {
+            // Kunci baris piutang yg dipilih -- sebelumnya tanpa lock, jadi
+            // 2 submission "Buat Penagihan" bersamaan yang piutang-nya
+            // tumpang tindih bisa sama2 lolos cek status='tertagih' dan
+            // membuat piutang yang sama masuk ke 2 batch penagihan berbeda
+            // (duplikasi klaim ke asuransi).
             $piutangList = PiutangAsuransi::whereIn('id', $piutangIds)
                 ->where('asuransi_id', $asuransiId)
                 ->where('status', 'tertagih')
+                ->lockForUpdate()
                 ->get();
 
             if ($piutangList->isEmpty()) {
@@ -192,19 +198,23 @@ class PenagihanService
         ]);
     }
 
+    /** Dipanggil dari dalam DB::transaction() buatPenagihan() -- lockForUpdate() aman, gabung transaksi yang sama. */
     private function generateNomorPenagihan(): string
     {
         $prefix = 'TAG-' . now()->format('Y-m-');
         $last   = PenagihanAsuransi::where('nomor_penagihan', 'like', $prefix . '%')
+                    ->lockForUpdate()
                     ->orderByDesc('nomor_penagihan')->value('nomor_penagihan');
         $seq    = $last ? (int) substr($last, -4) + 1 : 1;
         return $prefix . str_pad($seq, 4, '0', STR_PAD_LEFT);
     }
 
+    /** Dipanggil dari dalam DB::transaction() catatPembayaran() -- lockForUpdate() aman, gabung transaksi yang sama. */
     private function generateNomorPembayaran(): string
     {
         $prefix = 'BYR-' . now()->format('Y-m-');
         $last   = PembayaranAsuransi::where('nomor_pembayaran', 'like', $prefix . '%')
+                    ->lockForUpdate()
                     ->orderByDesc('nomor_pembayaran')->value('nomor_pembayaran');
         $seq    = $last ? (int) substr($last, -4) + 1 : 1;
         return $prefix . str_pad($seq, 4, '0', STR_PAD_LEFT);

@@ -4,10 +4,13 @@ namespace App\Services\Kasir;
 
 use App\Models\{Invoice, PembayaranSplit, Pasien, SesiKas};
 use App\Services\Akuntansi\{BillingJurnalService, SharingFeeService};
-use Illuminate\Support\Facades\{DB, Hash};
+use App\Services\Concerns\VerifiesSuperAdminPassword;
+use Illuminate\Support\Facades\DB;
 
 class BillingService
 {
+    use VerifiesSuperAdminPassword;
+
     public function __construct(
         private DepositService    $depositService,
         private AuditKasirService $auditService,
@@ -165,16 +168,4 @@ class BillingService
         });
     }
 
-    public function verifySuperAdminPassword(string $password): \App\Models\User
-    {
-        $superAdmin = \App\Models\User::role('super_admin')
-            ->where('is_active', true)
-            ->first();
-
-        if (!$superAdmin || !Hash::check($password, $superAdmin->password)) {
-            throw new \RuntimeException('Password SuperAdmin tidak valid.');
-        }
-
-        return $superAdmin;
-    }
 }

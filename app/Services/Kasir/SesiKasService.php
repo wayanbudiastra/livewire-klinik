@@ -3,10 +3,13 @@
 namespace App\Services\Kasir;
 
 use App\Models\{SesiKas, PembayaranSplit, TransaksiRitel, User};
-use Illuminate\Support\Facades\{DB, Hash};
+use App\Services\Concerns\VerifiesSuperAdminPassword;
+use Illuminate\Support\Facades\DB;
 
 class SesiKasService
 {
+    use VerifiesSuperAdminPassword;
+
     public function bukaKas(int $userId, float $saldoAwal, ?string $catatan = null): SesiKas
     {
         return DB::transaction(function () use ($userId, $saldoAwal, $catatan) {
@@ -150,16 +153,4 @@ class SesiKasService
             ->first();
     }
 
-    public function verifySuperAdminPassword(string $password): User
-    {
-        $superAdmin = User::role('super_admin')
-            ->where('is_active', true)
-            ->first();
-
-        if (!$superAdmin || !Hash::check($password, $superAdmin->password)) {
-            throw new \RuntimeException('Password SuperAdmin tidak valid.');
-        }
-
-        return $superAdmin;
-    }
 }
