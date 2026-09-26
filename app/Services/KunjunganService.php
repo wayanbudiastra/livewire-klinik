@@ -46,13 +46,21 @@ class KunjunganService
             ->whereNotIn('status', ['dibatalkan'])
             ->count();
 
-        // Tambah appointment yang belum check-in
+        // Tambah appointment yang belum check-in -- $terpakai (sudah
+        // checked-in, punya Kunjungan) dan $appointment (masih status
+        // 'booked') SALING LEPAS: begitu appointment check-in, statusnya
+        // berubah dari 'booked' (keluar dari $appointment) sekaligus
+        // punya Kunjungan baru (masuk ke $terpakai). Jadi total slot
+        // terpakai = jumlah keduanya, BUKAN nilai terbesarnya -- pakai
+        // max() di sini bikin kuota keliru dihitung lebih longgar begitu
+        // sebagian appointment pada jadwal yang sama sudah check-in
+        // sementara sisanya masih booked (bisa overbooking).
         $appointment = Appointment::where('jadwal_praktek_id', $jadwalPraktekId)
             ->where('tanggal_appointment', $tanggal)
             ->where('status', 'booked')
             ->count();
 
-        $total = max($terpakai, $appointment);
+        $total = $terpakai + $appointment;
         return max(0, $jadwal->kuota_pasien - $total);
     }
 

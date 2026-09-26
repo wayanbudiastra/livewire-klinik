@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Pengaturan\User;
 
+use App\Models\Dokter;
 use App\Models\Perawat;
 use App\Models\User;
 use App\Services\UserService;
@@ -137,6 +138,18 @@ class UserForm extends Component
                     ['user_id' => $user->id],
                     ['nik'     => $this->nikPerawat ?: null]
                 );
+            }
+
+            // Sync row dokter jika role dokter -- sebelumnya TIDAK ADA
+            // sama sekali (cuma perawat yang dapat provisioning otomatis
+            // di atas), jadi user baru dengan role dokter tidak pernah
+            // punya row dokter dan "hilang" dari seluruh modul yang
+            // bergantung padanya (pendaftaran, jadwal praktek, mapping
+            // poli, sharing fee, SOAP Note, dst). Profil lengkap
+            // (spesialisasi, SIP, poli, jadwal) dilengkapi belakangan
+            // lewat DokterProfilForm/DokterPoliMapping setelah row ini ada.
+            if ($this->role === 'dokter') {
+                Dokter::updateOrCreate(['user_id' => $user->id]);
             }
 
             // Hak akses tambahan -- HANYA diproses kalau yang login super_admin.

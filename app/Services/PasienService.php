@@ -73,9 +73,19 @@ class PasienService
             $data['no_paspor'] = $noPaspor;
         }
 
-        $data['nomor_rm'] = $this->generateNomorRM();
-
-        $pasien = $this->repo->create($data, $kontakList);
+        // generateNomorRM() & repo->create() SENGAJA dibungkus satu
+        // transaksi yang sama di sini -- sebelumnya generateNomorRM()
+        // dipanggil sebagai transaksi berdiri sendiri yang sudah commit
+        // (melepas lockForUpdate()-nya) SEBELUM insert pasien yang
+        // sesungguhnya terjadi di transaksi terpisah, jadi lock-nya tidak
+        // melindungi apa-apa. Dua pendaftaran bersamaan bisa dapat nomor
+        // RM yang sama, dan yang kedua gagal dengan error SQL mentah saat
+        // constraint unique menolaknya. Dengan dibungkus satu transaksi,
+        // lock baru dilepas setelah insert benar-benar terjadi.
+        $pasien = DB::transaction(function () use ($data, $kontakList) {
+            $data['nomor_rm'] = $this->generateNomorRM();
+            return $this->repo->create($data, $kontakList);
+        });
 
         activity('pasien')
             ->performedOn($pasien)
