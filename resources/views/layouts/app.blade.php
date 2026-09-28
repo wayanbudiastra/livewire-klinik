@@ -96,6 +96,59 @@
             <x-sidebar-item route="inventory.opname.index" icon="clipboard-list">Stok Opname</x-sidebar-item>
             <x-sidebar-item route="inventory.retur-gr.index" icon="document-text">Retur ke Supplier</x-sidebar-item>
             @endcan
+
+            @can('pengaturan.satusehat')
+            <div x-data="{ satusehatOpen: {{ request()->routeIs('satusehat.*') ? 'true' : 'false' }} }">
+                <button
+                    @click="satusehatOpen = !satusehatOpen"
+                    @class([
+                        'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150',
+                        'bg-white/10 text-white' => request()->routeIs('satusehat.*'),
+                        'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('satusehat.*'),
+                    ])
+                >
+                    <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.6 9h16.8M3.6 15h16.8M11.5 3a17 17 0 000 18M12.5 3a17 17 0 010 18M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span class="flex-1 text-left">SatuSehat</span>
+                    <svg
+                        class="h-4 w-4 flex-shrink-0 transition-transform duration-200"
+                        :class="satusehatOpen ? 'rotate-180' : ''"
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    >
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+
+                <div
+                    x-show="satusehatOpen"
+                    x-transition:enter="transition ease-out duration-150"
+                    x-transition:enter-start="opacity-0 -translate-y-1"
+                    x-transition:enter-end="opacity-100 translate-y-0"
+                    x-transition:leave="transition ease-in duration-100"
+                    x-transition:leave-start="opacity-100 translate-y-0"
+                    x-transition:leave-end="opacity-0 -translate-y-1"
+                    class="mt-0.5 space-y-0.5 pl-9"
+                >
+                    <a href="{{ route('satusehat.setup') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('satusehat.setup'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('satusehat.setup'),
+                        ])
+                    >Setup IHS</a>
+
+                    <a href="{{ route('satusehat.pengiriman') }}"
+                        @class([
+                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
+                            'bg-white/20 text-white' => request()->routeIs('satusehat.pengiriman'),
+                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('satusehat.pengiriman'),
+                        ])
+                    >Pengiriman Data</a>
+                </div>
+            </div>
+            @endcan
+
             @canany(['laporan.registrasi.view','laporan.pemeriksaan.view','laporan.kasir.view','laporan.pharmacy.view','laporan.view'])
             <div x-data="{ laporanOpen: {{ request()->routeIs('laporan.*') ? 'true' : 'false' }} }">
                 <button
@@ -387,7 +440,7 @@
                 </div>
             </div>
             @endcanany
-            @canany(['masterdata.view','masterdata.create','pengaturan.view','pengaturan.satusehat','asuransi.config_bpjs','asuransi.master.view'])
+            @canany(['masterdata.view','masterdata.create','pengaturan.view','asuransi.config_bpjs','asuransi.master.view'])
             <div x-data="{ pengaturanOpen: {{ request()->routeIs('pengaturan.*') ? 'true' : 'false' }} }">
                 <button
                     @click="pengaturanOpen = !pengaturanOpen"
@@ -469,16 +522,6 @@
                             'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('pengaturan.asuransi.bpjs'),
                         ])
                     >Konfigurasi BPJS</a>
-                    @endcan
-
-                    @can('pengaturan.satusehat')
-                    <a href="{{ route('pengaturan.satusehat') }}"
-                        @class([
-                            'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
-                            'bg-white/20 text-white' => request()->routeIs('pengaturan.satusehat'),
-                            'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('pengaturan.satusehat'),
-                        ])
-                    >Konfigurasi SatuSehat</a>
                     @endcan
 
                     @can('asuransi.master.view')

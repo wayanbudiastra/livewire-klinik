@@ -372,8 +372,10 @@ Route::middleware(['auth', 'active'])->group(function () {
              ->name('klinik')
              ->middleware('permission:pengaturan.view');
 
-        // Konfigurasi SatuSehat
-        Route::get('/satusehat', fn () => view('pengaturan.satusehat'))
+        // Konfigurasi SatuSehat -- dipindah ke menu khusus "SatuSehat"
+        // (lihat grup route satusehat.* di bawah), link lama ini dibiarkan
+        // sbg redirect supaya bookmark/link lama tetap jalan.
+        Route::get('/satusehat', fn () => redirect()->route('satusehat.setup'))
              ->name('satusehat')
              ->middleware('permission:pengaturan.satusehat');
 
@@ -386,6 +388,24 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/log-login', fn () => view('pengaturan.login-log'))
              ->name('log-login')
              ->middleware('role:super_admin');
+    });
+
+    // ── SatuSehat ───────────────────────────────────────────
+    // Menu khusus terpisah dari Pengaturan (sebelumnya cuma 1 halaman
+    // "Konfigurasi SatuSehat" di dalam submenu Pengaturan). Sekarang jadi
+    // grup sendiri berisi 2 proses: Setup IHS (kredensial & tes koneksi
+    // OAuth ke SatuSehat -- sudah ada) dan Pengiriman Data (proses kirim
+    // data rekam medis ke SatuSehat -- BELUM diimplementasikan, masih
+    // coming-soon, detail fungsional menyusul di PRD terpisah).
+    Route::prefix('satusehat')->name('satusehat.')->middleware('permission:pengaturan.satusehat')->group(function () {
+        Route::get('/setup-ihs', fn () => view('pengaturan.satusehat'))->name('setup');
+
+        Route::get('/pengiriman-data', fn () => view('coming-soon', [
+            'modul'      => 'Pengiriman Data SatuSehat',
+            'deskripsi'  => 'Proses pengiriman data rekam medis (kunjungan, kondisi, resep, dan lainnya) ke platform SatuSehat Kementerian Kesehatan RI.',
+            'progress'   => 0,
+            'roadmap'    => ['Detail fungsional menyusul di PRD terpisah'],
+        ]))->name('pengiriman');
     });
 
     // ── Keuangan ────────────────────────────────────────────

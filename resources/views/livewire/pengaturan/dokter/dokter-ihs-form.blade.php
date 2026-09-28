@@ -129,7 +129,7 @@
     @else
     <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-8 text-center text-sm text-gray-400">
         Integrasi SatuSehat belum diaktifkan. Aktifkan terlebih dahulu di
-        <a href="{{ route('pengaturan.satusehat') }}" class="text-indigo-500 hover:underline">Konfigurasi SatuSehat</a>.
+        <a href="{{ route('satusehat.setup') }}" class="text-indigo-500 hover:underline">Setup IHS</a>.
     </div>
     @endif
 </div>
