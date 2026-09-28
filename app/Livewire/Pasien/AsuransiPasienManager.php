@@ -43,6 +43,14 @@ class AsuransiPasienManager extends Component
 
     public function tambah(): void
     {
+        // Audit Priority 5 (Sedang): halaman induk (detail pasien) cuma
+        // digate pasien.view/pasien.edit, bukan asuransi.pasien.manage yg
+        // sebenarnya sudah ada di seeder (dipegang kasir & front_office) --
+        // tanpa authorize() ini, siapa pun yang bisa buka halaman pasien
+        // (termasuk dokter/perawat) bisa menambah/menghapus data asuransi
+        // pasien.
+        $this->authorize('asuransi.pasien.manage');
+
         $this->validate();
 
         $exists = PasienAsuransi::where('pasien_id', $this->pasien->id)
@@ -76,12 +84,16 @@ class AsuransiPasienManager extends Component
 
     public function setPrimary(int $id): void
     {
+        $this->authorize('asuransi.pasien.manage');
+
         PasienAsuransi::where('pasien_id', $this->pasien->id)->update(['is_primary' => false]);
         PasienAsuransi::where('id', $id)->update(['is_primary' => true]);
     }
 
     public function hapus(int $id): void
     {
+        $this->authorize('asuransi.pasien.manage');
+
         PasienAsuransi::where('id', $id)->update(['is_active' => false]);
     }
 
