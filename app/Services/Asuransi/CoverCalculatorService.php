@@ -2,7 +2,7 @@
 
 namespace App\Services\Asuransi;
 
-use App\Models\{Invoice, Asuransi};
+use App\Models\{Invoice, Asuransi, PiutangAsuransi};
 
 class CoverCalculatorService
 {
@@ -33,6 +33,27 @@ class CoverCalculatorService
             $selisih      = $totalCover - $asuransi->plafon_per_kunjungan;
             $totalCover   = $asuransi->plafon_per_kunjungan;
             $totalPasien += $selisih;
+        }
+
+        // Terapkan plafon per tahun jika ada -- sebelumnya TIDAK PERNAH
+        // dicek sama sekali (cuma plafon per kunjungan), jadi klinik bisa
+        // menagih asuransi melebihi limit tahunan pasien tanpa pengecekan
+        // apa pun. Dihitung dari akumulasi PiutangAsuransi (yg belum
+        // ditolak asuransi) utk pasien+asuransi ini di tahun berjalan.
+        if ($asuransi->plafon_per_tahun) {
+            $sudahDipakaiTahunIni = PiutangAsuransi::where('pasien_id', $billing->kunjungan->pasien_id)
+                ->where('asuransi_id', $asuransi->id)
+                ->where('status', '!=', 'ditolak')
+                ->whereYear('tanggal_piutang', now()->year)
+                ->sum('jumlah_piutang');
+
+            $sisaPlafonTahun = max(0, (float) $asuransi->plafon_per_tahun - (float) $sudahDipakaiTahunIni);
+
+            if ($totalCover > $sisaPlafonTahun) {
+                $selisih      = $totalCover - $sisaPlafonTahun;
+                $totalCover   = $sisaPlafonTahun;
+                $totalPasien += $selisih;
+            }
         }
 
         return [
@@ -79,10 +100,19 @@ class CoverCalculatorService
             ];
         }
 
+        // Item obat/racikan hasil resep (billing.items) -- sebelumnya
+        // dideteksi lewat kolom 'keterangan' yang TIDAK PERNAH ADA di
+        // InvoiceItem (kolomnya nama_item + jenis), jadi kondisi ini
+        // selalu false dan obat TIDAK PERNAH masuk hitungan cover
+        // asuransi sama sekali. Diperbaiki pakai kolom jenis yang benar
+        // (lihat InvoiceService -- jenis 'obat'/'racikan' dipakai utk
+        // item hasil resep). Belum ada kategori cover_obat tersendiri di
+        // master Asuransi, jadi tetap dikelompokkan ke 'peralatan' spt
+        // niat kode aslinya.
         foreach ($billing->items ?? [] as $item) {
-            if (str_contains(strtolower($item->keterangan ?? ''), 'obat')) {
+            if (in_array($item->jenis, ['obat', 'racikan'], true)) {
                 $items[] = [
-                    'nama'     => $item->keterangan,
+                    'nama'     => $item->nama_item,
                     'kategori' => 'peralatan',
                     'subtotal' => $item->subtotal,
                 ];
