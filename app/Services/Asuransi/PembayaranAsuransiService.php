@@ -114,10 +114,12 @@ class PembayaranAsuransiService
         });
     }
 
+    /** Dipanggil dari dalam DB::transaction() prosesPembayaranAsuransi() -- lockForUpdate() aman, gabung transaksi yang sama. */
     private function generateNomorPiutang(): string
     {
         $prefix = 'PIT-' . now()->format('Y-m-');
         $last   = PiutangAsuransi::where('nomor_piutang', 'like', $prefix . '%')
+                    ->lockForUpdate()
                     ->orderByDesc('nomor_piutang')->value('nomor_piutang');
         $seq    = $last ? (int) substr($last, -4) + 1 : 1;
         return $prefix . str_pad($seq, 4, '0', STR_PAD_LEFT);

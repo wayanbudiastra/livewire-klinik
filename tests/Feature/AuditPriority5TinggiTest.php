@@ -213,4 +213,27 @@ class AuditPriority5TinggiTest extends TestCase
         $this->assertSame(1, PiutangAsuransi::where('billing_id', $invoice->id)->count());
         $this->assertSame(50000.0, (float) PiutangAsuransi::where('billing_id', $invoice->id)->value('jumlah_piutang'));
     }
+
+    // ── Rendah: generateNomorPiutang() tetap urut setelah ditambah lock ──
+
+    /** @test */
+    public function nomor_piutang_tetap_urut_setelah_ditambah_lock(): void
+    {
+        $kasir    = $this->buatKasir();
+        $sesiKas  = $this->bukaSesiKas($kasir);
+        $asuransi = $this->buatAsuransi(50);
+        $service  = app(PembayaranAsuransiService::class);
+
+        $kunjungan1 = $this->buatKunjunganSelesai();
+        $invoice1   = $this->buatInvoiceDenganObat($kunjungan1, 100000);
+        $service->prosesPembayaranAsuransi($invoice1, $asuransi, [['metode' => 'tunai', 'jumlah' => 50000]], $kasir->id, $sesiKas);
+
+        $kunjungan2 = $this->buatKunjunganSelesai();
+        $invoice2   = $this->buatInvoiceDenganObat($kunjungan2, 100000);
+        $service->prosesPembayaranAsuransi($invoice2, $asuransi, [['metode' => 'tunai', 'jumlah' => 50000]], $kasir->id, $sesiKas);
+
+        $nomor1 = PiutangAsuransi::where('billing_id', $invoice1->id)->value('nomor_piutang');
+        $nomor2 = PiutangAsuransi::where('billing_id', $invoice2->id)->value('nomor_piutang');
+        $this->assertNotSame($nomor1, $nomor2);
+    }
 }
