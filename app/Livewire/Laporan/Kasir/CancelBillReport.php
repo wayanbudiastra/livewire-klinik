@@ -18,14 +18,16 @@ class CancelBillReport extends BaseLaporanComponent
     public function generate(): void
     {
         [$mulai, $akhir] = $this->periodeRange;
+        $userId = $this->userIdScope();
         $this->hasil = app(KasirLaporanService::class)
-            ->cancelBill($mulai, $akhir);
+            ->cancelBill($mulai, $akhir, $userId);
     }
 
     public function exportPdf()
     {
         [$mulai, $akhir] = $this->periodeRange;
-        $data = app(KasirLaporanService::class)->cancelBill($mulai, $akhir);
+        $userId = $this->userIdScope();
+        $data = app(KasirLaporanService::class)->cancelBill($mulai, $akhir, $userId);
 
         $pdf = Pdf::loadView('laporan.pdf.cancel-bill', [
             'data'  => $data,
@@ -41,10 +43,23 @@ class CancelBillReport extends BaseLaporanComponent
     public function exportExcel()
     {
         [$mulai, $akhir] = $this->periodeRange;
+        $userId = $this->userIdScope();
         return Excel::download(
-            new CancelBillExport($mulai, $akhir),
+            new CancelBillExport($mulai, $akhir, $userId),
             "Laporan-Cancel-Bill-{$this->periodeLabel}.xlsx"
         );
+    }
+
+    /**
+     * Audit Priority 4 (Tinggi): sebelumnya laporan ini SELALU menampilkan
+     * data SEMUA kasir tanpa terkecuali, padahal 1 halaman dgn tab
+     * "Transaksi Kasir" sudah benar membatasi ke transaksi milik sendiri
+     * kalau user tidak punya laporan.kasir.view_all -- tab "Cancel Bill"
+     * ini (dan "Deposit") jadi kebocoran data krn tidak ikut membatasi.
+     */
+    private function userIdScope(): ?int
+    {
+        return auth()->user()->hasPermissionTo('laporan.kasir.view_all') ? null : auth()->id();
     }
 
     public function render()

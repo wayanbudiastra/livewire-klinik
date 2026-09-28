@@ -195,6 +195,16 @@ class ProposalHargaService
             throw new \DomainException('Hanya proposal menunggu persetujuan yang bisa disetujui.');
         }
 
+        // Maker-checker: pembuat proposal tidak boleh menyetujui proposalnya
+        // sendiri. Saat ini cuma role admin yang punya harga.proposal (jadi
+        // dampak nyata terbatas), tapi guard ini harus ada di level kode --
+        // bukan cuma diandalkan dari konfigurasi role -- supaya tetap aman
+        // kalau nanti ada user yang diberi harga.proposal DAN harga.setujui
+        // sekaligus (mis. lewat "Hak Akses Tambahan").
+        if ((int) $proposal->dibuat_oleh === (int) $user->id) {
+            throw new \DomainException('Pembuat proposal tidak boleh menyetujui proposalnya sendiri.');
+        }
+
         $proposal->update([
             'status'          => 'disetujui',
             'disetujui_oleh'  => $user->id,

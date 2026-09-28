@@ -90,13 +90,24 @@ class KasirLaporanService
         ];
     }
 
-    public function cancelBill(Carbon $mulai, Carbon $akhir): array
+    /**
+     * @param ?int $userId Kalau diisi, cuma tampilkan pembatalan yang DILAKUKAN oleh
+     *                      kasir ini -- dipakai kalau user tidak punya permission
+     *                      laporan.kasir.view_all (lihat KasirLaporanService::transaksiKasir()
+     *                      utk pola yang sama, dan komponen pemanggilnya).
+     */
+    public function cancelBill(Carbon $mulai, Carbon $akhir, ?int $userId = null): array
     {
-        $batal = Invoice::where('status', 'dibatalkan')
+        $query = Invoice::where('status', 'dibatalkan')
             ->whereBetween('dibatalkan_pada', [$mulai, $akhir])
             ->with(['kunjungan.pasien', 'dibatalkanOleh', 'cancelVerifiedBy'])
-            ->orderBy('dibatalkan_pada')
-            ->get();
+            ->orderBy('dibatalkan_pada');
+
+        if ($userId) {
+            $query->where('cancelled_by', $userId);
+        }
+
+        $batal = $query->get();
 
         return [
             'total_batal'       => $batal->count(),
@@ -116,11 +127,22 @@ class KasirLaporanService
         ];
     }
 
-    public function deposit(Carbon $mulai, Carbon $akhir): array
+    /**
+     * @param ?int $userId Kalau diisi, cuma tampilkan transaksi deposit yang DIPROSES
+     *                      oleh kasir ini (bukan pasiennya) -- pola sama dgn cancelBill().
+     *                      total_saldo_aktif tetap agregat clinic-wide krn itu snapshot
+     *                      saldo saat ini, bukan "milik" kasir tertentu.
+     */
+    public function deposit(Carbon $mulai, Carbon $akhir, ?int $userId = null): array
     {
-        $trx = TransaksiDeposit::whereBetween('created_at', [$mulai, $akhir])
-            ->with('pasien')
-            ->get();
+        $query = TransaksiDeposit::whereBetween('created_at', [$mulai, $akhir])
+            ->with('pasien');
+
+        if ($userId) {
+            $query->where('user_id', $userId);
+        }
+
+        $trx = $query->get();
 
         return [
             'total_topup'      => $trx->where('tipe', 'topup')->sum('jumlah'),

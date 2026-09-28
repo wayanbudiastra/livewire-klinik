@@ -18,14 +18,16 @@ class DepositReport extends BaseLaporanComponent
     public function generate(): void
     {
         [$mulai, $akhir] = $this->periodeRange;
+        $userId = $this->userIdScope();
         $this->hasil = app(KasirLaporanService::class)
-            ->deposit($mulai, $akhir);
+            ->deposit($mulai, $akhir, $userId);
     }
 
     public function exportPdf()
     {
         [$mulai, $akhir] = $this->periodeRange;
-        $data = app(KasirLaporanService::class)->deposit($mulai, $akhir);
+        $userId = $this->userIdScope();
+        $data = app(KasirLaporanService::class)->deposit($mulai, $akhir, $userId);
 
         $pdf = Pdf::loadView('laporan.pdf.deposit', [
             'data'  => $data,
@@ -41,10 +43,21 @@ class DepositReport extends BaseLaporanComponent
     public function exportExcel()
     {
         [$mulai, $akhir] = $this->periodeRange;
+        $userId = $this->userIdScope();
         return Excel::download(
-            new DepositExport($mulai, $akhir),
+            new DepositExport($mulai, $akhir, $userId),
             "Laporan-Deposit-{$this->periodeLabel}.xlsx"
         );
+    }
+
+    /**
+     * Audit Priority 4 (Tinggi): sebelumnya laporan ini SELALU menampilkan
+     * transaksi deposit SEMUA kasir tanpa terkecuali -- lihat catatan yang
+     * sama di CancelBillReport::userIdScope().
+     */
+    private function userIdScope(): ?int
+    {
+        return auth()->user()->hasPermissionTo('laporan.kasir.view_all') ? null : auth()->id();
     }
 
     public function render()

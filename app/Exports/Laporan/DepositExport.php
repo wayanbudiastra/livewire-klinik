@@ -16,14 +16,15 @@ class DepositExport implements FromCollection, WithHeadings, WithMapping, Should
 {
     public function __construct(
         private Carbon $mulai,
-        private Carbon $akhir
+        private Carbon $akhir,
+        private ?int $userId = null
     ) {}
 
     public function collection()
     {
         return collect(
             app(KasirLaporanService::class)
-                ->deposit($this->mulai, $this->akhir)['detail']
+                ->deposit($this->mulai, $this->akhir, $this->userId)['detail']
         );
     }
 

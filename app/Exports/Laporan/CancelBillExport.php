@@ -16,14 +16,15 @@ class CancelBillExport implements FromCollection, WithHeadings, WithMapping, Sho
 {
     public function __construct(
         private Carbon $mulai,
-        private Carbon $akhir
+        private Carbon $akhir,
+        private ?int $userId = null
     ) {}
 
     public function collection()
     {
         return collect(
             app(KasirLaporanService::class)
-                ->cancelBill($this->mulai, $this->akhir)['detail']
+                ->cancelBill($this->mulai, $this->akhir, $this->userId)['detail']
         );
     }
 
