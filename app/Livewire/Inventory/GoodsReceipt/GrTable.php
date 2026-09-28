@@ -23,11 +23,13 @@ class GrTable extends Component
     }
 
     public function verifikasi(int $id, PenerimaanService $service): void {
+        $this->authorize('obat.edit');
         try { $service->verifikasiGr(GoodsReceipt::with('items.barang')->findOrFail($id), auth()->id()); unset($this->gr); $this->dispatch('notify', type:'success', message:'GR diverifikasi. Stok & HPR diperbarui.'); }
         catch(\Exception $e) { $this->dispatch('notify', type:'error', message:$e->getMessage()); }
     }
 
     public function batalkan(int $id, PenerimaanService $service): void {
+        $this->authorize('obat.edit');
         try { $service->batalkanGr(GoodsReceipt::findOrFail($id)); unset($this->gr); $this->dispatch('notify', type:'success', message:'GR dibatalkan.'); }
         catch(\Exception $e) { $this->dispatch('notify', type:'error', message:$e->getMessage()); }
     }

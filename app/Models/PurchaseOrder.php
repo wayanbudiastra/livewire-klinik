@@ -62,10 +62,12 @@ class PurchaseOrder extends Model
         ];
     }
 
+    /** Dipanggil dari dalam DB::transaction() PembelianService::buatPo() -- lockForUpdate() aman, gabung transaksi yang sama. */
     public static function generateNomorPo(): string
     {
         $prefix = 'PO-' . now()->format('Y-m-');
         $last   = static::where('nomor_po', 'like', $prefix . '%')
+                    ->lockForUpdate()
                     ->orderByDesc('nomor_po')
                     ->value('nomor_po');
         $seq    = $last ? (int) substr($last, -4) + 1 : 1;

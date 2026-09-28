@@ -24,11 +24,17 @@ class PoTable extends Component
     }
 
     public function approve(int $id, PembelianService $service): void {
+        // Audit Priority 4 (Sedang): route /inventory hanya digate
+        // permission:obat.view di level prefix -- authorize() di sini jadi
+        // lapis kedua utk aksi tulis spt approve (defense in depth, pola
+        // sama dgn komponen lain yg sudah dibenahi).
+        $this->authorize('obat.edit');
         try { $service->approvePo(PurchaseOrder::findOrFail($id), auth()->id()); unset($this->po); $this->dispatch('notify', type:'success', message:'PO disetujui.'); }
         catch(\Exception $e) { $this->dispatch('notify', type:'error', message:$e->getMessage()); }
     }
 
     public function batalkan(int $id, PembelianService $service): void {
+        $this->authorize('obat.edit');
         try { $service->batalkanPo(PurchaseOrder::findOrFail($id)); unset($this->po); $this->dispatch('notify', type:'success', message:'PO dibatalkan.'); }
         catch(\Exception $e) { $this->dispatch('notify', type:'error', message:$e->getMessage()); }
     }

@@ -56,13 +56,18 @@ class PenerimaanService
      */
     public function verifikasiGr(GoodsReceipt $gr, int $userId): GoodsReceipt
     {
-        if ($gr->status !== 'draft') {
-            throw ValidationException::withMessages([
-                'status' => 'GR sudah diverifikasi atau dibatalkan.',
-            ]);
-        }
-
         return DB::transaction(function () use ($gr, $userId) {
+            // Kunci ulang & cek ulang status DI DALAM transaksi -- sebelumnya
+            // dicek sekali di luar transaksi tanpa lock, jadi 2 klik
+            // "Verifikasi" bersamaan bisa sama2 lolos dan memotong stok dobel.
+            $gr = GoodsReceipt::where('id', $gr->id)->lockForUpdate()->firstOrFail();
+
+            if ($gr->status !== 'draft') {
+                throw ValidationException::withMessages([
+                    'status' => 'GR sudah diverifikasi atau dibatalkan.',
+                ]);
+            }
+
             $gr->load('items.barang');
 
             foreach ($gr->items as $grItem) {
@@ -156,20 +161,24 @@ class PenerimaanService
 
     public function batalkanGr(GoodsReceipt $gr): GoodsReceipt
     {
-        if ($gr->status !== 'draft') {
-            throw ValidationException::withMessages([
-                'status' => 'Hanya GR berstatus draft yang bisa dibatalkan.',
-            ]);
-        }
+        return DB::transaction(function () use ($gr) {
+            $gr = GoodsReceipt::where('id', $gr->id)->lockForUpdate()->firstOrFail();
 
-        $gr->update(['status' => 'dibatalkan']);
+            if ($gr->status !== 'draft') {
+                throw ValidationException::withMessages([
+                    'status' => 'Hanya GR berstatus draft yang bisa dibatalkan.',
+                ]);
+            }
 
-        activity('inventory')
-            ->performedOn($gr)
-            ->causedBy(auth()->user())
-            ->log('GR dibatalkan');
+            $gr->update(['status' => 'dibatalkan']);
 
-        return $gr;
+            activity('inventory')
+                ->performedOn($gr)
+                ->causedBy(auth()->user())
+                ->log('GR dibatalkan');
+
+            return $gr;
+        });
     }
 
     private function updateStatusPo(int $poId): void

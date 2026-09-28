@@ -44,10 +44,12 @@ class GoodsReceipt extends Model
         return $this->hasMany(GrItem::class, 'goods_receipt_id');
     }
 
+    /** Dipanggil dari dalam DB::transaction() PenerimaanService::buatGr() -- lockForUpdate() aman, gabung transaksi yang sama. */
     public static function generateNomorGr(): string
     {
         $prefix = 'GR-' . now()->format('Y-m-');
         $last   = static::where('nomor_gr', 'like', $prefix . '%')
+                    ->lockForUpdate()
                     ->orderByDesc('nomor_gr')
                     ->value('nomor_gr');
         $seq    = $last ? (int) substr($last, -4) + 1 : 1;

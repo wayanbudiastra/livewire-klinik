@@ -41,48 +41,69 @@ class PembelianService
 
     public function approvePo(PurchaseOrder $po, int $userId): PurchaseOrder
     {
-        if ($po->status !== 'draft') {
-            throw ValidationException::withMessages([
-                'status' => 'Hanya PO berstatus draft yang bisa di-approve.',
+        return DB::transaction(function () use ($po, $userId) {
+            // Kunci ulang & cek ulang status DI DALAM transaksi -- mencegah
+            // 2 klik "Approve" bersamaan memproses baris yang sama dobel.
+            $poLocked = PurchaseOrder::where('id', $po->id)->lockForUpdate()->firstOrFail();
+
+            if ($poLocked->status !== 'draft') {
+                throw ValidationException::withMessages([
+                    'status' => 'Hanya PO berstatus draft yang bisa di-approve.',
+                ]);
+            }
+
+            // Maker-checker: pembuat PO tidak boleh meng-approve PO-nya
+            // sendiri -- beda dari GR (yang memang sengaja punya opsi
+            // "Simpan & Verifikasi" sekaligus sbg fitur), PO tidak pernah
+            // punya jalur create+approve gabungan, jadi guard ini aman
+            // ditambahkan tanpa mematahkan fitur yang ada.
+            if ((int) $poLocked->dibuat_oleh === (int) $userId) {
+                throw ValidationException::withMessages([
+                    'status' => 'Pembuat PO tidak boleh meng-approve PO-nya sendiri.',
+                ]);
+            }
+
+            $poLocked->update([
+                'status'            => 'dikirim',
+                'disetujui_oleh'    => $userId,
+                'tanggal_disetujui' => now(),
             ]);
-        }
 
-        $po->update([
-            'status'            => 'dikirim',
-            'disetujui_oleh'    => $userId,
-            'tanggal_disetujui' => now(),
-        ]);
+            activity('inventory')
+                ->performedOn($poLocked)
+                ->causedBy(auth()->user())
+                ->log('PO disetujui dan dikirim ke supplier');
 
-        activity('inventory')
-            ->performedOn($po)
-            ->causedBy(auth()->user())
-            ->log('PO disetujui dan dikirim ke supplier');
-
-        return $po;
+            return $poLocked;
+        });
     }
 
     public function batalkanPo(PurchaseOrder $po): PurchaseOrder
     {
-        if (! in_array($po->status, ['draft', 'dikirim'])) {
-            throw ValidationException::withMessages([
-                'status' => 'PO yang sudah ada penerimaannya tidak bisa dibatalkan.',
-            ]);
-        }
+        return DB::transaction(function () use ($po) {
+            $poLocked = PurchaseOrder::where('id', $po->id)->lockForUpdate()->firstOrFail();
 
-        $grVerifikasi = $po->goodsReceipts()->where('status', 'diverifikasi')->exists();
-        if ($grVerifikasi) {
-            throw ValidationException::withMessages([
-                'status' => 'PO memiliki GR yang sudah diverifikasi. Tidak bisa dibatalkan.',
-            ]);
-        }
+            if (! in_array($poLocked->status, ['draft', 'dikirim'])) {
+                throw ValidationException::withMessages([
+                    'status' => 'PO yang sudah ada penerimaannya tidak bisa dibatalkan.',
+                ]);
+            }
 
-        $po->update(['status' => 'dibatalkan']);
+            $grVerifikasi = $poLocked->goodsReceipts()->where('status', 'diverifikasi')->exists();
+            if ($grVerifikasi) {
+                throw ValidationException::withMessages([
+                    'status' => 'PO memiliki GR yang sudah diverifikasi. Tidak bisa dibatalkan.',
+                ]);
+            }
 
-        activity('inventory')
-            ->performedOn($po)
-            ->causedBy(auth()->user())
-            ->log('PO dibatalkan');
+            $poLocked->update(['status' => 'dibatalkan']);
 
-        return $po;
+            activity('inventory')
+                ->performedOn($poLocked)
+                ->causedBy(auth()->user())
+                ->log('PO dibatalkan');
+
+            return $poLocked;
+        });
     }
 }

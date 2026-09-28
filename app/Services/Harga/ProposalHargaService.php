@@ -162,28 +162,32 @@ class ProposalHargaService
      */
     public function submitReview(ProposalHarga $proposal): void
     {
-        if ($proposal->status !== 'draft') {
-            throw new \DomainException('Hanya proposal berstatus draft yang bisa disubmit.');
-        }
-        if (now()->startOfDay()->gte($proposal->tanggal_efektif)) {
-            throw new \DomainException('Tanggal efektif sudah lewat. Perbarui tanggal efektif sebelum submit.');
-        }
+        DB::transaction(function () use ($proposal) {
+            $proposal = ProposalHarga::where('id', $proposal->id)->lockForUpdate()->firstOrFail();
 
-        $adaYangNaik = $proposal->items()
-            ->where('is_skip', false)
-            ->whereColumn('harga_baru', '!=', 'harga_lama')
-            ->exists();
+            if ($proposal->status !== 'draft') {
+                throw new \DomainException('Hanya proposal berstatus draft yang bisa disubmit.');
+            }
+            if (now()->startOfDay()->gte($proposal->tanggal_efektif)) {
+                throw new \DomainException('Tanggal efektif sudah lewat. Perbarui tanggal efektif sebelum submit.');
+            }
 
-        if (!$adaYangNaik) {
-            throw new \DomainException('Proposal tidak bisa disubmit karena semua item ditandai "tidak naik".');
-        }
+            $adaYangNaik = $proposal->items()
+                ->where('is_skip', false)
+                ->whereColumn('harga_baru', '!=', 'harga_lama')
+                ->exists();
 
-        $proposal->update(['status' => 'menunggu_persetujuan']);
+            if (!$adaYangNaik) {
+                throw new \DomainException('Proposal tidak bisa disubmit karena semua item ditandai "tidak naik".');
+            }
 
-        activity('harga_proposal')
-            ->performedOn($proposal)
-            ->causedBy(auth()->user())
-            ->log("Proposal harga \"{$proposal->judul}\" disubmit untuk persetujuan");
+            $proposal->update(['status' => 'menunggu_persetujuan']);
+
+            activity('harga_proposal')
+                ->performedOn($proposal)
+                ->causedBy(auth()->user())
+                ->log("Proposal harga \"{$proposal->judul}\" disubmit untuk persetujuan");
+        });
     }
 
     /**
@@ -191,30 +195,34 @@ class ProposalHargaService
      */
     public function setujui(ProposalHarga $proposal, User $user): void
     {
-        if ($proposal->status !== 'menunggu_persetujuan') {
-            throw new \DomainException('Hanya proposal menunggu persetujuan yang bisa disetujui.');
-        }
+        DB::transaction(function () use ($proposal, $user) {
+            $proposal = ProposalHarga::where('id', $proposal->id)->lockForUpdate()->firstOrFail();
 
-        // Maker-checker: pembuat proposal tidak boleh menyetujui proposalnya
-        // sendiri. Saat ini cuma role admin yang punya harga.proposal (jadi
-        // dampak nyata terbatas), tapi guard ini harus ada di level kode --
-        // bukan cuma diandalkan dari konfigurasi role -- supaya tetap aman
-        // kalau nanti ada user yang diberi harga.proposal DAN harga.setujui
-        // sekaligus (mis. lewat "Hak Akses Tambahan").
-        if ((int) $proposal->dibuat_oleh === (int) $user->id) {
-            throw new \DomainException('Pembuat proposal tidak boleh menyetujui proposalnya sendiri.');
-        }
+            if ($proposal->status !== 'menunggu_persetujuan') {
+                throw new \DomainException('Hanya proposal menunggu persetujuan yang bisa disetujui.');
+            }
 
-        $proposal->update([
-            'status'          => 'disetujui',
-            'disetujui_oleh'  => $user->id,
-            'disetujui_pada'  => now(),
-        ]);
+            // Maker-checker: pembuat proposal tidak boleh menyetujui proposalnya
+            // sendiri. Saat ini cuma role admin yang punya harga.proposal (jadi
+            // dampak nyata terbatas), tapi guard ini harus ada di level kode --
+            // bukan cuma diandalkan dari konfigurasi role -- supaya tetap aman
+            // kalau nanti ada user yang diberi harga.proposal DAN harga.setujui
+            // sekaligus (mis. lewat "Hak Akses Tambahan").
+            if ((int) $proposal->dibuat_oleh === (int) $user->id) {
+                throw new \DomainException('Pembuat proposal tidak boleh menyetujui proposalnya sendiri.');
+            }
 
-        activity('harga_proposal')
-            ->performedOn($proposal)
-            ->causedBy($user)
-            ->log("Proposal harga \"{$proposal->judul}\" disetujui");
+            $proposal->update([
+                'status'          => 'disetujui',
+                'disetujui_oleh'  => $user->id,
+                'disetujui_pada'  => now(),
+            ]);
+
+            activity('harga_proposal')
+                ->performedOn($proposal)
+                ->causedBy($user)
+                ->log("Proposal harga \"{$proposal->judul}\" disetujui");
+        });
     }
 
     /**
@@ -222,22 +230,26 @@ class ProposalHargaService
      */
     public function tolak(ProposalHarga $proposal, string $alasan, User $user): void
     {
-        if ($proposal->status !== 'menunggu_persetujuan') {
-            throw new \DomainException('Hanya proposal menunggu persetujuan yang bisa ditolak.');
-        }
+        DB::transaction(function () use ($proposal, $alasan, $user) {
+            $proposal = ProposalHarga::where('id', $proposal->id)->lockForUpdate()->firstOrFail();
 
-        $proposal->update([
-            'status'       => 'draft',
-            'alasan_tolak' => $alasan,
-            'ditolak_oleh' => $user->id,
-            'ditolak_pada' => now(),
-        ]);
+            if ($proposal->status !== 'menunggu_persetujuan') {
+                throw new \DomainException('Hanya proposal menunggu persetujuan yang bisa ditolak.');
+            }
 
-        activity('harga_proposal')
-            ->performedOn($proposal)
-            ->causedBy($user)
-            ->withProperties(['alasan' => $alasan])
-            ->log("Proposal harga \"{$proposal->judul}\" ditolak, dikembalikan ke draft");
+            $proposal->update([
+                'status'       => 'draft',
+                'alasan_tolak' => $alasan,
+                'ditolak_oleh' => $user->id,
+                'ditolak_pada' => now(),
+            ]);
+
+            activity('harga_proposal')
+                ->performedOn($proposal)
+                ->causedBy($user)
+                ->withProperties(['alasan' => $alasan])
+                ->log("Proposal harga \"{$proposal->judul}\" ditolak, dikembalikan ke draft");
+        });
     }
 
     /**
@@ -245,19 +257,23 @@ class ProposalHargaService
      */
     public function batalkan(ProposalHarga $proposal, User $user): void
     {
-        if ($proposal->status === 'efektif') {
-            throw new \DomainException('Proposal yang sudah efektif tidak bisa dibatalkan.');
-        }
-        if ($proposal->status === 'dibatalkan') {
-            throw new \DomainException('Proposal sudah dibatalkan.');
-        }
+        DB::transaction(function () use ($proposal, $user) {
+            $proposal = ProposalHarga::where('id', $proposal->id)->lockForUpdate()->firstOrFail();
 
-        $proposal->update(['status' => 'dibatalkan']);
+            if ($proposal->status === 'efektif') {
+                throw new \DomainException('Proposal yang sudah efektif tidak bisa dibatalkan.');
+            }
+            if ($proposal->status === 'dibatalkan') {
+                throw new \DomainException('Proposal sudah dibatalkan.');
+            }
 
-        activity('harga_proposal')
-            ->performedOn($proposal)
-            ->causedBy($user)
-            ->log("Proposal harga \"{$proposal->judul}\" dibatalkan");
+            $proposal->update(['status' => 'dibatalkan']);
+
+            activity('harga_proposal')
+                ->performedOn($proposal)
+                ->causedBy($user)
+                ->log("Proposal harga \"{$proposal->judul}\" dibatalkan");
+        });
     }
 
     /**
@@ -265,17 +281,19 @@ class ProposalHargaService
      */
     public function terapkan(ProposalHarga $proposal, User $user): void
     {
-        if ($proposal->status !== 'disetujui') {
-            throw new \DomainException('Hanya proposal berstatus disetujui yang bisa diterapkan.');
-        }
-        if (now()->startOfDay()->lt($proposal->tanggal_efektif)) {
-            throw new \DomainException(
-                'Belum bisa diterapkan. Tanggal efektif: '
-                . $proposal->tanggal_efektif->format('d/m/Y') . '.'
-            );
-        }
-
         DB::transaction(function () use ($proposal, $user) {
+            $proposal = ProposalHarga::where('id', $proposal->id)->lockForUpdate()->firstOrFail();
+
+            if ($proposal->status !== 'disetujui') {
+                throw new \DomainException('Hanya proposal berstatus disetujui yang bisa diterapkan.');
+            }
+            if (now()->startOfDay()->lt($proposal->tanggal_efektif)) {
+                throw new \DomainException(
+                    'Belum bisa diterapkan. Tanggal efektif: '
+                    . $proposal->tanggal_efektif->format('d/m/Y') . '.'
+                );
+            }
+
             $jumlahDiterapkan = 0;
 
             $proposal->items()->where('is_skip', false)->each(function (ProposalHargaItem $item) use ($proposal, &$jumlahDiterapkan) {
