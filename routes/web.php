@@ -311,6 +311,48 @@ Route::middleware(['auth', 'active'])->group(function () {
              ->name('masterdata')
              ->middleware('permission:masterdata.view');
 
+        // Template XLS -- download (Tindakan/Lab/Radiologi/Peralatan Medis).
+        // Upload & impor filenya sendiri ditangani di komponen Livewire
+        // masing2 tab (lihat TindakanTable/PenunjangTable/PeralatanTable),
+        // bukan lewat route -- konsisten dgn pola upload file Livewire lain
+        // di codebase ini (WithFileUploads), bukan form HTML biasa.
+        Route::middleware('permission:masterdata.view')->prefix('masterdata')->name('masterdata.')->group(function () {
+            Route::get('/tindakan/template', function () {
+                return \Maatwebsite\Excel\Facades\Excel::download(
+                    new \App\Exports\Masterdata\MasterdataTemplateExport(
+                        ['Kode', 'Nama', 'Deskripsi', 'Tarif', 'Tarif BPJS', 'Tarif WNA', 'Kode Poli (pisah koma)', 'Status Aktif (Y/N)'],
+                        [['T999', 'Contoh Tindakan', 'Deskripsi opsional', 50000, 0, 75000, 'UMUM,ANAK', 'Y']],
+                        'Template Tindakan'
+                    ),
+                    'Template-Tindakan.xlsx'
+                );
+            })->name('tindakan.template');
+
+            Route::get('/penunjang/template/{kategori}', function (string $kategori) {
+                abort_unless(in_array($kategori, ['lab', 'radiologi']), 404);
+                $label = $kategori === 'lab' ? 'Laboratorium' : 'Radiologi';
+                return \Maatwebsite\Excel\Facades\Excel::download(
+                    new \App\Exports\Masterdata\MasterdataTemplateExport(
+                        ['Kode', 'Nama', 'Deskripsi', 'Tarif', 'Tarif BPJS', 'Tarif WNA', 'Satuan Waktu', 'Status Aktif (Y/N)'],
+                        [['L999', "Contoh Item {$label}", 'Deskripsi opsional', 50000, 0, 75000, 'hari', 'Y']],
+                        "Template {$label}"
+                    ),
+                    "Template-{$label}.xlsx"
+                );
+            })->name('penunjang.template');
+
+            Route::get('/peralatan/template', function () {
+                return \Maatwebsite\Excel\Facades\Excel::download(
+                    new \App\Exports\Masterdata\MasterdataTemplateExport(
+                        ['Kode', 'Nama', 'Merk', 'Nomor Seri', 'Deskripsi', 'Status Aktif (Y/N)'],
+                        [['ALT999', 'Contoh Alat', 'Merk Contoh', 'SN-0001', 'Deskripsi opsional', 'Y']],
+                        'Template Peralatan Medis'
+                    ),
+                    'Template-Peralatan-Medis.xlsx'
+                );
+            })->name('peralatan.template');
+        });
+
         // Data ICD-10
         Route::middleware('permission:masterdata.view')->prefix('icd10')->name('icd.')->group(function () {
             Route::get('/', fn () => view('pengaturan.masterdata.icd'))->name('index');
