@@ -27,9 +27,16 @@ use Tests\TestCase;
  * - Download: route pengaturan.masterdata.{tindakan,penunjang,peralatan}.template,
  *   digate permission:masterdata.view.
  * - Upload: MasterdataService::importTindakan()/importPenunjang()/importPeralatan()
- *   -- upsert berdasarkan 'kode' (baris baru dibuat, kode yg sudah ada diupdate),
- *   dipanggil dari TindakanTable/PenunjangTable/PeralatanTable (authorize
- *   masterdata.create), pola preview-lalu-konfirmasi sama dgn IcdManager.
+ *   -- SENGAJA 2 proses terpisah berdasarkan $mode ('baru'/'update'), BUKAN
+ *   upsert gabungan:
+ *     - mode 'baru': hanya membuat baris baru, kode yang sudah ada di DB
+ *       dilewati (tidak diubah).
+ *     - mode 'update': hanya mengubah baris yang kodenya sudah ada, kode
+ *       yang belum terdaftar dilewati (tidak dibuat baru).
+ *   Dipanggil dari TindakanTable/PenunjangTable/PeralatanTable
+ *   (authorize masterdata.create), tombol "Upload Data Baru" dan
+ *   "Update Data" terpisah di toolbar tiap tab, pola preview-lalu-
+ *   konfirmasi sama dgn IcdManager.
  *
  * Pakai DatabaseTransactions -- bukan RefreshDatabase.
  */
@@ -81,31 +88,56 @@ class MasterdataImportExportTest extends TestCase
     // ── Import Tindakan ───────────────────────────────────────────────
 
     /** @test */
-    public function import_tindakan_membuat_baru_dan_mengupdate_yang_sudah_ada(): void
+    public function import_tindakan_mode_baru_hanya_membuat_baris_baru_kode_lama_dilewati(): void
     {
-        $poliUmum = Poli::create(['nama' => 'Umum Test', 'kode' => 'UMUMTEST', 'is_active' => true]);
+        $poli = Poli::create(['nama' => 'Umum Test', 'kode' => 'UMUMTEST', 'is_active' => true]);
         $existing = MasterTindakan::create([
             'kode' => 'TX-OLD', 'nama' => 'Nama Lama', 'tarif' => 10000, 'kategori' => 'tindakan', 'is_active' => true,
         ]);
-        $existing->poli()->sync([$poliUmum->id]);
 
         $rows = [
-            ['TX-OLD', 'Nama Sudah Diupdate', 'Deskripsi baru', 20000, 5000, 30000, 'UMUMTEST', 'Y'],
-            ['TX-NEW', 'Tindakan Baru', '', 15000, '', '', 'UMUMTEST', 'Y'],
+            ['TX-OLD', 'Nama Yang Dicoba Diubah', '', 99999, '', '', 'UMUMTEST', 'Y'], // kode sudah ada -> dilewati
+            ['TX-NEW', 'Tindakan Baru', '', 15000, '', '', 'UMUMTEST', 'Y'],           // kode baru -> dibuat
         ];
 
-        $hasil = app(MasterdataService::class)->importTindakan($rows);
+        $hasil = app(MasterdataService::class)->importTindakan($rows, 'baru');
 
         $this->assertSame(1, $hasil['imported']);
+        $this->assertSame(0, $hasil['updated']);
+        $this->assertSame(1, $hasil['skipped']);
+        $this->assertNotEmpty($hasil['errors']);
+
+        // TX-OLD TIDAK boleh berubah sama sekali.
+        $this->assertSame('Nama Lama', $existing->fresh()->nama);
+        $this->assertSame(10000.0, (float) $existing->fresh()->tarif);
+
+        $this->assertDatabaseHas('master_tindakan', ['kode' => 'TX-NEW', 'nama' => 'Tindakan Baru']);
+    }
+
+    /** @test */
+    public function import_tindakan_mode_update_hanya_mengubah_kode_yang_sudah_ada(): void
+    {
+        $poli = Poli::create(['nama' => 'Umum Test', 'kode' => 'UMUMTEST', 'is_active' => true]);
+        $existing = MasterTindakan::create([
+            'kode' => 'TX-OLD', 'nama' => 'Nama Lama', 'tarif' => 10000, 'kategori' => 'tindakan', 'is_active' => true,
+        ]);
+        $existing->poli()->sync([$poli->id]);
+
+        $rows = [
+            ['TX-OLD', 'Nama Sudah Diupdate', 'Deskripsi baru', 20000, 5000, 30000, 'UMUMTEST', 'Y'], // ada -> diupdate
+            ['TX-NOTFOUND', 'Kode Belum Ada', '', 15000, '', '', 'UMUMTEST', 'Y'],                    // belum ada -> dilewati
+        ];
+
+        $hasil = app(MasterdataService::class)->importTindakan($rows, 'update');
+
+        $this->assertSame(0, $hasil['imported']);
         $this->assertSame(1, $hasil['updated']);
-        $this->assertSame(0, $hasil['skipped']);
+        $this->assertSame(1, $hasil['skipped']);
+        $this->assertNotEmpty($hasil['errors']);
 
         $this->assertSame('Nama Sudah Diupdate', $existing->fresh()->nama);
         $this->assertSame(20000.0, (float) $existing->fresh()->tarif);
-
-        $baru = MasterTindakan::where('kode', 'TX-NEW')->first();
-        $this->assertNotNull($baru);
-        $this->assertSame(1, $baru->poli()->count());
+        $this->assertDatabaseMissing('master_tindakan', ['kode' => 'TX-NOTFOUND']);
     }
 
     /** @test */
@@ -115,7 +147,7 @@ class MasterdataImportExportTest extends TestCase
             ['TX-NOPOLI', 'Tindakan Tanpa Poli Valid', '', 15000, '', '', 'TIDAKADA', 'Y'],
         ];
 
-        $hasil = app(MasterdataService::class)->importTindakan($rows);
+        $hasil = app(MasterdataService::class)->importTindakan($rows, 'baru');
 
         $this->assertSame(0, $hasil['imported']);
         $this->assertSame(1, $hasil['skipped']);
@@ -124,9 +156,9 @@ class MasterdataImportExportTest extends TestCase
     }
 
     /** @test */
-    public function upload_xlsx_tindakan_lewat_komponen_livewire_berhasil_impor(): void
+    public function upload_xlsx_tindakan_mode_baru_lewat_komponen_livewire_berhasil_impor(): void
     {
-        $poli = Poli::create(['nama' => 'Anak Test', 'kode' => 'ANAKTEST', 'is_active' => true]);
+        Poli::create(['nama' => 'Anak Test', 'kode' => 'ANAKTEST', 'is_active' => true]);
         $admin = $this->buatUserDenganRole('admin');
         $this->actingAs($admin);
 
@@ -136,7 +168,8 @@ class MasterdataImportExportTest extends TestCase
         );
 
         Livewire::test(TindakanTable::class)
-            ->call('openImportModal')
+            ->call('openImportModal', 'baru')
+            ->assertSet('importMode', 'baru')
             ->set('importFile', $file)
             ->assertSet('importState', 'preview')
             ->assertSet('previewRowCount', 1)
@@ -154,34 +187,45 @@ class MasterdataImportExportTest extends TestCase
         $this->actingAs($kasir);
 
         Livewire::test(TindakanTable::class)
-            ->call('openImportModal')
+            ->call('openImportModal', 'baru')
             ->assertForbidden();
     }
 
     // ── Import Penunjang (Lab/Radiologi) ─────────────────────────────
 
     /** @test */
-    public function import_penunjang_lab_membuat_baru_dan_mengupdate(): void
+    public function import_penunjang_mode_baru_dan_update_berjalan_terpisah(): void
     {
         $existing = ItemPenunjang::create([
             'kode' => 'LAB-OLD', 'nama' => 'Nama Lama', 'kategori' => 'lab', 'tarif' => 10000, 'is_active' => true,
         ]);
 
-        $rows = [
-            ['LAB-OLD', 'Nama Diupdate', '', 20000, '', '', 'hari', 'Y'],
+        // Mode baru: LAB-OLD dilewati, LAB-NEW dibuat.
+        $hasilBaru = app(MasterdataService::class)->importPenunjang([
+            ['LAB-OLD', 'Nama Yang Dicoba Diubah', '', 99999, '', '', '', 'Y'],
             ['LAB-NEW', 'Item Baru', '', 30000, '', '', '', 'Y'],
-        ];
+        ], 'lab', 'baru');
 
-        $hasil = app(MasterdataService::class)->importPenunjang($rows, 'lab');
+        $this->assertSame(1, $hasilBaru['imported']);
+        $this->assertSame(0, $hasilBaru['updated']);
+        $this->assertSame(1, $hasilBaru['skipped']);
+        $this->assertSame('Nama Lama', $existing->fresh()->nama); // tidak berubah
 
-        $this->assertSame(1, $hasil['imported']);
-        $this->assertSame(1, $hasil['updated']);
+        // Mode update: LAB-OLD diupdate, kode fiktif dilewati.
+        $hasilUpdate = app(MasterdataService::class)->importPenunjang([
+            ['LAB-OLD', 'Nama Diupdate', '', 20000, '', '', 'hari', 'Y'],
+            ['LAB-TIDAKADA', 'Kode Belum Ada', '', 10000, '', '', '', 'Y'],
+        ], 'lab', 'update');
+
+        $this->assertSame(0, $hasilUpdate['imported']);
+        $this->assertSame(1, $hasilUpdate['updated']);
+        $this->assertSame(1, $hasilUpdate['skipped']);
         $this->assertSame('Nama Diupdate', $existing->fresh()->nama);
-        $this->assertSame('lab', ItemPenunjang::where('kode', 'LAB-NEW')->value('kategori'));
+        $this->assertDatabaseMissing('item_penunjang', ['kode' => 'LAB-TIDAKADA']);
     }
 
     /** @test */
-    public function upload_xlsx_radiologi_lewat_komponen_livewire_berhasil_impor(): void
+    public function upload_xlsx_radiologi_mode_baru_lewat_komponen_livewire_berhasil_impor(): void
     {
         $admin = $this->buatUserDenganRole('admin');
         $this->actingAs($admin);
@@ -192,7 +236,7 @@ class MasterdataImportExportTest extends TestCase
         );
 
         Livewire::test(PenunjangTable::class, ['kategori' => 'radiologi'])
-            ->call('openImportModal')
+            ->call('openImportModal', 'baru')
             ->set('importFile', $file)
             ->assertSet('importState', 'preview')
             ->call('doImport')
@@ -204,23 +248,32 @@ class MasterdataImportExportTest extends TestCase
     // ── Import Peralatan ──────────────────────────────────────────────
 
     /** @test */
-    public function import_peralatan_membuat_baru_dan_mengupdate(): void
+    public function import_peralatan_mode_baru_dan_update_berjalan_terpisah(): void
     {
         $existing = PeralatanMedis::create([
             'kode' => 'ALT-OLD', 'nama' => 'Alat Lama', 'status' => 'tersedia', 'is_active' => true,
         ]);
 
-        $rows = [
-            ['ALT-OLD', 'Alat Sudah Diupdate', 'Merk X', 'SN-OLD-1', '', 'Y'],
+        $hasilBaru = app(MasterdataService::class)->importPeralatan([
+            ['ALT-OLD', 'Nama Yang Dicoba Diubah', '', '', '', 'Y'],
             ['ALT-NEW', 'Alat Baru', 'Merk Y', 'SN-NEW-1', '', 'Y'],
-        ];
+        ], 'baru');
 
-        $hasil = app(MasterdataService::class)->importPeralatan($rows);
+        $this->assertSame(1, $hasilBaru['imported']);
+        $this->assertSame(0, $hasilBaru['updated']);
+        $this->assertSame(1, $hasilBaru['skipped']);
+        $this->assertSame('Alat Lama', $existing->fresh()->nama);
 
-        $this->assertSame(1, $hasil['imported']);
-        $this->assertSame(1, $hasil['updated']);
+        $hasilUpdate = app(MasterdataService::class)->importPeralatan([
+            ['ALT-OLD', 'Alat Sudah Diupdate', 'Merk X', 'SN-OLD-1', '', 'Y'],
+            ['ALT-TIDAKADA', 'Kode Belum Ada', '', '', '', 'Y'],
+        ], 'update');
+
+        $this->assertSame(0, $hasilUpdate['imported']);
+        $this->assertSame(1, $hasilUpdate['updated']);
+        $this->assertSame(1, $hasilUpdate['skipped']);
         $this->assertSame('Alat Sudah Diupdate', $existing->fresh()->nama);
-        $this->assertSame('tersedia', PeralatanMedis::where('kode', 'ALT-NEW')->value('status'));
+        $this->assertDatabaseMissing('peralatan_medis', ['kode' => 'ALT-TIDAKADA']);
     }
 
     /** @test */
@@ -234,7 +287,7 @@ class MasterdataImportExportTest extends TestCase
             ['ALT-B', 'Alat B', '', 'SN-DUPLIKAT', '', 'Y'],
         ];
 
-        $hasil = app(MasterdataService::class)->importPeralatan($rows);
+        $hasil = app(MasterdataService::class)->importPeralatan($rows, 'baru');
 
         $this->assertSame(0, $hasil['imported']);
         $this->assertSame(1, $hasil['skipped']);
@@ -242,7 +295,7 @@ class MasterdataImportExportTest extends TestCase
     }
 
     /** @test */
-    public function upload_xlsx_peralatan_lewat_komponen_livewire_berhasil_impor(): void
+    public function upload_xlsx_peralatan_mode_baru_lewat_komponen_livewire_berhasil_impor(): void
     {
         $admin = $this->buatUserDenganRole('admin');
         $this->actingAs($admin);
@@ -253,12 +306,37 @@ class MasterdataImportExportTest extends TestCase
         );
 
         Livewire::test(PeralatanTable::class)
-            ->call('openImportModal')
+            ->call('openImportModal', 'baru')
             ->set('importFile', $file)
             ->assertSet('importState', 'preview')
             ->call('doImport')
             ->assertSet('importState', 'done');
 
         $this->assertDatabaseHas('peralatan_medis', ['kode' => 'ALT-LW', 'nama' => 'Alat Via Livewire']);
+    }
+
+    /** @test */
+    public function upload_xlsx_peralatan_mode_update_lewat_komponen_livewire_hanya_ubah_yang_ada(): void
+    {
+        $existing = PeralatanMedis::create([
+            'kode' => 'ALT-UPD', 'nama' => 'Alat Sebelum Update', 'status' => 'tersedia', 'is_active' => true,
+        ]);
+        $admin = $this->buatUserDenganRole('admin');
+        $this->actingAs($admin);
+
+        $file = $this->buatXlsxUpload(
+            ['Kode', 'Nama', 'Merk', 'Nomor Seri', 'Deskripsi', 'Status Aktif'],
+            [['ALT-UPD', 'Alat Setelah Update', 'Merk Baru', '', '', 'Y']]
+        );
+
+        Livewire::test(PeralatanTable::class)
+            ->call('openImportModal', 'update')
+            ->assertSet('importMode', 'update')
+            ->set('importFile', $file)
+            ->assertSet('importState', 'preview')
+            ->call('doImport')
+            ->assertSet('importState', 'done');
+
+        $this->assertSame('Alat Setelah Update', $existing->fresh()->nama);
     }
 }

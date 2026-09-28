@@ -22,7 +22,12 @@ class TindakanTable extends Component
     public string $filterPoli = '';
 
     // ── Impor dari template XLS ─────────────────────────────
+    // importMode 'baru': hanya membuat baris baru (kode yg sudah ada
+    // dilewati). 'update': hanya mengubah baris yg kodenya sudah ada
+    // (kode belum terdaftar dilewati). Sengaja 2 proses terpisah, bukan
+    // upsert gabungan -- lihat MasterdataService::importTindakan().
     public bool   $showImportModal = false;
+    public string $importMode      = 'baru'; // 'baru' | 'update'
     public $importFile             = null;
     public string $importState     = 'idle'; // idle | preview | done
     public int    $previewRowCount = 0;
@@ -59,10 +64,11 @@ class TindakanTable extends Component
 
     // ── Impor dari template XLS ─────────────────────────────
 
-    public function openImportModal(): void
+    public function openImportModal(string $mode = 'baru'): void
     {
         $this->authorize('masterdata.create');
         $this->resetImport();
+        $this->importMode      = in_array($mode, ['baru', 'update'], true) ? $mode : 'baru';
         $this->showImportModal = true;
     }
 
@@ -96,7 +102,7 @@ class TindakanTable extends Component
 
         try {
             $rows = $this->parseRows();
-            $this->importResult = $service->importTindakan($rows);
+            $this->importResult = $service->importTindakan($rows, $this->importMode);
             $this->importState  = 'done';
             $this->importFile   = null;
             unset($this->tindakan);

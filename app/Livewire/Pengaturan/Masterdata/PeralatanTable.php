@@ -25,7 +25,9 @@ class PeralatanTable extends Component
     public string $filterAktif   = '';   // '' | '1' | '0'
 
     // ── Impor dari template XLS ─────────────────────────────
+    // importMode 'baru'/'update' -- lihat catatan di TindakanTable.
     public bool   $showImportModal = false;
+    public string $importMode      = 'baru'; // 'baru' | 'update'
     public $importFile             = null;
     public string $importState     = 'idle'; // idle | preview | done
     public int    $previewRowCount = 0;
@@ -71,10 +73,11 @@ class PeralatanTable extends Component
 
     // ── Impor dari template XLS ─────────────────────────────
 
-    public function openImportModal(): void
+    public function openImportModal(string $mode = 'baru'): void
     {
         $this->authorize('masterdata.create');
         $this->resetImport();
+        $this->importMode      = in_array($mode, ['baru', 'update'], true) ? $mode : 'baru';
         $this->showImportModal = true;
     }
 
@@ -108,7 +111,7 @@ class PeralatanTable extends Component
 
         try {
             $rows = $this->parseRows();
-            $this->importResult = $service->importPeralatan($rows);
+            $this->importResult = $service->importPeralatan($rows, $this->importMode);
             $this->importState  = 'done';
             $this->importFile   = null;
             unset($this->peralatan);

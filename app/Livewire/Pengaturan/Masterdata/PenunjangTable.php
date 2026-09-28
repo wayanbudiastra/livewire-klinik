@@ -21,7 +21,9 @@ class PenunjangTable extends Component
     public string $search = '';
 
     // ── Impor dari template XLS ─────────────────────────────
+    // importMode 'baru'/'update' -- lihat catatan di TindakanTable.
     public bool   $showImportModal = false;
+    public string $importMode      = 'baru'; // 'baru' | 'update'
     public $importFile             = null;
     public string $importState     = 'idle'; // idle | preview | done
     public int    $previewRowCount = 0;
@@ -54,10 +56,11 @@ class PenunjangTable extends Component
 
     // ── Impor dari template XLS ─────────────────────────────
 
-    public function openImportModal(): void
+    public function openImportModal(string $mode = 'baru'): void
     {
         $this->authorize('masterdata.create');
         $this->resetImport();
+        $this->importMode      = in_array($mode, ['baru', 'update'], true) ? $mode : 'baru';
         $this->showImportModal = true;
     }
 
@@ -91,7 +94,7 @@ class PenunjangTable extends Component
 
         try {
             $rows = $this->parseRows();
-            $this->importResult = $service->importPenunjang($rows, $this->kategori);
+            $this->importResult = $service->importPenunjang($rows, $this->kategori, $this->importMode);
             $this->importState  = 'done';
             $this->importFile   = null;
             unset($this->items);

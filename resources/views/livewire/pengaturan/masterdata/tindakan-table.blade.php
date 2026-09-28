@@ -31,11 +31,17 @@
             </a>
             @endcan
             @can('masterdata.create')
-            <button wire:click="openImportModal" class="btn-secondary whitespace-nowrap">
+            <button wire:click="openImportModal('baru')" class="btn-secondary whitespace-nowrap">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3-3m0 0l3 3m-3-3v-9"/>
                 </svg>
-                Upload Data
+                Upload Data Baru
+            </button>
+            <button wire:click="openImportModal('update')" class="btn-secondary whitespace-nowrap">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Update Data
             </button>
             <button wire:click="$dispatch('open-tindakan-create')" class="btn-primary whitespace-nowrap">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,7 +59,9 @@
         <div class="absolute inset-0 bg-black/50" wire:click="$set('showImportModal', false)"></div>
         <div class="relative z-10 w-full max-w-lg rounded-2xl bg-white shadow-2xl dark:bg-gray-800 dark:border dark:border-gray-700 animate-fade-in">
             <div class="modal-header">
-                <h3 class="modal-title dark:text-white">Upload Data Tindakan</h3>
+                <h3 class="modal-title dark:text-white">
+                    {{ $importMode === 'update' ? 'Update Data Tindakan' : 'Upload Data Baru Tindakan' }}
+                </h3>
                 <button wire:click="$set('showImportModal', false)" class="text-gray-400 hover:text-gray-600">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -63,7 +71,11 @@
             <div class="modal-body space-y-4">
                 <p class="text-sm text-gray-500 dark:text-gray-400">
                     Isi file sesuai <a href="{{ route('pengaturan.masterdata.tindakan.template') }}" class="text-primary-600 hover:underline">template XLS</a> ini.
-                    Kode yang sudah ada akan diupdate, kode baru akan ditambahkan.
+                    @if ($importMode === 'update')
+                        Baris dengan kode yang <strong>sudah terdaftar</strong> akan diupdate. Kode yang belum ada akan dilewati.
+                    @else
+                        Baris dengan kode <strong>baru</strong> akan ditambahkan. Kode yang sudah terdaftar akan dilewati (tidak diubah).
+                    @endif
                 </p>
 
                 <div class="form-group">

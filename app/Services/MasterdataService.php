@@ -91,19 +91,24 @@ class MasterdataService
      * urutan kolom template (lihat route pengaturan.masterdata.tindakan.template):
      * 0=Kode, 1=Nama, 2=Deskripsi, 3=Tarif, 4=Tarif BPJS, 5=Tarif WNA,
      * 6=Kode Poli (pisah koma), 7=Status Aktif (Y/N).
-     * Upsert berdasarkan 'kode' -- baris dgn kode yang sudah ada di DB
-     * akan DIUPDATE (bukan dilewati), baris baru dibuat baru.
+     *
+     * $mode 'baru': HANYA membuat baris baru -- kode yang sudah ada di DB
+     * dilewati (tidak diubah). $mode 'update': HANYA mengubah baris yang
+     * kodenya sudah ada -- kode yang belum terdaftar dilewati (tidak
+     * dibuat baru). Sengaja dipisah jadi 2 proses (bukan upsert gabungan)
+     * supaya upload "Data Baru" tidak bisa tanpa sadar menimpa harga/data
+     * yang sudah diatur manual.
      *
      * @return array{imported:int,updated:int,skipped:int,errors:array}
      */
-    public function importTindakan(array $rows): array
+    public function importTindakan(array $rows, string $mode = 'baru'): array
     {
         $imported = 0;
         $updated  = 0;
         $skipped  = 0;
         $errors   = [];
 
-        DB::transaction(function () use ($rows, &$imported, &$updated, &$skipped, &$errors) {
+        DB::transaction(function () use ($rows, $mode, &$imported, &$updated, &$skipped, &$errors) {
             foreach ($rows as $i => $row) {
                 $lineNo = $i + 2; // +1 header, +1 baris ke-1 mulai dari 1
 
@@ -113,6 +118,19 @@ class MasterdataService
 
                 if ($kode === '' || $nama === '' || $tarif === '' || ! is_numeric($tarif)) {
                     $errors[] = "Baris {$lineNo}: kolom Kode, Nama, dan Tarif (angka) wajib diisi -- baris dilewati.";
+                    $skipped++;
+                    continue;
+                }
+
+                $existing = MasterTindakan::where('kode', $kode)->first();
+
+                if ($mode === 'baru' && $existing) {
+                    $errors[] = "Baris {$lineNo}: kode \"{$kode}\" sudah ada -- dilewati (gunakan proses Update Data untuk mengubahnya).";
+                    $skipped++;
+                    continue;
+                }
+                if ($mode === 'update' && ! $existing) {
+                    $errors[] = "Baris {$lineNo}: kode \"{$kode}\" tidak ditemukan -- dilewati (gunakan proses Upload Data Baru untuk menambahkannya).";
                     $skipped++;
                     continue;
                 }
@@ -137,7 +155,6 @@ class MasterdataService
                     'kategori'   => 'tindakan',
                 ];
 
-                $existing = MasterTindakan::where('kode', $kode)->first();
                 if ($existing) {
                     $existing->update($data);
                     $existing->poli()->sync($poliIds);
@@ -152,8 +169,8 @@ class MasterdataService
 
         activity('masterdata')
             ->causedBy(auth()->user())
-            ->withProperties(compact('imported', 'updated', 'skipped'))
-            ->log("Impor massal Tindakan dari file: {$imported} baru, {$updated} diupdate, {$skipped} dilewati");
+            ->withProperties(compact('imported', 'updated', 'skipped', 'mode'))
+            ->log("Impor massal Tindakan ({$mode}) dari file: {$imported} baru, {$updated} diupdate, {$skipped} dilewati");
 
         return compact('imported', 'updated', 'skipped', 'errors');
     }
@@ -190,18 +207,18 @@ class MasterdataService
      * Impor massal dari template XLS Lab/Radiologi -- urutan kolom:
      * 0=Kode, 1=Nama, 2=Deskripsi, 3=Tarif, 4=Tarif BPJS, 5=Tarif WNA,
      * 6=Satuan Waktu, 7=Status Aktif (Y/N).
-     * Upsert berdasarkan 'kode', sama pola dgn importTindakan().
+     * $mode 'baru'/'update', sama pola dgn importTindakan().
      *
      * @return array{imported:int,updated:int,skipped:int,errors:array}
      */
-    public function importPenunjang(array $rows, string $kategori): array
+    public function importPenunjang(array $rows, string $kategori, string $mode = 'baru'): array
     {
         $imported = 0;
         $updated  = 0;
         $skipped  = 0;
         $errors   = [];
 
-        DB::transaction(function () use ($rows, $kategori, &$imported, &$updated, &$skipped, &$errors) {
+        DB::transaction(function () use ($rows, $kategori, $mode, &$imported, &$updated, &$skipped, &$errors) {
             foreach ($rows as $i => $row) {
                 $lineNo = $i + 2;
 
@@ -211,6 +228,19 @@ class MasterdataService
 
                 if ($kode === '' || $nama === '' || $tarif === '' || ! is_numeric($tarif)) {
                     $errors[] = "Baris {$lineNo}: kolom Kode, Nama, dan Tarif (angka) wajib diisi -- baris dilewati.";
+                    $skipped++;
+                    continue;
+                }
+
+                $existing = ItemPenunjang::where('kode', $kode)->first();
+
+                if ($mode === 'baru' && $existing) {
+                    $errors[] = "Baris {$lineNo}: kode \"{$kode}\" sudah ada -- dilewati (gunakan proses Update Data untuk mengubahnya).";
+                    $skipped++;
+                    continue;
+                }
+                if ($mode === 'update' && ! $existing) {
+                    $errors[] = "Baris {$lineNo}: kode \"{$kode}\" tidak ditemukan -- dilewati (gunakan proses Upload Data Baru untuk menambahkannya).";
                     $skipped++;
                     continue;
                 }
@@ -226,7 +256,6 @@ class MasterdataService
                     'is_active'    => $this->parseBoolYn($row[7] ?? 'Y'),
                 ];
 
-                $existing = ItemPenunjang::where('kode', $kode)->first();
                 if ($existing) {
                     $existing->update($data);
                     $updated++;
@@ -239,8 +268,8 @@ class MasterdataService
 
         activity('masterdata')
             ->causedBy(auth()->user())
-            ->withProperties(compact('imported', 'updated', 'skipped', 'kategori'))
-            ->log("Impor massal Penunjang ({$kategori}) dari file: {$imported} baru, {$updated} diupdate, {$skipped} dilewati");
+            ->withProperties(compact('imported', 'updated', 'skipped', 'kategori', 'mode'))
+            ->log("Impor massal Penunjang ({$kategori}, {$mode}) dari file: {$imported} baru, {$updated} diupdate, {$skipped} dilewati");
 
         return compact('imported', 'updated', 'skipped', 'errors');
     }
@@ -269,20 +298,21 @@ class MasterdataService
     /**
      * Impor massal dari template XLS Peralatan Medis -- urutan kolom:
      * 0=Kode, 1=Nama, 2=Merk, 3=Nomor Seri, 4=Deskripsi, 5=Status Aktif (Y/N).
-     * Upsert berdasarkan 'kode'. Status operasional (tersedia/digunakan/
-     * maintenance/rusak) TIDAK ikut diimpor -- alat baru selalu mulai
-     * 'tersedia' (default kolom di DB), status dikelola manual di tabel.
+     * $mode 'baru'/'update', sama pola dgn importTindakan(). Status
+     * operasional (tersedia/digunakan/maintenance/rusak) TIDAK ikut
+     * diimpor -- alat baru selalu mulai 'tersedia', status dikelola
+     * manual di tabel.
      *
      * @return array{imported:int,updated:int,skipped:int,errors:array}
      */
-    public function importPeralatan(array $rows): array
+    public function importPeralatan(array $rows, string $mode = 'baru'): array
     {
         $imported = 0;
         $updated  = 0;
         $skipped  = 0;
         $errors   = [];
 
-        DB::transaction(function () use ($rows, &$imported, &$updated, &$skipped, &$errors) {
+        DB::transaction(function () use ($rows, $mode, &$imported, &$updated, &$skipped, &$errors) {
             foreach ($rows as $i => $row) {
                 $lineNo = $i + 2;
 
@@ -291,6 +321,19 @@ class MasterdataService
 
                 if ($kode === '' || $nama === '') {
                     $errors[] = "Baris {$lineNo}: kolom Kode dan Nama wajib diisi -- baris dilewati.";
+                    $skipped++;
+                    continue;
+                }
+
+                $existing = PeralatanMedis::where('kode', $kode)->first();
+
+                if ($mode === 'baru' && $existing) {
+                    $errors[] = "Baris {$lineNo}: kode \"{$kode}\" sudah ada -- dilewati (gunakan proses Update Data untuk mengubahnya).";
+                    $skipped++;
+                    continue;
+                }
+                if ($mode === 'update' && ! $existing) {
+                    $errors[] = "Baris {$lineNo}: kode \"{$kode}\" tidak ditemukan -- dilewati (gunakan proses Upload Data Baru untuk menambahkannya).";
                     $skipped++;
                     continue;
                 }
@@ -315,7 +358,6 @@ class MasterdataService
                     'is_active'  => $this->parseBoolYn($row[5] ?? 'Y'),
                 ];
 
-                $existing = PeralatanMedis::where('kode', $kode)->first();
                 if ($existing) {
                     $existing->update($data);
                     $updated++;
@@ -328,8 +370,8 @@ class MasterdataService
 
         activity('masterdata')
             ->causedBy(auth()->user())
-            ->withProperties(compact('imported', 'updated', 'skipped'))
-            ->log("Impor massal Peralatan Medis dari file: {$imported} baru, {$updated} diupdate, {$skipped} dilewati");
+            ->withProperties(compact('imported', 'updated', 'skipped', 'mode'))
+            ->log("Impor massal Peralatan Medis ({$mode}) dari file: {$imported} baru, {$updated} diupdate, {$skipped} dilewati");
 
         return compact('imported', 'updated', 'skipped', 'errors');
     }
