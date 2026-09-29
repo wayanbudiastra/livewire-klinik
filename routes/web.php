@@ -240,6 +240,22 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::prefix('inventory')->name('inventory.')->middleware('permission:obat.view')->group(function () {
         Route::get('/', fn () => view('inventory.index'))->name('index');
 
+        // Template XLS Master Barang -- download. Upload & impor ditangani
+        // di komponen Livewire BarangTable (WithFileUploads), pola sama
+        // dgn template Master Data Klinis (Tindakan/Lab/Radiologi/Peralatan).
+        Route::get('/barang/template', function () {
+            return \Maatwebsite\Excel\Facades\Excel::download(
+                new \App\Exports\Masterdata\MasterdataTemplateExport(
+                    ['Kode', 'Nama Barang', 'Jenis (obat/alkes/bahan_habis_pakai/lainnya)', 'Satuan',
+                     'Stok Awal', 'Stok Minimum', 'HPR / Harga Modal (Rp)', 'Harga Jual (Rp)',
+                     'Kode Supplier Utama (opsional)', 'Status Aktif (Y/N)'],
+                    [['OBT999', 'Contoh Obat', 'obat', 'Tablet', 100, 10, 5000, 8000, '', 'Y']],
+                    'Template Master Barang'
+                ),
+                'Template-Master-Barang.xlsx'
+            );
+        })->name('barang.template');
+
         // PO
         Route::get('/po', fn () => view('inventory.index', ['tab' => 'po']))->name('po.index');
         // Audit Priority 1 (Rendah): sebelumnya cuma ikut permission:obat.view
