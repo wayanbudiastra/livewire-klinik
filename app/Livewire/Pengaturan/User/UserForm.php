@@ -5,6 +5,8 @@ namespace App\Livewire\Pengaturan\User;
 use App\Models\Dokter;
 use App\Models\Perawat;
 use App\Models\User;
+use App\Services\Akuntansi\SharingFeeService;
+use App\Services\DokterService;
 use App\Services\UserService;
 use Livewire\Component;
 use Spatie\Permission\Models\Role;
@@ -110,7 +112,7 @@ class UserForm extends Component
         $this->resetValidation();
     }
 
-    public function save(UserService $service): void
+    public function save(UserService $service, DokterService $dokterService): void
     {
         $this->validate($this->getRules(), $this->getMessages());
 
@@ -149,7 +151,18 @@ class UserForm extends Component
             // (spesialisasi, SIP, poli, jadwal) dilengkapi belakangan
             // lewat DokterProfilForm/DokterPoliMapping setelah row ini ada.
             if ($this->role === 'dokter') {
-                Dokter::updateOrCreate(['user_id' => $user->id]);
+                $dokter = Dokter::updateOrCreate(['user_id' => $user->id]);
+
+                // Default sharing fee tindakan 10% HANYA utk row dokter yang
+                // BARU dibuat -- kalau dokter ini sudah ada sebelumnya (mis.
+                // admin sekadar mengedit nama/email-nya lewat form ini),
+                // wasRecentlyCreated=false, jadi persentase custom yang sudah
+                // diset dokter tsb (lewat SharingFeeForm) tidak tertimpa.
+                if ($dokter->wasRecentlyCreated) {
+                    $dokterService->saveSharingFee($dokter->id, [
+                        'tindakan' => SharingFeeService::DEFAULT_PERSENTASE_TINDAKAN_DOKTER,
+                    ]);
+                }
             }
 
             // Hak akses tambahan -- HANYA diproses kalau yang login super_admin.

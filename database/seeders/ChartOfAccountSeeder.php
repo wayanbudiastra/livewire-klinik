@@ -22,6 +22,7 @@ class ChartOfAccountSeeder extends Seeder
             ['2-1100', 'Hutang Dagang (Supplier)',               'liabilitas', 'kredit', 'jangka_pendek', false],
             ['2-1200', 'Hutang Jasa Dokter (Sharing Fee)',       'liabilitas', 'kredit', 'jangka_pendek', false],
             ['2-1300', 'Titipan Deposit Pasien',                 'liabilitas', 'kredit', 'jangka_pendek', false],
+            ['2-1400', 'Hutang Jasa Perawat (Sharing Fee)',      'liabilitas', 'kredit', 'jangka_pendek', false],
 
             // Ekuitas
             ['3-1100', 'Modal Pemilik',                          'ekuitas',    'kredit', null, false],
@@ -36,6 +37,7 @@ class ChartOfAccountSeeder extends Seeder
             // Biaya
             ['5-1100', 'HPP Farmasi (Obat & Alkes Terjual)',     'biaya',      'debit',  null, false],
             ['5-1200', 'Biaya Jasa Dokter (Sharing Fee)',        'biaya',      'debit',  null, false],
+            ['5-1300', 'Biaya Jasa Perawat (Sharing Fee)',       'biaya',      'debit',  null, false],
             ['5-2100', 'Biaya BHP (Bahan Habis Pakai)',          'biaya',      'debit',  null, false],
             ['5-3100', 'Biaya Operasional Lainnya',              'biaya',      'debit',  null, false],
 

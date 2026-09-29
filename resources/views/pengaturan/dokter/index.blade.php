@@ -9,6 +9,7 @@
     </div>
 
     <x-alert />
+    <livewire:pengaturan.dokter.sharing-fee-perawat-form />
     <livewire:pengaturan.dokter.dokter-table />
     <livewire:pengaturan.dokter.dokter-profil-form />
 

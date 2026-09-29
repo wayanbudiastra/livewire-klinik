@@ -388,6 +388,7 @@ class TagihanPasien extends Component
                         ['metode' => $metodeSplit, 'jumlah' => $jumlah],
                     ]);
                     app(SharingFeeService::class)->catatSharingFee($invoiceFresh);
+                    app(SharingFeeService::class)->catatSharingFeePerawat($invoiceFresh);
                 }
             });
         } catch (\DomainException $e) {

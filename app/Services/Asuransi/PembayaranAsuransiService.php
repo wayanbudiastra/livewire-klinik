@@ -109,6 +109,7 @@ class PembayaranAsuransiService
                 app(AsuransiJurnalService::class)->catatPiutangTerbentuk($piutang);
             }
             app(SharingFeeService::class)->catatSharingFee($billingFresh);
+            app(SharingFeeService::class)->catatSharingFeePerawat($billingFresh);
 
             return $billingLocked->fresh();
         });
