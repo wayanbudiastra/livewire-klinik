@@ -331,12 +331,22 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/penunjang/template/{kategori}', function (string $kategori) {
                 abort_unless(in_array($kategori, ['lab', 'radiologi']), 404);
                 $label = $kategori === 'lab' ? 'Laboratorium' : 'Radiologi';
+
+                $headings = ['Kode', 'Nama', 'Deskripsi', 'Tarif', 'Tarif BPJS', 'Tarif WNA', 'Satuan Waktu', 'Status Aktif (Y/N)'];
+                $contoh   = ['L999', "Contoh Item {$label}", 'Deskripsi opsional', 50000, 0, 75000, 'hari', 'Y'];
+
+                // Lab ikut markup otomatis berbasis harga modal -- kolom
+                // ke-9 ini kalau diisi, Tarif & Tarif WNA di kolom 4 & 6
+                // DIABAIKAN dan dihitung ulang otomatis (lihat
+                // MasterdataService::importPenunjang()). Radiologi tetap
+                // manual, jadi kolom ini tidak relevan utk radiologi.
+                if ($kategori === 'lab') {
+                    $headings[] = 'Harga Modal (opsional, isi utk hitung otomatis)';
+                    $contoh[]   = 25000;
+                }
+
                 return \Maatwebsite\Excel\Facades\Excel::download(
-                    new \App\Exports\Masterdata\MasterdataTemplateExport(
-                        ['Kode', 'Nama', 'Deskripsi', 'Tarif', 'Tarif BPJS', 'Tarif WNA', 'Satuan Waktu', 'Status Aktif (Y/N)'],
-                        [['L999', "Contoh Item {$label}", 'Deskripsi opsional', 50000, 0, 75000, 'hari', 'Y']],
-                        "Template {$label}"
-                    ),
+                    new \App\Exports\Masterdata\MasterdataTemplateExport($headings, [$contoh], "Template {$label}"),
                     "Template-{$label}.xlsx"
                 );
             })->name('penunjang.template');
@@ -386,10 +396,14 @@ Route::middleware(['auth', 'active'])->group(function () {
              ->name('sumber-informasi')
              ->middleware('permission:masterdata.create');
 
-        // Markup Harga WNA — hanya super_admin
+        // Markup Harga Jual (WNA manual + otomatis Obat/BHP/Lab) --
+        // sebelumnya hardcode role:super_admin, sekarang permission spt
+        // yang lain supaya bisa dibagikan ke user tertentu lewat "Hak
+        // Akses Tambahan" tanpa perlu jadi super_admin (default tetap
+        // cuma super_admin via Gate::before sampai dibagikan manual).
         Route::get('/harga-wna', fn () => view('pengaturan.harga-wna'))
              ->name('harga-wna')
-             ->middleware('role:super_admin');
+             ->middleware('permission:harga.markup.manage');
 
         // Asuransi & Penjamin
         Route::prefix('asuransi')->name('asuransi.')->group(function () {

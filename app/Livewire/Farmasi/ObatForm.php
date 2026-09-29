@@ -5,6 +5,7 @@ namespace App\Livewire\Farmasi;
 use App\Models\Barang;
 use App\Models\KonfigurasiHargaWna;
 use App\Services\FarmasiService;
+use App\Services\Harga\MarkupHargaService;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 
@@ -64,13 +65,42 @@ class ObatForm extends Component
         return KonfigurasiHargaWna::markupPersen();
     }
 
-    /** Isi harga_wna dari harga jual × markup (masih bisa diedit manual sebelum simpan). */
+    /** Isi harga_wna dari harga jual × markup (masih bisa diedit manual sebelum simpan) -- khusus jenis alkes (obat pakai markup otomatis berbasis modal). */
     public function generateHargaWna(): void
     {
         if ($this->harga === '' || ! is_numeric($this->harga)) return;
 
         $markup = KonfigurasiHargaWna::markupPersen();
         $this->harga_wna = (string) round(((float) $this->harga) * (1 + $markup / 100));
+    }
+
+    /** Obat ikut markup otomatis berbasis modal; Alkes tetap manual (spt di Inventory > Data Barang). */
+    public function getIkutMarkupOtomatisProperty(): bool
+    {
+        return $this->jenis_barang === 'obat';
+    }
+
+    /**
+     * Harga jual & WNA dihitung ULANG otomatis setiap kali harga beli
+     * (modal) diketik ulang -- cuma jenis obat, alkes tetap manual. Masih
+     * bisa ditimpa manual sesudahnya, tapi kalau modal diubah lagi,
+     * dihitung ulang lagi (sama pola dgn BarangForm di Inventory).
+     */
+    public function updatedHargaBeli(MarkupHargaService $service): void
+    {
+        if (! $this->ikutMarkupOtomatis) return;
+        if ($this->harga_beli === '' || ! is_numeric($this->harga_beli)) return;
+
+        $hasil = $service->hitung('obat_bhp', (float) $this->harga_beli);
+        if ($hasil['ktp'] === null) return;
+
+        $this->harga     = (string) $hasil['ktp'];
+        $this->harga_wna = (string) $hasil['wna'];
+    }
+
+    public function updatedJenisBarang(MarkupHargaService $service): void
+    {
+        $this->updatedHargaBeli($service);
     }
 
     public function getMessages(): array
@@ -149,12 +179,28 @@ class ObatForm extends Component
             'butuh_resep'      => ($this->jenis_barang === 'obat'),
         ];
 
-        $this->isEdit
+        $barang = $this->isEdit
             ? $service->updateObat($this->obatId, $data)
             : $service->createObat($data);
 
         $this->showModal = false;
         $this->dispatch('obat-saved');
+
+        // Validasi harga (peringatan saja, TETAP disimpan) -- sama pola dgn BarangForm.
+        if ((float) $this->harga < (float) $this->harga_beli) {
+            activity('farmasi')
+                ->performedOn($barang)
+                ->causedBy(auth()->user())
+                ->withProperties(['harga' => $this->harga, 'harga_beli' => $this->harga_beli])
+                ->log("Harga jual \"{$barang->nama}\" disimpan DI BAWAH harga modal (berpotensi rugi)");
+
+            $this->dispatch('notify', type: 'warning', message:
+                ($this->isEdit ? 'Data obat diupdate. ' : 'Obat/Alkes ditambahkan. ')
+                . "Perhatian: harga jual (Rp " . number_format((float) $this->harga, 0, ',', '.')
+                . ") di bawah harga modal (Rp " . number_format((float) $this->harga_beli, 0, ',', '.') . ").");
+            return;
+        }
+
         $msg = $this->isEdit ? 'Data obat berhasil diupdate.' : 'Obat/Alkes baru ditambahkan.';
         $this->dispatch('notify', type: 'success', message: $msg);
     }

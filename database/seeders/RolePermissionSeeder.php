@@ -62,6 +62,14 @@ class RolePermissionSeeder extends Seeder
             'harga.setujui',
             'harga.terapkan',
 
+            // Markup Harga Jual (WNA & otomatis Obat/BHP/Lab) -- sebelumnya
+            // hardcode hasRole('super_admin'), sekarang permission spt yang
+            // lain supaya bisa dibagikan ke user tertentu lewat 'Hak Akses
+            // Tambahan' tanpa perlu jadi super_admin. SENGAJA tidak
+            // diberikan ke role mana pun di bawah -- default tetap cuma
+            // super_admin (via Gate::before) sampai admin membagikannya.
+            'harga.markup.manage',
+
             // Cetak Surat Pemeriksaan
             'surat.cetak',
 

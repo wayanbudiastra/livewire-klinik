@@ -71,6 +71,7 @@
         <div :class="{
                 'bg-emerald-50 border-emerald-400 text-emerald-800': type === 'success',
                 'bg-red-50 border-red-400 text-red-800': type === 'error',
+                'bg-amber-50 border-amber-400 text-amber-800': type === 'warning',
              }"
              class="flex items-center gap-3 rounded-xl border px-4 py-3 shadow-lg text-sm font-medium">
             <svg x-show="type === 'success'" class="h-5 w-5 flex-shrink-0 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">

@@ -124,9 +124,12 @@
                             @error('harga') <p class="form-error">{{ $message }}</p> @enderror
                         </div>
                         <div class="form-group">
-                            <label class="form-label dark:text-gray-300">Harga Beli (Rp)</label>
-                            <input wire:model="harga_beli" type="number" min="0" step="100"
+                            <label class="form-label dark:text-gray-300">Harga Beli / Modal (Rp)</label>
+                            <input wire:model.blur="harga_beli" type="number" min="0" step="100"
                                    class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                            @if ($this->ikutMarkupOtomatis)
+                            <p class="text-xs text-gray-400 mt-1">Harga umum & WNA dihitung otomatis dari modal ini.</p>
+                            @endif
                         </div>
                         <div class="form-group">
                             <label class="form-label dark:text-gray-300">Harga BPJS (Rp)</label>
@@ -138,10 +141,12 @@
                     <div class="form-group">
                         <label class="form-label dark:text-gray-300 flex items-center justify-between">
                             <span>Harga WNA (Rp)</span>
+                            @unless ($this->ikutMarkupOtomatis)
                             <button type="button" wire:click="generateHargaWna"
                                     class="text-xs font-normal text-blue-600 hover:text-blue-700 dark:text-blue-400">
                                 ⚡ Generate ({{ rtrim(rtrim(number_format($this->markupWnaPersen, 2), '0'), '.') }}% dari harga umum)
                             </button>
+                            @endunless
                         </label>
                         <input wire:model="harga_wna" type="number" min="0" step="100" placeholder="Kosongkan = pakai harga umum"
                                class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>

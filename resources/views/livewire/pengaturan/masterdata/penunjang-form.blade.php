@@ -32,7 +32,7 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label dark:text-gray-300">Kategori <span class="text-red-500">*</span></label>
-                            <select wire:model="kategori"
+                            <select wire:model.live="kategori"
                                     class="form-select dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
                                 <option value="lab">Laboratorium</option>
                                 <option value="radiologi">Radiologi</option>
@@ -46,6 +46,16 @@
                                class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
                         @error('nama') <p class="form-error">{{ $message }}</p> @enderror
                     </div>
+
+                    @if ($this->ikutMarkupOtomatis)
+                    <div class="form-group">
+                        <label class="form-label dark:text-gray-300">Harga Modal (Rp)</label>
+                        <input wire:model.blur="harga_modal" type="number" min="0" placeholder="Estimasi biaya reagen/bahan"
+                               class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                        <p class="text-xs text-gray-400 mt-1">Tarif & Tarif WNA dihitung otomatis dari modal ini, bisa diedit manual sesudahnya.</p>
+                        @error('harga_modal') <p class="form-error">{{ $message }}</p> @enderror
+                    </div>
+                    @endif
 
                     <div class="grid grid-cols-2 gap-4">
                         <div class="form-group">
@@ -64,10 +74,12 @@
                     <div class="form-group">
                         <label class="form-label dark:text-gray-300 flex items-center justify-between">
                             <span>Tarif WNA (Rp)</span>
+                            @unless ($this->ikutMarkupOtomatis)
                             <button type="button" wire:click="generateTarifWna"
                                     class="text-xs font-normal text-blue-600 hover:text-blue-700 dark:text-blue-400">
                                 ⚡ Generate ({{ rtrim(rtrim(number_format($this->markupWnaPersen, 2), '0'), '.') }}% dari tarif umum)
                             </button>
+                            @endunless
                         </label>
                         <input wire:model="tarif_wna" type="number" min="0" placeholder="Kosongkan = pakai tarif umum"
                                class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>

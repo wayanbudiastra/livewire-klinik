@@ -560,15 +560,19 @@
                             'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('pengaturan.demo.generator'),
                         ])
                     >⚡ Demo Generator</a>
+                    @endif
 
+                    @can('harga.markup.manage')
                     <a href="{{ route('pengaturan.harga-wna') }}"
                         @class([
                             'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',
                             'bg-white/20 text-white' => request()->routeIs('pengaturan.harga-wna'),
                             'text-white/70 hover:bg-white/10 hover:text-white' => !request()->routeIs('pengaturan.harga-wna'),
                         ])
-                    >Markup Harga WNA</a>
+                    >Markup Harga Jual</a>
+                    @endcan
 
+                    @if(auth()->user()?->hasRole('super_admin'))
                     <a href="{{ route('pengaturan.log-login') }}"
                         @class([
                             'block rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150',

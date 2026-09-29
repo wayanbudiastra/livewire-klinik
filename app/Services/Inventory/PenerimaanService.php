@@ -10,11 +10,16 @@ use App\Models\PoItem;
 use App\Models\PurchaseOrder;
 use App\Models\SupplierBarang;
 use App\Services\Akuntansi\InventoriJurnalService;
+use App\Services\Harga\MarkupHargaService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class PenerimaanService
 {
+    public function __construct(
+        private MarkupHargaService $markupHargaService,
+    ) {}
+
     public function buatGr(array $data): GoodsReceipt
     {
         return DB::transaction(function () use ($data) {
@@ -126,10 +131,23 @@ class PenerimaanService
         ]);
 
         // ── Update stok & HPR di tabel barang ────────────────────
-        $barang->update([
+        $updateBarang = [
             'stok'        => $stokBaru,
             'harga_pokok' => $hprBaru,
-        ]);
+        ];
+
+        // Markup harga jual OTOMATIS begitu harga modal (HPR) berubah --
+        // cuma utk jenis obat & bahan_habis_pakai (kategori 'obat_bhp'),
+        // Alkes & lainnya SENGAJA tidak ikut, tetap manual spt sebelumnya.
+        if (in_array($barang->jenis, ['obat', 'bahan_habis_pakai'], true)) {
+            $hasilMarkup = $this->markupHargaService->hitung('obat_bhp', $hprBaru);
+            if ($hasilMarkup['ktp'] !== null) {
+                $updateBarang['harga_jual'] = $hasilMarkup['ktp'];
+                $updateBarang['harga_wna']  = $hasilMarkup['wna'];
+            }
+        }
+
+        $barang->update($updateBarang);
 
         // ── Catat mutasi stok ─────────────────────────────────────
         MutasiStok::create([

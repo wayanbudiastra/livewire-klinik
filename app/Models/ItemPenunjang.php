@@ -10,16 +10,17 @@ class ItemPenunjang extends Model
 
     protected $fillable = [
         'kode', 'nama', 'deskripsi', 'kategori',
-        'tarif', 'tarif_bpjs', 'tarif_wna', 'satuan_waktu', 'is_active',
+        'tarif', 'tarif_bpjs', 'tarif_wna', 'harga_modal', 'satuan_waktu', 'is_active',
     ];
 
     protected function casts(): array
     {
         return [
-            'tarif'      => 'decimal:2',
-            'tarif_bpjs' => 'decimal:2',
-            'tarif_wna'  => 'decimal:2',
-            'is_active'  => 'boolean',
+            'tarif'       => 'decimal:2',
+            'tarif_bpjs'  => 'decimal:2',
+            'tarif_wna'   => 'decimal:2',
+            'harga_modal' => 'decimal:2',
+            'is_active'   => 'boolean',
         ];
     }
 

@@ -102,8 +102,17 @@
                 </div>
                 @if (!empty($importResult['errors']))
                 <div class="rounded-lg bg-amber-50 dark:bg-amber-900/30 px-4 py-3 text-xs text-amber-700 dark:text-amber-300 max-h-40 overflow-y-auto space-y-1">
+                    <p class="font-semibold">Dilewati:</p>
                     @foreach ($importResult['errors'] as $err)
                     <p>{{ $err }}</p>
+                    @endforeach
+                </div>
+                @endif
+                @if (!empty($importResult['warnings']))
+                <div class="rounded-lg bg-orange-50 dark:bg-orange-900/30 px-4 py-3 text-xs text-orange-700 dark:text-orange-300 max-h-40 overflow-y-auto space-y-1">
+                    <p class="font-semibold">Peringatan (tetap disimpan):</p>
+                    @foreach ($importResult['warnings'] as $warn)
+                    <p>{{ $warn }}</p>
                     @endforeach
                 </div>
                 @endif

@@ -1,10 +1,10 @@
 <x-app-layout>
-    <x-slot name="title">Markup Harga WNA</x-slot>
+    <x-slot name="title">Markup Harga Jual</x-slot>
 
     <div class="page-header">
         <div>
-            <h2 class="page-title">Markup Harga WNA</h2>
-            <p class="page-subtitle">Kelola selisih harga untuk pasien WNA di tindakan, lab/radiologi, dan obat</p>
+            <h2 class="page-title">Markup Harga Jual</h2>
+            <p class="page-subtitle">Markup otomatis Obat/BHP/Lab berbasis harga modal, & markup WNA manual utk Tindakan/Radiologi/Alkes</p>
         </div>
     </div>
 

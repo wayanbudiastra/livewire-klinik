@@ -73,8 +73,11 @@
                             <input wire:model="stok_maksimum" type="number" min="0" class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
                         </div>
                         <div class="form-group">
-                            <label class="form-label dark:text-gray-300">HPR Awal (Rp)</label>
-                            <input wire:model="harga_pokok" type="number" min="0" step="0.01" class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                            <label class="form-label dark:text-gray-300">HPR Awal / Harga Modal (Rp)</label>
+                            <input wire:model.blur="harga_pokok" type="number" min="0" step="0.01" class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                            @if ($this->ikutMarkupOtomatis)
+                            <p class="text-xs text-gray-400 mt-1">Harga jual & WNA dihitung otomatis dari modal ini, bisa diedit manual sesudahnya.</p>
+                            @endif
                         </div>
                     </div>
                     <div class="grid grid-cols-3 gap-3">
@@ -82,6 +85,10 @@
                             <label class="form-label dark:text-gray-300">Harga Jual (Rp) <span class="text-red-500">*</span></label>
                             <input wire:model="harga_jual" type="number" min="0" step="0.01" class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
                             @error('harga_jual') <p class="form-error">{{ $message }}</p> @enderror
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label dark:text-gray-300">Harga Jual WNA (Rp)</label>
+                            <input wire:model="harga_wna" type="number" min="0" step="0.01" class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
                         </div>
                         <div class="form-group">
                             <label class="form-label dark:text-gray-300">Golongan</label>

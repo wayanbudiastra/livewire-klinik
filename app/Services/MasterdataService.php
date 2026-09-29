@@ -9,6 +9,7 @@ use App\Models\PenggunaanAlat;
 use App\Models\PermintaanPenunjang;
 use App\Models\Poli;
 use App\Repositories\MasterdataRepository;
+use App\Services\Harga\MarkupHargaService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -16,8 +17,10 @@ class MasterdataService
 {
     private MasterdataRepository $repo;
 
-    public function __construct(MasterdataRepository $repo)
-    {
+    public function __construct(
+        MasterdataRepository $repo,
+        private MarkupHargaService $markupHargaService,
+    ) {
         $this->repo = $repo;
     }
 
@@ -172,7 +175,7 @@ class MasterdataService
             ->withProperties(compact('imported', 'updated', 'skipped', 'mode'))
             ->log("Impor massal Tindakan ({$mode}) dari file: {$imported} baru, {$updated} diupdate, {$skipped} dilewati");
 
-        return compact('imported', 'updated', 'skipped', 'errors');
+        return compact('imported', 'updated', 'skipped', 'errors') + ['warnings' => []];
     }
 
     // ── Item Penunjang ───────────────────────────────────────
@@ -206,10 +209,13 @@ class MasterdataService
     /**
      * Impor massal dari template XLS Lab/Radiologi -- urutan kolom:
      * 0=Kode, 1=Nama, 2=Deskripsi, 3=Tarif, 4=Tarif BPJS, 5=Tarif WNA,
-     * 6=Satuan Waktu, 7=Status Aktif (Y/N).
+     * 6=Satuan Waktu, 7=Status Aktif (Y/N), 8=Harga Modal (khusus Lab --
+     * kalau diisi & angka, Tarif & Tarif WNA di kolom 3&5 DIABAIKAN dan
+     * dihitung ulang otomatis dari modal x multiplier kategori 'lab',
+     * supaya konsisten dgn hook otomatis di form/GR).
      * $mode 'baru'/'update', sama pola dgn importTindakan().
      *
-     * @return array{imported:int,updated:int,skipped:int,errors:array}
+     * @return array{imported:int,updated:int,skipped:int,errors:array,warnings:array}
      */
     public function importPenunjang(array $rows, string $kategori, string $mode = 'baru'): array
     {
@@ -217,8 +223,9 @@ class MasterdataService
         $updated  = 0;
         $skipped  = 0;
         $errors   = [];
+        $warnings = [];
 
-        DB::transaction(function () use ($rows, $kategori, $mode, &$imported, &$updated, &$skipped, &$errors) {
+        DB::transaction(function () use ($rows, $kategori, $mode, &$imported, &$updated, &$skipped, &$errors, &$warnings) {
             foreach ($rows as $i => $row) {
                 $lineNo = $i + 2;
 
@@ -245,13 +252,34 @@ class MasterdataService
                     continue;
                 }
 
+                $hargaModalRaw = trim((string) ($row[8] ?? ''));
+                $hargaModal    = ($kategori === 'lab' && $hargaModalRaw !== '' && is_numeric($hargaModalRaw))
+                    ? (float) $hargaModalRaw : null;
+
+                $tarifFinal    = (float) $tarif;
+                $tarifWnaFinal = is_numeric($row[5] ?? null) ? (float) $row[5] : null;
+
+                if ($hargaModal !== null) {
+                    $hasil = $this->markupHargaService->hitung('lab', $hargaModal);
+                    if ($hasil['ktp'] !== null) {
+                        $tarifFinal    = $hasil['ktp'];
+                        $tarifWnaFinal = $hasil['wna'];
+                    }
+                }
+
+                if ($tarifFinal < ($hargaModal ?? 0)) {
+                    $warnings[] = "Baris {$lineNo}: tarif (Rp " . number_format($tarifFinal, 0, ',', '.')
+                        . ") di bawah harga modal (Rp " . number_format($hargaModal, 0, ',', '.') . ") -- tetap disimpan.";
+                }
+
                 $data = [
                     'nama'         => $nama,
                     'deskripsi'    => trim((string) ($row[2] ?? '')) ?: null,
                     'kategori'     => $kategori,
-                    'tarif'        => (float) $tarif,
+                    'tarif'        => $tarifFinal,
                     'tarif_bpjs'   => is_numeric($row[4] ?? null) ? (float) $row[4] : null,
-                    'tarif_wna'    => is_numeric($row[5] ?? null) ? (float) $row[5] : null,
+                    'tarif_wna'    => $tarifWnaFinal,
+                    'harga_modal'  => $hargaModal,
                     'satuan_waktu' => trim((string) ($row[6] ?? '')) ?: null,
                     'is_active'    => $this->parseBoolYn($row[7] ?? 'Y'),
                 ];
@@ -271,7 +299,7 @@ class MasterdataService
             ->withProperties(compact('imported', 'updated', 'skipped', 'kategori', 'mode'))
             ->log("Impor massal Penunjang ({$kategori}, {$mode}) dari file: {$imported} baru, {$updated} diupdate, {$skipped} dilewati");
 
-        return compact('imported', 'updated', 'skipped', 'errors');
+        return compact('imported', 'updated', 'skipped', 'errors', 'warnings');
     }
 
     // ── Peralatan Medis ──────────────────────────────────────
@@ -373,7 +401,7 @@ class MasterdataService
             ->withProperties(compact('imported', 'updated', 'skipped', 'mode'))
             ->log("Impor massal Peralatan Medis ({$mode}) dari file: {$imported} baru, {$updated} diupdate, {$skipped} dilewati");
 
-        return compact('imported', 'updated', 'skipped', 'errors');
+        return compact('imported', 'updated', 'skipped', 'errors') + ['warnings' => []];
     }
 
     private function parseBoolYn(mixed $value): bool
