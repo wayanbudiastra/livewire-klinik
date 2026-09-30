@@ -304,13 +304,41 @@ class SuratKeteranganService
                 'bmi'           => $asesmen->bmi,
             ] : null,
             'anamnesis_snapshot'        => $asesmen?->anamnesis_awal,
+            // Sebelumnya Chief Complaint di laporan SELALU diambil dari
+            // catatan awal perawat (anamnesis_snapshot), padahal SOAP Note
+            // sekarang punya kolom s_chief_complaint sendiri yang bisa
+            // diedit/dilengkapi dokter -- laporan jadi menampilkan versi
+            // perawat yang sudah basi walau dokter sudah memperbaikinya.
+            'chief_complaint_snapshot'  => $soap->s_chief_complaint ?: $asesmen?->anamnesis_awal,
             // s_hpi (History of Present Illness) -- fallback ke kolom lama
             // s_cc_hpi (gabungan CC+HPI, sebelum dipisah) & subjektif utk
             // rekam medis lama.
             'subjektif_snapshot'        => $soap->s_hpi ?? $soap->subjektif ?? $soap->s_cc_hpi ?? null,
+            // Kolom2 Subjective/Objective/Assessment/Planning terstruktur di
+            // bawah ini SEBELUMNYA TIDAK DIAMBIL SAMA SEKALI -- SOAP Note
+            // sudah lama direstrukturisasi dari 4 textarea besar (subjektif/
+            // objektif/asesmen/plan) jadi banyak field granular (riwayat
+            // penyakit, riwayat operasi, alergi, diagnosis banding, dst),
+            // tapi builder laporan Medical Report ini tidak pernah
+            // diperbarui mengikutinya -- akibatnya apa pun yang dokter isi
+            // di field2 granular tsb hilang begitu saja dari PDF walau
+            // sudah diisi lengkap di SOAP Note (laporan bug user: "banyak
+            // yg gak keluar walaupun sudah diisi").
+            's_past_medical_snapshot'   => $soap->s_past_medical,
+            's_past_surgical_snapshot'  => $soap->s_past_surgical,
+            's_allergies_snapshot'      => $soap->s_allergies,
+            's_other_snapshot'          => $soap->s_other,
             'objektif_snapshot'         => $soap->objektif ?? $soap->o_physical_exam ?? null,
+            'o_supporting_exam_snapshot' => $soap->o_supporting_examination,
             'plan_snapshot'             => $soap->plan ?? $soap->p_advice ?? null,
+            'p_treatment_snapshot'      => $soap->p_treatment,
+            'p_notes_snapshot'          => $soap->p_notes,
             'diagnosa_snapshot'         => $soap->icd_codes ?? [],
+            // Diagnosis Utama/Banding versi teks bebas (dokter tidak selalu
+            // memilih dari daftar ICD-10 terstruktur) -- ditampilkan sbg
+            // pelengkap kalau daftar ICD-10 di atas kosong/tidak lengkap.
+            'a_primary_diagnosis_snapshot' => $soap->a_primary_diagnosis,
+            'a_differential_diagnosis_snapshot' => $soap->a_differential_diagnosis,
             'tindakan_snapshot'         => $tindakanSnapshot,
             'penunjang_snapshot'        => $penunjangSnapshot,
             'resep_snapshot'            => $resepSnapshot,

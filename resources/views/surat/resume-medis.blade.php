@@ -31,17 +31,22 @@
         'dob' => 'Date Of Birth', 'address' => 'Address', 'allergy' => 'Allergy',
         'subjective' => 'Subjective', 'chief_complaint' => 'Chief Complaint',
         'presenting_complaint' => 'S (Subjective) / History of Present Illness',
+        'past_medical' => 'Past Medical History', 'past_surgical' => 'Past Surgical History',
+        'allergies' => 'Allergies', 'other_subjective' => 'Other',
         'vital_signs' => 'Vital Signs', 'blood_pressure' => 'Blood Pressure',
         'temperature' => 'Temperature', 'body_weight' => 'Body Weight',
         'heart_rate' => 'Heart Rate', 'spo2' => 'SpO2', 'body_height' => 'Body Height',
         'objective' => 'Objective', 'physical_exam' => 'Physical Examination Results',
+        'supporting_exam_notes' => 'Supporting Examination Notes',
         'penunjang' => 'Supporting Examination',
         'assessment' => 'Assessment', 'primary_diagnosis' => 'Primary Diagnosis',
+        'differential_diagnosis' => 'Differential Diagnosis',
         'diagnosis_icd10' => 'Diagnosis ICD 10', 'action' => 'Action',
         'medication' => 'Medication Dosage', 'item_code' => 'Item Code',
         'item_name' => 'Item Name', 'dosage' => 'Dosage Instruction',
         'qty' => 'Qty', 'unit' => 'Unit',
-        'doctor_recommendation' => 'Doctor Recommendation',
+        'planning' => 'Planning', 'treatment' => 'Treatment',
+        'doctor_recommendation' => 'Advice / Recommendation', 'plan_notes' => 'Notes',
         'escorted' => 'Escorted', 'flight' => 'Flight',
         'recommendation' => 'Recommendation', 'airport_facilities' => 'Medical Facilities at the Airport',
         'attending_physician' => 'Attending Physician',
@@ -54,17 +59,22 @@
         'dob' => 'Tanggal Lahir', 'address' => 'Alamat', 'allergy' => 'Alergi',
         'subjective' => 'Subjektif', 'chief_complaint' => 'Keluhan Utama',
         'presenting_complaint' => 'S (Subjective) / Riwayat Penyakit Sekarang',
+        'past_medical' => 'Riwayat Penyakit Dahulu', 'past_surgical' => 'Riwayat Operasi',
+        'allergies' => 'Alergi (Catatan Dokter)', 'other_subjective' => 'Lainnya',
         'vital_signs' => 'Tanda Vital', 'blood_pressure' => 'Tekanan Darah',
         'temperature' => 'Suhu', 'body_weight' => 'Berat Badan',
         'heart_rate' => 'Nadi', 'spo2' => 'Saturasi O2', 'body_height' => 'Tinggi Badan',
         'objective' => 'Objektif', 'physical_exam' => 'Hasil Pemeriksaan Fisik',
+        'supporting_exam_notes' => 'Catatan Pemeriksaan Penunjang',
         'penunjang' => 'Pemeriksaan Penunjang',
         'assessment' => 'Asesmen', 'primary_diagnosis' => 'Diagnosis Utama',
+        'differential_diagnosis' => 'Diagnosis Banding',
         'diagnosis_icd10' => 'Diagnosis ICD-10', 'action' => 'Tindakan',
         'medication' => 'Resep Obat', 'item_code' => 'Kode',
         'item_name' => 'Nama Obat', 'dosage' => 'Aturan Pakai',
         'qty' => 'Jumlah', 'unit' => 'Satuan',
-        'doctor_recommendation' => 'Rekomendasi Dokter',
+        'planning' => 'Perencanaan', 'treatment' => 'Tatalaksana',
+        'doctor_recommendation' => 'Saran / Rekomendasi', 'plan_notes' => 'Catatan',
         'escorted' => 'Pendamping', 'flight' => 'Penerbangan',
         'recommendation' => 'Rekomendasi', 'airport_facilities' => 'Fasilitas Medis di Bandara',
         'attending_physician' => 'Dokter Pemeriksa',
@@ -137,10 +147,30 @@
 <div class="section-title">{{ $L['subjective'] }}</div>
 
 <span class="field-label">{{ $L['chief_complaint'] }}</span>
-<div class="field-value">{{ $d['anamnesis_snapshot'] ?: $L['no_data'] }}</div>
+<div class="field-value">{{ ($d['chief_complaint_snapshot'] ?? $d['anamnesis_snapshot'] ?? null) ?: $L['no_data'] }}</div>
 
 <span class="field-label">{{ $L['presenting_complaint'] }}</span>
 <div class="field-value">{{ $d['subjektif_snapshot'] ?: $L['no_data'] }}</div>
+
+@if(!empty($d['s_past_medical_snapshot']))
+<span class="field-label">{{ $L['past_medical'] }}</span>
+<div class="field-value">{{ $d['s_past_medical_snapshot'] }}</div>
+@endif
+
+@if(!empty($d['s_past_surgical_snapshot']))
+<span class="field-label">{{ $L['past_surgical'] }}</span>
+<div class="field-value">{{ $d['s_past_surgical_snapshot'] }}</div>
+@endif
+
+@if(!empty($d['s_allergies_snapshot']))
+<span class="field-label">{{ $L['allergies'] }}</span>
+<div class="field-value">{{ $d['s_allergies_snapshot'] }}</div>
+@endif
+
+@if(!empty($d['s_other_snapshot']))
+<span class="field-label">{{ $L['other_subjective'] }}</span>
+<div class="field-value">{{ $d['s_other_snapshot'] }}</div>
+@endif
 
 @if(!empty($d['vitals_snapshot']))
 @php $v = $d['vitals_snapshot']; @endphp
@@ -166,6 +196,11 @@
 <span class="field-label">{{ $L['physical_exam'] }}</span>
 <div class="field-value">{{ $d['objektif_snapshot'] ?: $L['no_data'] }}</div>
 
+@if(!empty($d['o_supporting_exam_snapshot']))
+<span class="field-label">{{ $L['supporting_exam_notes'] }}</span>
+<div class="field-value">{{ $d['o_supporting_exam_snapshot'] }}</div>
+@endif
+
 <span class="field-label">{{ $L['penunjang'] }}</span>
 @if(!empty($d['penunjang_snapshot']))
 <table class="item-table">
@@ -179,7 +214,12 @@
 
 <div class="section-title">{{ $L['assessment'] }}</div>
 <span class="field-label">{{ $L['primary_diagnosis'] }}</span>
-<div class="field-value">{{ $diagnosaUtama['nama'] ?? $L['no_data'] }}</div>
+<div class="field-value">{{ ($diagnosaUtama['nama'] ?? $d['a_primary_diagnosis_snapshot'] ?? null) ?: $L['no_data'] }}</div>
+
+@if(!empty($d['a_differential_diagnosis_snapshot']))
+<span class="field-label">{{ $L['differential_diagnosis'] }}</span>
+<div class="field-value">{{ $d['a_differential_diagnosis_snapshot'] }}</div>
+@endif
 
 <span class="field-label">{{ $L['diagnosis_icd10'] }}</span>
 <div class="field-value">
@@ -226,9 +266,23 @@
 <div class="field-value empty">{{ $L['no_data'] }}</div>
 @endif
 
+@if(!empty($d['plan_snapshot']) || !empty($d['p_treatment_snapshot']) || !empty($d['p_notes_snapshot']))
+<div class="section-title">{{ $L['planning'] }}</div>
+
+@if(!empty($d['p_treatment_snapshot']))
+<span class="field-label">{{ $L['treatment'] }}</span>
+<div class="field-value">{{ $d['p_treatment_snapshot'] }}</div>
+@endif
+
 @if(!empty($d['plan_snapshot']))
-<div class="section-title">{{ $L['doctor_recommendation'] }}</div>
+<span class="field-label">{{ $L['doctor_recommendation'] }}</span>
 <div class="field-value">{{ $d['plan_snapshot'] }}</div>
+@endif
+
+@if(!empty($d['p_notes_snapshot']))
+<span class="field-label">{{ $L['plan_notes'] }}</span>
+<div class="field-value">{{ $d['p_notes_snapshot'] }}</div>
+@endif
 @endif
 
 @if(!empty($d['escorted']) || !empty($d['flight']) || !empty($d['recommendation']) || !empty($d['fasilitas_bandara']))
