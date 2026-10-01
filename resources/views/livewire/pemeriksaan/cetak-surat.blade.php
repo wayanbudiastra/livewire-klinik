@@ -345,14 +345,30 @@
     {{-- ── Riwayat surat ─────────────────────────────────────── --}}
     {{-- w-full + basis-full: paksa item ini ambil baris flex-wrap sendiri
          di "Action Buttons", supaya tidak ikut memengaruhi ukuran
-         tombol Batal Registrasi / Pasien Keluar (lihat detail-pemeriksaan.blade.php). --}}
+         tombol Batal Registrasi / Pasien Keluar (lihat detail-pemeriksaan.blade.php).
+         Daftar di-toggle (collapsed by default) -- sebelumnya selalu
+         terbuka & tiap baris 1 baris flex rapat (badge+nomor+tanggal+aksi),
+         jadi begitu kunjungan sudah punya beberapa surat (umum utk resume
+         medis yg boleh dicetak ulang berkali-kali), teksnya padat &
+         berdesakan/tumpang-tindih di modal yang sempit (max-w-lg). --}}
     @if($this->riwayatSurat->isNotEmpty())
-    <div class="w-full basis-full mt-4">
-        <h4 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Riwayat Surat Diterbitkan</h4>
-        <div class="space-y-1.5">
+    <div class="w-full basis-full mt-4" x-data="{ showRiwayat: false }">
+        <button type="button" @click="showRiwayat = !showRiwayat"
+                class="w-full flex items-center justify-between gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
+            <span>Riwayat Surat Diterbitkan ({{ $this->riwayatSurat->count() }})</span>
+            <svg class="w-3.5 h-3.5 shrink-0 transition-transform duration-150" :class="showRiwayat ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </button>
+
+        <div x-show="showRiwayat" x-transition
+             class="space-y-1.5 mt-2" style="display:none;">
             @foreach($this->riwayatSurat as $s)
-            <div class="flex items-center justify-between px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-xs">
-                <div class="flex items-center gap-2 min-w-0">
+            <div class="px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-xs">
+                {{-- Baris 1: jenis + nomor surat -- dipisah dari baris aksi di
+                     bawah supaya nomor surat yang panjang tidak pernah
+                     berbagi baris dgn tombol Edit/Unduh Ulang. --}}
+                <div class="flex items-center gap-2 flex-wrap">
                     <span @class([
                         'px-2 py-0.5 rounded text-xs font-medium shrink-0',
                         'bg-emerald-100 text-emerald-700' => $s->tipe === 'keterangan_sehat',
@@ -361,25 +377,30 @@
                         'bg-amber-100 text-amber-700'     => $s->tipe === 'kontrol',
                         'bg-purple-100 text-purple-700'   => $s->tipe === 'resume_medis',
                     ])>{{ $s->label_tipe }}</span>
-                    <span class="font-mono text-gray-600 dark:text-gray-300 shrink-0">{{ $s->nomor_surat }}</span>
-                    @if($s->revision_count > 0)
-                    <span class="text-amber-600 dark:text-amber-400 italic truncate" title="{{ $s->revision_reason }}">
-                        direvisi {{ $s->revision_count }}x oleh {{ $s->revisedBy?->nama ?? '-' }}
-                    </span>
-                    @endif
+                    <span class="font-mono text-gray-600 dark:text-gray-300 break-all">{{ $s->nomor_surat }}</span>
                 </div>
-                <div class="flex items-center gap-3 text-gray-400 shrink-0">
+
+                @if($s->revision_count > 0)
+                <div class="text-amber-600 dark:text-amber-400 italic mt-1" title="{{ $s->revision_reason }}">
+                    direvisi {{ $s->revision_count }}x oleh {{ $s->revisedBy?->nama ?? '-' }}
+                </div>
+                @endif
+
+                {{-- Baris 2: tanggal + aksi. --}}
+                <div class="flex items-center justify-between gap-2 mt-1.5 text-gray-400">
                     <span>{{ $s->dicetak_pada->format('d/m/Y H:i') }}</span>
-                    @can('surat.revisi')
-                    <button type="button" wire:click="mulaiEdit({{ $s->id }})"
-                            class="text-amber-600 hover:text-amber-800 dark:text-amber-400 font-medium transition-colors">
-                        Edit
-                    </button>
-                    @endcan
-                    <a href="{{ route('pemeriksaan.surat.unduh', $s->id) }}" target="_blank"
-                       class="text-[#0a3d62] hover:text-[#1a5a8a] dark:text-blue-400 font-medium transition-colors">
-                        Unduh Ulang
-                    </a>
+                    <div class="flex items-center gap-3 shrink-0">
+                        @can('surat.revisi')
+                        <button type="button" wire:click="mulaiEdit({{ $s->id }})"
+                                class="text-amber-600 hover:text-amber-800 dark:text-amber-400 font-medium transition-colors">
+                            Edit
+                        </button>
+                        @endcan
+                        <a href="{{ route('pemeriksaan.surat.unduh', $s->id) }}" target="_blank"
+                           class="text-[#0a3d62] hover:text-[#1a5a8a] dark:text-blue-400 font-medium transition-colors">
+                            Unduh Ulang
+                        </a>
+                    </div>
                 </div>
             </div>
             @endforeach
