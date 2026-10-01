@@ -51,6 +51,7 @@ class MedicalReportSnapshotTest extends TestCase
 
         AsesmenPerawat::create([
             'kunjungan_id' => $kunjungan->id, 'anamnesis_awal' => 'Keluhan awal dari perawat',
+            'gds' => 110,
         ]);
 
         SoapNoteModel::create([
@@ -103,6 +104,11 @@ class MedicalReportSnapshotTest extends TestCase
         $this->assertSame('Istirahat cukup, banyak minum', $d['plan_snapshot']);
         $this->assertSame('Paracetamol 3x500mg', $d['p_treatment_snapshot']);
         $this->assertSame('Kontrol jika demam berlanjut 3 hari', $d['p_notes_snapshot']);
+
+        // GDS (Gula Darah Sewaktu) dari asesmen perawat -- field terpisah
+        // dari SOAP Note, bug kedua yang ditemukan terpisah dari yang
+        // pertama (ikut hilang dari snapshot vitals sebelum perbaikan ini).
+        $this->assertEquals(110, $d['vitals_snapshot']['gds']);
     }
 
     /** @test */

@@ -302,6 +302,10 @@ class SuratKeteranganService
                 'berat_badan'   => $asesmen->berat_badan,
                 'tinggi_badan'  => $asesmen->tinggi_badan,
                 'bmi'           => $asesmen->bmi,
+                // GDS (Gula Darah Sewaktu) -- field asesmen perawat yang
+                // juga absen dari snapshot ini sebelumnya (beda kasus dari
+                // kolom2 SOAP Note granular yang sudah dibenahi sebelumnya).
+                'gds'           => $asesmen->gds,
             ] : null,
             'anamnesis_snapshot'        => $asesmen?->anamnesis_awal,
             // Sebelumnya Chief Complaint di laporan SELALU diambil dari
