@@ -14,8 +14,14 @@ class ListPendaftaran extends Component
 {
     use WithPagination;
 
+    /** Maksimal rentang tanggal yang boleh dipilih sekaligus (hari) -- sama polanya dgn WaitingArea. */
+    private const MAKS_RENTANG_HARI = 30;
+
     #[Url]
-    public string $tanggal = '';
+    public string $tanggalMulai = '';
+
+    #[Url]
+    public string $tanggalAkhir = '';
 
     #[Url(as: 'q')]
     public string $search  = '';
@@ -25,10 +31,35 @@ class ListPendaftaran extends Component
 
     public function mount(): void
     {
-        $this->tanggal = now()->toDateString();
+        if (! $this->tanggalMulai) $this->tanggalMulai = now()->toDateString();
+        if (! $this->tanggalAkhir) $this->tanggalAkhir = now()->toDateString();
+        $this->clampRentang();
     }
 
-    public function updatingTanggal(): void    { $this->resetPage(); }
+    /**
+     * Jaga rentang tetap valid & tidak lebih dari MAKS_RENTANG_HARI -- sama
+     * pola & alasannya dgn WaitingArea::clampRentang() ("Sampai" mengikuti
+     * "Dari", bukan sebaliknya, supaya user yang baru pilih tanggal mulai
+     * tidak kaget tanggal itu ikut berubah sendiri).
+     */
+    private function clampRentang(): void
+    {
+        $mulai = \Carbon\Carbon::parse($this->tanggalMulai);
+        $akhir = \Carbon\Carbon::parse($this->tanggalAkhir);
+
+        if ($akhir->lt($mulai)) {
+            $akhir = $mulai->copy();
+        }
+
+        if ($mulai->diffInDays($akhir) > self::MAKS_RENTANG_HARI - 1) {
+            $akhir = $mulai->copy()->addDays(self::MAKS_RENTANG_HARI - 1);
+        }
+
+        $this->tanggalAkhir = $akhir->toDateString();
+    }
+
+    public function updatedTanggalMulai(): void { $this->clampRentang(); $this->resetPage(); }
+    public function updatedTanggalAkhir(): void  { $this->clampRentang(); $this->resetPage(); }
     public function updatingSearch(): void      { $this->resetPage(); }
     public function updatingFilterStatus(): void{ $this->resetPage(); }
 
@@ -45,7 +76,8 @@ class ListPendaftaran extends Component
             // "kunjungan_id" ambigu di query tersebut.
             'invoice',
         ])
-        ->whereDate('tanggal', $this->tanggal)
+        ->whereDate('tanggal', '>=', $this->tanggalMulai)
+        ->whereDate('tanggal', '<=', $this->tanggalAkhir)
         ->when($this->search, fn ($q, $s) =>
             $q->whereHas('pasien', fn ($pq) =>
                 $pq->where('nama', 'like', "%{$s}%")

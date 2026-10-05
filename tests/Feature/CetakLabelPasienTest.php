@@ -224,8 +224,12 @@ class CetakLabelPasienTest extends TestCase
 
         $this->actingAs($user);
 
-        Livewire::test(ListPendaftaran::class, ['tanggal' => $kunjungan->tanggal->toDateString()])
-            ->set('tanggal', now()->toDateString())
+        Livewire::test(ListPendaftaran::class, [
+                'tanggalMulai' => $kunjungan->tanggal->toDateString(),
+                'tanggalAkhir' => $kunjungan->tanggal->toDateString(),
+            ])
+            ->set('tanggalMulai', now()->toDateString())
+            ->set('tanggalAkhir', now()->toDateString())
             ->assertSeeHtml(route('kunjungan.label.cetak', $kunjungan->id));
     }
 
@@ -238,7 +242,8 @@ class CetakLabelPasienTest extends TestCase
         $this->actingAs($user);
 
         Livewire::test(ListPendaftaran::class)
-            ->set('tanggal', now()->toDateString())
+            ->set('tanggalMulai', now()->toDateString())
+            ->set('tanggalAkhir', now()->toDateString())
             ->assertDontSeeHtml(route('kunjungan.label.cetak', $kunjungan->id));
     }
 

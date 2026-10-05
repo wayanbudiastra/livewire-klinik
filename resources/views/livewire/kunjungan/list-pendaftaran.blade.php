@@ -2,8 +2,14 @@
     {{-- Toolbar --}}
     <div class="mb-4 flex flex-col sm:flex-row gap-3 justify-between">
         <div class="flex flex-wrap gap-2">
-            <input wire:model.live="tanggal" type="date"
-                   class="form-input w-44 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
+            <div class="flex items-center gap-1.5" title="Rentang tanggal maksimal 30 hari">
+                <input wire:model.live="tanggalMulai" type="date"
+                       class="form-input w-40 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
+                <span class="text-gray-400 text-sm">s/d</span>
+                <input wire:model.live="tanggalAkhir" type="date"
+                       min="{{ $tanggalMulai }}"
+                       class="form-input w-40 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
+            </div>
             <div class="relative">
                 <span class="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,7 +142,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                                       d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
                             </svg>
-                            <p class="empty-state-text">Belum ada pendaftaran hari ini</p>
+                            <p class="empty-state-text">Belum ada pendaftaran pada rentang tanggal ini</p>
                         </div>
                     </td>
                 </tr>
