@@ -182,6 +182,48 @@ class BarangImportExportTest extends TestCase
         $this->assertDatabaseMissing('barang', ['kode' => 'BRG-INVALID']);
     }
 
+    /**
+     * Bug production (laporan user): nama obat paten yg mencantumkan
+     * komposisi lengkap dlm kurung bisa tembus >150 karakter (kolom nama
+     * waktu itu varchar(150)) -- SQLSTATE[22001] mentah bikin SELURUH
+     * batch (termasuk baris2 lain yg valid) ikut gagal krn 1 transaksi.
+     * Sekarang kolom dilebarkan ke 255 + baris yg masih kepanjangan
+     * (>255) di-skip SENDIRI tanpa menggagalkan baris lain di batch yg sama.
+     */
+    /** @test */
+    public function import_melewati_baris_dengan_nama_terlalu_panjang_tanpa_menggagalkan_baris_lain(): void
+    {
+        $namaKepanjangan = str_repeat('A', 256); // 1 char lewat batas 255
+
+        $rows = [
+            ['BRG-PANJANG', $namaKepanjangan, 'alkes', 'Pcs', 10, 5, 1000, 2000, '', 'Y'],
+            ['BRG-NORMAL', 'Barang Normal', 'alkes', 'Pcs', 10, 5, 1000, 2000, '', 'Y'],
+        ];
+
+        $hasil = app(BarangImportService::class)->importBarang($rows, 'baru');
+
+        $this->assertSame(1, $hasil['imported'], 'Baris yg valid (BRG-NORMAL) harus tetap berhasil diimpor.');
+        $this->assertSame(1, $hasil['skipped']);
+        $this->assertDatabaseMissing('barang', ['kode' => 'BRG-PANJANG']);
+        $this->assertDatabaseHas('barang', ['kode' => 'BRG-NORMAL']);
+    }
+
+    /** @test */
+    public function import_nama_pas_255_karakter_tetap_berhasil(): void
+    {
+        $namaPas = str_repeat('B', 255); // pas di batas, tidak boleh ikut dilewati
+
+        $rows = [
+            ['BRG-PAS255', $namaPas, 'alkes', 'Pcs', 10, 5, 1000, 2000, '', 'Y'],
+        ];
+
+        $hasil = app(BarangImportService::class)->importBarang($rows, 'baru');
+
+        $this->assertSame(1, $hasil['imported']);
+        $this->assertSame(0, $hasil['skipped']);
+        $this->assertSame($namaPas, Barang::where('kode', 'BRG-PAS255')->first()->nama);
+    }
+
     // ── Lewat komponen Livewire ────────────────────────────────────────
 
     /** @test */

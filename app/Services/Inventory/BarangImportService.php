@@ -56,6 +56,27 @@ class BarangImportService
                     continue;
                 }
 
+                // Cek panjang SEBELUM insert -- sebelumnya tidak dicek sama
+                // sekali di sini, jadi nama obat yang panjang (umum utk obat
+                // paten dgn komposisi lengkap dlm kurung, mis. "...(Paracetamol
+                // 120 mg, ...) 60 ML") menembus batas varchar kolom & memicu
+                // SQLSTATE[22001] mentah yang TIDAK ditangkap -- krn seluruh
+                // baris diproses di dalam SATU DB::transaction(), 1 baris
+                // bermasalah membuat SELURUH batch (puluhan/ratusan baris
+                // lain yang valid) ikut gagal & rollback total. Sekarang
+                // baris spt ini di-skip sendiri sama spt validasi lain di
+                // atas, baris lain tetap lanjut diproses.
+                if (strlen($kode) > 20) {
+                    $errors[] = "Baris {$lineNo}: kode \"{$kode}\" terlalu panjang (maks 20 karakter) -- baris dilewati.";
+                    $skipped++;
+                    continue;
+                }
+                if (strlen($nama) > 255) {
+                    $errors[] = "Baris {$lineNo}: nama barang terlalu panjang (" . strlen($nama) . " karakter, maks 255) -- baris dilewati. Nama: \"{$nama}\"";
+                    $skipped++;
+                    continue;
+                }
+
                 if (! in_array($jenis, ['obat', 'alkes', 'bahan_habis_pakai', 'lainnya'], true)) {
                     $errors[] = "Baris {$lineNo}: jenis \"{$row[2]}\" tidak valid (harus obat/alkes/bahan_habis_pakai/lainnya) -- baris dilewati.";
                     $skipped++;

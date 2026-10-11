@@ -19,7 +19,8 @@ class BarangForm extends Component
         $unique = $this->isEdit ? Rule::unique('barang','kode')->ignore($this->barangId) : 'unique:barang,kode';
         return [
             'kode'          => ['required','string','max:20',$unique],
-            'nama'          => ['required','string','min:3'],
+            'nama'          => ['required','string','min:3','max:255'],
+            'nama_generik'  => ['nullable','string','max:255'],
             'jenis'         => ['required','in:obat,alkes,bahan_habis_pakai,lainnya'],
             'satuan'        => ['required','string'],
             'stok_minimum'  => ['required','integer','min:0'],

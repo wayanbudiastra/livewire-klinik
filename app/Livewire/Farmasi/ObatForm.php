@@ -41,10 +41,10 @@ class ObatForm extends Component
             : 'unique:barang,kode';
 
         return [
-            'kode'        => ['required', 'string', $uniqueKode],
+            'kode'        => ['required', 'string', 'max:20', $uniqueKode],
             'barcode'     => ['nullable', 'string'],
-            'nama'        => ['required', 'string', 'min:3'],
-            'generik'     => ['nullable', 'string'],
+            'nama'        => ['required', 'string', 'min:3', 'max:255'],
+            'generik'     => ['nullable', 'string', 'max:255'],
             'jenis_barang'=> ['required', 'in:obat,alkes'],
             'satuan'      => ['required', 'string'],
             'satuan_besar'=> ['nullable', 'string'],
