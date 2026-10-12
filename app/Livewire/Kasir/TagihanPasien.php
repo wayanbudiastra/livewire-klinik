@@ -330,17 +330,19 @@ class TagihanPasien extends Component
         if ($this->metodePembayaran === 'tunai') {
             $rules['jumlahTunai'] = 'required|numeric|min:' . $invoice->sisa;
         } elseif ($this->metodePembayaran === 'non_tunai') {
-            $rules['bankNama']       = 'required|string|max:100';
-            $rules['nomorReferensi'] = 'required|string|max:100';
+            // Permintaan user: nama bank & no. kartu/referensi dibuat TIDAK
+            // wajib (sebelumnya required) -- beberapa metode non-tunai
+            // (mis. QRIS/e-wallet) kadang tidak punya nomor referensi yang
+            // praktis dicatat kasir saat itu juga.
+            $rules['bankNama']       = 'nullable|string|max:100';
+            $rules['nomorReferensi'] = 'nullable|string|max:100';
         } elseif ($this->metodePembayaran === 'asuransi') {
             $rules['namaAsuransi'] = 'required|string|max:100';
         }
 
         $this->validate($rules, [
-            'jumlahTunai.min'         => 'Uang yang dibayar kurang dari total tagihan.',
-            'bankNama.required'       => 'Nama bank wajib diisi.',
-            'nomorReferensi.required' => 'Nomor referensi wajib diisi.',
-            'namaAsuransi.required'   => 'Nama asuransi wajib diisi.',
+            'jumlahTunai.min'       => 'Uang yang dibayar kurang dari total tagihan.',
+            'namaAsuransi.required' => 'Nama asuransi wajib diisi.',
         ]);
 
         try {

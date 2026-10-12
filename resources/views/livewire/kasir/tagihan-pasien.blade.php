@@ -365,17 +365,17 @@
                 @if ($metodePembayaran === 'non_tunai')
                 <div class="grid grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-xs font-medium text-gray-700">Nama Bank *</label>
+                        <label class="block text-xs font-medium text-gray-700">Nama Bank</label>
                         <input wire:model="bankNama" type="text"
                             class="mt-1 w-full rounded-xl border-gray-300 text-sm shadow-sm"
-                            placeholder="BCA, Mandiri, BNI...">
+                            placeholder="BCA, Mandiri, BNI... (opsional)">
                         @error('bankNama') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-700">No. Kartu / Referensi *</label>
+                        <label class="block text-xs font-medium text-gray-700">No. Kartu / Referensi</label>
                         <input wire:model="nomorReferensi" type="text"
                             class="mt-1 w-full rounded-xl border-gray-300 text-sm shadow-sm"
-                            placeholder="xxxx-xxxx-xxxx">
+                            placeholder="xxxx-xxxx-xxxx (opsional)">
                         @error('nomorReferensi') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
