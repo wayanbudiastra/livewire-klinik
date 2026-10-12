@@ -6,7 +6,7 @@ Modul Billing digunakan oleh petugas kasir untuk mengelola siklus keuangan pelay
 ## 2. Alur Kerja Utama (Workflow)
 1. **Open Shift:** Kasir menginput modal awal untuk mengaktifkan fungsi transaksi.
 2. **Tarik Tagihan:** Kasir memanggil data registrasi pasien untuk menarik semua biaya dari unit pemeriksaan dan farmasi.
-3. **Penyesuaian & Diskon:** Kasir dapat memodifikasi item non-obat dan menerapkan diskon jika diperlukan.
+3. **Penyesuaian & Diskon:** Kasir dapat menerapkan diskon per item (termasuk obat, sejak permintaan perubahan user) atau diskon global jika diperlukan.
 4. **Pembayaran:** Kasir memproses pembayaran (Tunai, Non-Tunai, atau Piutang Asuransi).
 5. **Close Shift:** Kasir menutup operasional shift dan melakukan rekonsiliasi uang fisik.
 
@@ -37,7 +37,8 @@ Modul Billing digunakan oleh petugas kasir untuk mengelola siklus keuangan pelay
 ### C. Manajemen Diskon
 Sistem mendukung dua jenis pemotongan harga yang dapat diterapkan oleh Kasir:
 1. **Diskon Per Item (Item-Level Discount):**
-   - Kasir dapat memberikan diskon khusus pada item tindakan, penunjang, atau jasa tertentu.
+   - Kasir dapat memberikan diskon khusus pada item tindakan, penunjang, obat, atau jasa tertentu
+     (diskon obat diaktifkan belakangan atas permintaan user -- awalnya dikecualikan).
    - Format input: Nominal (Rupiah) atau Persentase (%).
 2. **Diskon Global (Invoice-Level Discount):**
    - Diskon yang memotong total keseluruhan (Grand Total) dari invoice pasien setelah akumulasi semua item.

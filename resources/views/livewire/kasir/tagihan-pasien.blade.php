@@ -237,7 +237,10 @@
                         <td class="px-3 py-2.5 text-right text-gray-600">{{ $item->qty }} {{ $item->satuan }}</td>
                         <td class="px-3 py-2.5 text-right text-gray-600">Rp {{ number_format($item->harga_satuan, 0, ',', '.') }}</td>
                         <td class="px-3 py-2.5 text-right">
-                            @if ($this->invoice->status === 'belum_bayar' && $item->jenis !== 'obat')
+                            @if ($this->invoice->status === 'belum_bayar')
+                                {{-- Diskon per-item sebelumnya sengaja dikecualikan utk jenis
+                                     'obat' (lihat prd/modul_kasir.md) -- atas permintaan user,
+                                     sekarang dibuka jg utk obat, sama spt tindakan/penunjang/dll. --}}
                                 <div class="flex items-center justify-end gap-1">
                                     <input wire:model="editDiskon.{{ $item->id }}"
                                         wire:change="updateDiskonItem({{ $item->id }})"
