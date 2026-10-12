@@ -135,7 +135,7 @@
 
     <div class="table-wrapper">
         <table class="table">
-            <thead><tr><th>Kode</th><th>Nama Barang</th><th>Jenis</th><th>Satuan</th><th>Stok</th><th>Stok Min</th><th>HPR (Rp)</th><th>Harga Jual (Rp)</th><th>Supplier Utama</th><th>Status</th><th>Aksi</th></tr></thead>
+            <thead><tr><th>Kode</th><th>Nama Barang</th><th>Jenis</th><th>Satuan</th><th>Stok</th><th>Stok Min</th><th>HPR (Rp)</th><th>Harga Jual (Rp)</th><th>Harga WNA (Rp)</th><th>Supplier Utama</th><th>Status</th><th>Aksi</th></tr></thead>
             <tbody>
                 @forelse ($this->barang as $b)
                 @php
@@ -154,6 +154,7 @@
                     <td class="text-sm text-center text-gray-500">{{ $b->stok_minimum }}</td>
                     <td class="text-sm text-right text-gray-700 dark:text-gray-300">{{ number_format($b->harga_pokok, 0, ',', '.') }}</td>
                     <td class="text-sm text-right text-gray-700 dark:text-gray-300">{{ number_format($b->harga_jual, 0, ',', '.') }}</td>
+                    <td class="text-sm text-right text-gray-500">{{ $b->harga_wna ? number_format($b->harga_wna, 0, ',', '.') : '—' }}</td>
                     <td class="text-xs text-gray-500">{{ $b->supplierUtama?->nama ?? '—' }}</td>
                     <td>
                         <x-confirm-button action="toggleAktif({{ $b->id }})"
@@ -169,7 +170,7 @@
                     <td><button wire:click="$dispatch('open-barang-edit', { id: {{ $b->id }} })" class="btn-warning btn-sm">Edit</button></td>
                 </tr>
                 @empty
-                <tr><td colspan="11"><div class="empty-state"><p class="empty-state-text">Belum ada data barang</p></div></td></tr>
+                <tr><td colspan="12"><div class="empty-state"><p class="empty-state-text">Belum ada data barang</p></div></td></tr>
                 @endforelse
             </tbody>
         </table>
