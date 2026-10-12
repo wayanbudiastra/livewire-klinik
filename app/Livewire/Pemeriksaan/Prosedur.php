@@ -2,9 +2,9 @@
 
 namespace App\Livewire\Pemeriksaan;
 
+use App\Models\Barang;
 use App\Models\Kunjungan;
 use App\Models\MasterTindakan;
-use App\Models\Obat;
 use App\Models\PemakaianAlkes;
 use App\Models\Tindakan;
 use App\Models\User;
@@ -71,8 +71,17 @@ class Prosedur extends Component
     {
         if (strlen($this->searchAlkes) < 2) return collect();
 
-        return Obat::aktif()
-            ->where('jenis_barang', 'alkes')
+        // Tabel & model 'obat' sudah dihapus total sejak migrasi penggabungan
+        // ke 'barang' (2026_05_27_300002) -- query ini masih menunjuk ke
+        // Obat::class/tabel 'obat' yang sudah tidak ada sama sekali, jadi
+        // SELALU gagal dgn SQLSTATE[42S02] begitu diketik >= 2 karakter
+        // (laporan dokter: muncul Internal Server Error). Label field ini
+        // "Alkes / BMHP" -- disamakan dgn jenis yg benar2 ada di Barang
+        // (alkes & bahan_habis_pakai), bukan cuma 'alkes' spt kode lama
+        // (peninggalan skema tabel 'obat' yg dulu tidak punya kategori BHP
+        // terpisah).
+        return Barang::aktif()
+            ->whereIn('jenis', ['alkes', 'bahan_habis_pakai'])
             ->where(function ($q) {
                 $q->where('nama',  'like', '%'.$this->searchAlkes.'%')
                   ->orWhere('kode', 'like', '%'.$this->searchAlkes.'%');
@@ -171,15 +180,21 @@ class Prosedur extends Component
             return;
         }
 
-        $obat = Obat::find($this->alkesId);
-        if ($obat && $obat->stok > 0 && $obat->stok < $this->jumlahAlkes) {
+        $barang = Barang::find($this->alkesId);
+        if ($barang && $barang->stok > 0 && $barang->stok < $this->jumlahAlkes) {
             $this->dispatch('notify', type: 'warning',
-                message: "Peringatan: stok {$obat->nama} hanya tersisa {$obat->stok}.");
+                message: "Peringatan: stok {$barang->nama} hanya tersisa {$barang->stok}.");
         }
 
+        // Kolom 'obat_id' di tabel pemakaian_alkes sudah DIHAPUS & diganti
+        // 'barang_id' (NOT NULL) sejak migrasi yg sama -- sebelumnya create()
+        // di sini masih kirim key 'obat_id' yg bukan lagi kolom asli maupun
+        // $fillable PemakaianAlkes (lihat app/Models/PemakaianAlkes.php),
+        // jadi diam2 DIABAIKAN Eloquent & insert selalu gagal krn barang_id
+        // NOT NULL tidak pernah terisi.
         PemakaianAlkes::create([
             'kunjungan_id' => $this->kunjunganId,
-            'obat_id'      => $this->alkesId,
+            'barang_id'    => $this->alkesId,
             'jumlah'       => $this->jumlahAlkes,
             'catatan'      => $this->catatanAlkes ?: null,
         ]);
