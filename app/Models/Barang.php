@@ -117,10 +117,27 @@ class Barang extends Model
         return $this->stok <= $this->stok_minimum;
     }
 
+    /**
+     * Bug lama (baru ketahuan saat fitur auto-kode dipakai utk banyak baris
+     * sekaligus di BarangImportService): sebelumnya `orderByDesc('kode')`
+     * diambil dari SEMUA kode di tabel, bukan cuma yang berformat "BRG-",
+     * jadi kalau ada kode lain yang urut ALFABET lebih besar (mis. "OBT999"
+     * > "BRG-000001" krn 'O' > 'B') -- yang SELALU terjadi di sistem ini,
+     * krn data barang existing semuanya pakai skema kode lain, tidak ada
+     * satu pun "BRG-" -- hasilnya SELALU "BRG-000001" dibuat ulang-ulang,
+     * tidak pernah maju ke 000002 dst. Baris kedua dst dgn kode kosong
+     * dlm 1 batch impor akan dianggap "kode sudah ada" & dilewati.
+     *
+     * Diperbaiki dgn membatasi pencarian "kode terakhir" HANYA ke kode yang
+     * benar2 match format BRG-NNNNNN, diurutkan scr NUMERIK (bukan string).
+     */
     public static function generateKode(): string
     {
-        $last = static::orderByDesc('kode')->value('kode');
-        $seq  = $last ? (int) ltrim(str_replace('BRG-', '', $last), '0') + 1 : 1;
+        $last = static::where('kode', 'like', 'BRG-%')
+            ->whereRaw("kode REGEXP '^BRG-[0-9]{6}$'")
+            ->orderByRaw('CAST(SUBSTRING(kode, 5) AS UNSIGNED) DESC')
+            ->value('kode');
+        $seq = $last ? ((int) substr($last, 4)) + 1 : 1;
         return 'BRG-' . str_pad($seq, 6, '0', STR_PAD_LEFT);
     }
 

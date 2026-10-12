@@ -66,6 +66,7 @@
                         Baris dengan kode yang <strong>sudah terdaftar</strong> akan diupdate (stok TIDAK ikut berubah lewat impor). Kode yang belum ada akan dilewati.
                     @else
                         Baris dengan kode <strong>baru</strong> akan ditambahkan. Kode yang sudah terdaftar akan dilewati (tidak diubah).
+                        Kolom Kode boleh <strong>dikosongkan</strong> -- akan dibuatkan otomatis.
                     @endif
                     Utk jenis Obat & Bahan Habis Pakai, Harga Jual dihitung otomatis dari HPR/Harga Modal (kolom Harga Jual di file diabaikan).
                 </p>

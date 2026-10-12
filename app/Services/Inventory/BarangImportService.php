@@ -25,6 +25,10 @@ class BarangImportService
      * 0=Kode, 1=Nama Barang, 2=Jenis, 3=Satuan, 4=Stok Awal, 5=Stok Minimum,
      * 6=HPR/Harga Modal, 7=Harga Jual, 8=Kode Supplier Utama, 9=Status Aktif (Y/N).
      *
+     * Kolom Kode boleh dikosongkan utk mode 'baru' -- dibuatkan otomatis
+     * (Barang::generateKode(), format BRG-NNNNNN). Mode 'update' tetap
+     * wajib diisi krn jadi kunci pencarian baris yang mau diupdate.
+     *
      * Jenis obat & bahan_habis_pakai ikut markup otomatis berbasis modal --
      * kalau kolom HPR (6) diisi & angka, Harga Jual (7) di file DIABAIKAN
      * dan dihitung ulang otomatis dari modal x multiplier 'obat_bhp',
@@ -50,8 +54,26 @@ class BarangImportService
                 $jenis = strtolower(trim((string) ($row[2] ?? '')));
                 $satuan = trim((string) ($row[3] ?? ''));
 
-                if ($kode === '' || $nama === '' || $satuan === '') {
-                    $errors[] = "Baris {$lineNo}: kolom Kode, Nama Barang, dan Satuan wajib diisi -- baris dilewati.";
+                // Kolom Kode boleh dikosongkan KHUSUS mode 'baru' -- dibuatkan
+                // otomatis (pola persis sama dgn tombol "Tambah Barang Baru"
+                // di form, Barang::generateKode()) spy user upload massal
+                // tidak perlu hapal/cek manual kode terakhir yang sudah
+                // terpakai. Mode 'update' TETAP wajib diisi krn kode dipakai
+                // sbg kunci mencari baris mana yang mau diperbarui -- tidak
+                // ada "barang mana" yang bisa di-auto-generate di mode ini.
+                if ($kode === '') {
+                    if ($mode === 'baru') {
+                        $kode = Barang::generateKode();
+                        $warnings[] = "Baris {$lineNo}: kolom Kode dikosongkan -- dibuatkan otomatis \"{$kode}\".";
+                    } else {
+                        $errors[] = "Baris {$lineNo}: kolom Kode wajib diisi utk mode Update Data (dipakai mencari barang yang mau diperbarui) -- baris dilewati.";
+                        $skipped++;
+                        continue;
+                    }
+                }
+
+                if ($nama === '' || $satuan === '') {
+                    $errors[] = "Baris {$lineNo}: kolom Nama Barang dan Satuan wajib diisi -- baris dilewati.";
                     $skipped++;
                     continue;
                 }
