@@ -120,7 +120,6 @@
                                 </svg>
                                 Cetak
                             </a>
-                            @if (auth()->user()->hasAnyRole(['super_admin', 'admin']))
                             <button wire:click="batalkan({{ $inv->id }})"
                                 class="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 border border-red-200">
                                 <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,7 +128,6 @@
                                 </svg>
                                 Batalkan
                             </button>
-                            @endif
                             @endif
                         </div>
                     </td>
