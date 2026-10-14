@@ -42,7 +42,7 @@ class BillingDetail extends Component
 
     public function batalkan(): void
     {
-        $this->authorize('billing.edit');
+        $this->authorize('billing.cancel');
 
         $this->dispatch('openBatalkanModal', billingId: $this->billing->id);
     }

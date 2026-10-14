@@ -81,6 +81,9 @@ class RolePermissionSeeder extends Seeder
             // Revisi Surat Keterangan yang sudah terbit -- pola sama
             // persis dengan soap.revisi, eksklusif dokter.
             'surat.revisi',
+
+            // Permission khusus untuk membatalkan billing/tagihan
+            'billing.cancel',
         ];
 
         foreach ($permissions as $perm) {
@@ -131,7 +134,7 @@ class RolePermissionSeeder extends Seeder
             ],
             'kasir' => [
                 'pasien.view', 'kunjungan.view',
-                'billing.view', 'billing.create', 'billing.edit',
+                'billing.view', 'billing.create', 'billing.edit', 'billing.cancel',
                 'pembayaran.view', 'pembayaran.create',
                 'laporan.keuangan',
                 'laporan.kasir.view',

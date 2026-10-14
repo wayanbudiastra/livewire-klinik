@@ -27,7 +27,7 @@ class RiwayatPembayaran extends Component
 
     public function batalkan(int $billingId): void
     {
-        $this->authorize('billing.edit');
+        $this->authorize('billing.cancel');
 
         $this->dispatch('openBatalkanModal',
             billingId:  $billingId,

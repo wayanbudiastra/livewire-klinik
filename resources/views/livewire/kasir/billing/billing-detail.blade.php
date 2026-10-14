@@ -42,7 +42,7 @@
             @endif
 
             {{-- Tombol Batalkan --}}
-            @if(in_array($billing->status, ['belum_bayar','lunas']) && auth()->user()->hasAnyRole(['super_admin','admin']))
+            @if(in_array($billing->status, ['belum_bayar','lunas']) && auth()->user()->can('billing.cancel'))
             <button type="button" wire:click="batalkan"
                 class="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-1">
                 Batalkan
