@@ -125,6 +125,8 @@ class RolePermissionSeeder extends Seeder
                 'tindakan.view', 'tindakan.create',
                 'masterdata.view',
                 'peralatan.pakai',
+                'billing.view', 'billing.create', 'billing.edit',
+                'pembayaran.view', 'pembayaran.create',
             ],
             'kasir' => [
                 'pasien.view', 'kunjungan.view',
