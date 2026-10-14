@@ -110,8 +110,9 @@
                 </div>
                 @if (!empty($importResult['errors']))
                 <div class="rounded-lg bg-amber-50 dark:bg-amber-900/30 px-4 py-3 text-xs text-amber-700 dark:text-amber-300 max-h-40 overflow-y-auto space-y-1">
+                    <p class="font-semibold">Penyebab data dilewati / gagal:</p>
                     @foreach ($importResult['errors'] as $err)
-                    <p>{{ $err }}</p>
+                    <p>• {{ $err }}</p>
                     @endforeach
                 </div>
                 @endif

@@ -156,7 +156,24 @@ class MasterdataImportExportTest extends TestCase
     }
 
     /** @test */
-    public function upload_xlsx_tindakan_mode_baru_lewat_komponen_livewire_berhasil_impor(): void
+    public function import_tindakan_kode_kosong_dibuatkan_otomatis_saat_mode_baru(): void
+    {
+        $poli = Poli::create(['nama' => 'Umum Test', 'kode' => 'UMUMTEST', 'is_active' => true]);
+
+        $rows = [
+            ['', 'Tindakan Tanpa Kode Otomatis', '', 30000, '', '', 'UMUMTEST', 'Y'],
+        ];
+
+        $hasil = app(MasterdataService::class)->importTindakan($rows, 'baru');
+
+        $this->assertSame(1, $hasil['imported']);
+        $this->assertSame(0, $hasil['skipped']);
+        $this->assertDatabaseHas('master_tindakan', ['nama' => 'Tindakan Tanpa Kode Otomatis']);
+        
+        $item = MasterTindakan::where('nama', 'Tindakan Tanpa Kode Otomatis')->first();
+        $this->assertNotNull($item->kode);
+        $this->assertStringStartsWith('TND-', $item->kode);
+    }
     {
         Poli::create(['nama' => 'Anak Test', 'kode' => 'ANAKTEST', 'is_active' => true]);
         $admin = $this->buatUserDenganRole('admin');

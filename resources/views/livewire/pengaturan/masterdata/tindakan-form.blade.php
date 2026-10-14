@@ -25,9 +25,12 @@
 
                     <div class="grid grid-cols-2 gap-4">
                         <div class="form-group">
-                            <label class="form-label dark:text-gray-300">Kode <span class="text-red-500">*</span></label>
-                            <input wire:model="kode" type="text" placeholder="Contoh: T001"
-                                   class="form-input uppercase dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                            <label class="form-label dark:text-gray-300">
+                                Kode <span class="text-red-500">*</span>
+                                <span class="text-xs text-gray-400 font-normal">(Otomatis)</span>
+                            </label>
+                            <input wire:model="kode" type="text" placeholder="Contoh: TND-0001" readonly
+                                   class="form-input uppercase bg-gray-50 dark:bg-gray-600 dark:border-gray-600 dark:text-gray-200 cursor-not-allowed"/>
                             @error('kode') <p class="form-error">{{ $message }}</p> @enderror
                         </div>
                         <div class="form-group">

@@ -122,7 +122,7 @@ class TindakanTable extends Component
 
         return $collection->skip(1) // lewati baris header
             ->map(fn ($r) => array_values($r->toArray()))
-            ->filter(fn ($r) => trim((string) ($r[0] ?? '')) !== '') // lewati baris kosong total
+            ->filter(fn ($r) => trim((string) ($r[1] ?? '')) !== '' || trim((string) ($r[3] ?? '')) !== '') // lewati baris kosong total
             ->values()
             ->toArray();
     }

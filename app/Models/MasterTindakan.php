@@ -42,4 +42,14 @@ class MasterTindakan extends Model
     {
         return $query->where('is_active', true);
     }
+
+    public static function generateKode(): string
+    {
+        $last = static::where('kode', 'like', 'TND-%')
+            ->whereRaw("kode REGEXP '^TND-[0-9]{4}$'")
+            ->orderByRaw('CAST(SUBSTRING(kode, 5) AS UNSIGNED) DESC')
+            ->value('kode');
+        $seq = $last ? ((int) substr($last, 4)) + 1 : 1;
+        return 'TND-' . str_pad($seq, 4, '0', STR_PAD_LEFT);
+    }
 }

@@ -119,6 +119,10 @@ class MasterdataService
                 $nama  = trim((string) ($row[1] ?? ''));
                 $tarif = trim((string) ($row[3] ?? ''));
 
+                if ($mode === 'baru' && $kode === '') {
+                    $kode = MasterTindakan::generateKode();
+                }
+
                 if ($kode === '' || $nama === '' || $tarif === '' || ! is_numeric($tarif)) {
                     $errors[] = "Baris {$lineNo}: kolom Kode, Nama, dan Tarif (angka) wajib diisi -- baris dilewati.";
                     $skipped++;

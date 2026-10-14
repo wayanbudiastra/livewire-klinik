@@ -70,7 +70,8 @@ class TindakanForm extends Component
     public function openCreate(): void
     {
         $this->authorize('masterdata.create');
-        $this->reset(['tindakanId','kode','nama','deskripsi','tarif','tarif_bpjs','tarif_wna','poli_ids']);
+        $this->reset(['tindakanId','nama','deskripsi','tarif','tarif_bpjs','tarif_wna','poli_ids']);
+        $this->kode      = MasterTindakan::generateKode();
         $this->is_active = true;
         $this->isEdit    = false;
         $this->showModal = true;
