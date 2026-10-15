@@ -99,8 +99,12 @@ class BarangImportService
                     continue;
                 }
 
+                if ($jenis === 'bhp') {
+                    $jenis = 'bahan_habis_pakai';
+                }
+
                 if (! in_array($jenis, ['obat', 'alkes', 'bahan_habis_pakai', 'lainnya'], true)) {
-                    $errors[] = "Baris {$lineNo}: jenis \"{$row[2]}\" tidak valid (harus obat/alkes/bahan_habis_pakai/lainnya) -- baris dilewati.";
+                    $errors[] = "Baris {$lineNo}: jenis \"{$row[2]}\" tidak valid (harus obat/alkes/bhp/lainnya) -- baris dilewati.";
                     $skipped++;
                     continue;
                 }

@@ -258,17 +258,19 @@ class BarangImportExportTest extends TestCase
     }
 
     /** @test */
-    public function import_melewati_baris_dengan_jenis_tidak_valid(): void
+    public function import_jenis_bhp_dikonversi_otomatis_jadi_bahan_habis_pakai(): void
     {
         $rows = [
-            ['BRG-INVALID', 'Barang Invalid', 'jenis_ngawur', 'Pcs', 10, 5, 1000, 2000, '', 'Y'],
+            ['BRG-BHP', 'Kassa Steril BHP', 'bhp', 'Box', 10, 5, 5000, 10000, '', 'Y'],
         ];
 
         $hasil = app(BarangImportService::class)->importBarang($rows, 'baru');
 
-        $this->assertSame(0, $hasil['imported']);
-        $this->assertSame(1, $hasil['skipped']);
-        $this->assertDatabaseMissing('barang', ['kode' => 'BRG-INVALID']);
+        $this->assertSame(1, $hasil['imported']);
+        $this->assertDatabaseHas('barang', [
+            'kode' => 'BRG-BHP',
+            'jenis' => 'bahan_habis_pakai',
+        ]);
     }
 
     /**

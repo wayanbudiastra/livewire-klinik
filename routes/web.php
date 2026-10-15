@@ -247,7 +247,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             return \Maatwebsite\Excel\Facades\Excel::download(
                 new \App\Exports\Masterdata\MasterdataTemplateExport(
                     ['Kode (kosongkan utk auto-generate -- khusus Upload Data Baru)', 'Nama Barang',
-                     'Jenis (obat/alkes/bahan_habis_pakai/lainnya)', 'Satuan',
+                     'Jenis (obat/alkes/bhp/lainnya)', 'Satuan',
                      'Stok Awal', 'Stok Minimum', 'HPR / Harga Modal (Rp)', 'Harga Jual (Rp)',
                      'Kode Supplier Utama (opsional)', 'Status Aktif (Y/N)'],
                     [['OBT999', 'Contoh Obat', 'obat', 'Tablet', 100, 10, 5000, 8000, '', 'Y']],
