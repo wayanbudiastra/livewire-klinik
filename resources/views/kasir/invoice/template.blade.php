@@ -58,9 +58,15 @@
 <div class="stamp stamp-{{ strtolower($jenis) }}">{{ $jenis }}</div>
 
 <div class="header-bar">
-    <div>
-        <div class="klinik-nama">{{ config('emr.klinik_nama', 'Klinik Sehat') }}</div>
-        <div class="klinik-sub">{{ config('emr.klinik_alamat', '') }}</div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+        @php $klinik = \App\Models\Klinik::profil(); @endphp
+        @if($klinik->logo)
+        <img src="{{ public_path('storage/' . $klinik->logo) }}" style="height: 35px; width: auto; background: white; padding: 2px; border-radius: 4px;">
+        @endif
+        <div>
+            <div class="klinik-nama">{{ $klinik->nama ?: config('emr.klinik_nama', 'Klinik Sehat') }}</div>
+            <div class="klinik-sub">{{ $klinik->alamat ?: config('emr.klinik_alamat', '') }} @if($klinik->telepon) | Telp: {{ $klinik->telepon }} @endif</div>
+        </div>
     </div>
     <div style="text-align: right;">
         <div style="font-size: 16px; font-weight: bold;">INVOICE</div>

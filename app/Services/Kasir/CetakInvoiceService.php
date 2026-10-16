@@ -43,6 +43,7 @@ class CetakInvoiceService
 
             $pdf = Pdf::loadView('kasir.invoice.template', [
                 'billing'      => $billing,
+                'klinik'       => \App\Models\Klinik::profil(),
                 'jenis'        => strtoupper($jenis),
                 'nomorCetak'   => $nomorCetak,
                 'dicetak_oleh' => auth()->user()->nama,
