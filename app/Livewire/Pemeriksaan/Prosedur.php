@@ -42,7 +42,7 @@ class Prosedur extends Component
     #[Computed]
     public function kunjungan()
     {
-        return Kunjungan::with('poli')->find($this->kunjunganId);
+        return Kunjungan::with(['poli', 'pasien'])->find($this->kunjunganId);
     }
 
     #[Computed]
@@ -51,6 +51,7 @@ class Prosedur extends Component
         if (strlen($this->searchTindakan) < 2) return collect();
 
         $poliId = $this->kunjungan?->poli_id;
+        $isWna  = $this->kunjungan?->pasien?->tipe_pasien === 'WNA';
 
         $q = MasterTindakan::aktif()
             ->where(function ($q) {
@@ -63,7 +64,18 @@ class Prosedur extends Component
             $q->whereHas('poli', fn ($p) => $p->where('poli.id', $poliId));
         }
 
-        return $q->limit(10)->get(['id', 'kode', 'nama', 'tarif', 'kategori']);
+        $items = $q->limit(10)->get(['id', 'kode', 'nama', 'tarif', 'tarif_bpjs', 'tarif_wna', 'kategori']);
+
+        return $items->map(function ($t) use ($isWna) {
+            $t->tarif_aktif = \App\Services\Harga\TarifResolver::pilih(
+                (float) $t->tarif,
+                $t->tarif_bpjs !== null ? (float) $t->tarif_bpjs : null,
+                $t->tarif_wna !== null ? (float) $t->tarif_wna : null,
+                false,
+                $isWna
+            );
+            return $t;
+        });
     }
 
     #[Computed]

@@ -51,7 +51,7 @@ class CetakInvoiceService
 
             $filename = "Invoice-{$billing->nomor_invoice}-{$jenis}.pdf";
 
-            return $pdf->download($filename);
+            return $pdf->stream($filename);
         });
     }
 }

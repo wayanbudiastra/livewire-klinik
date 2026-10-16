@@ -140,6 +140,32 @@ class DemoKunjunganGenerator
         bool $includeResepStok = true,
         ?callable $onProgress = null
     ): array {
+        $poliIds = \App\Models\Poli::pluck('id')->toArray();
+        $fallbackPoliId = !empty($poliIds) ? $poliIds[array_rand($poliIds)] : 1;
+        $masterTindakanIds = \App\Models\MasterTindakan::pluck('id')->toArray();
+        $fallbackTindakanId = !empty($masterTindakanIds) ? $masterTindakanIds[array_rand($masterTindakanIds)] : $fallbackPoliId;
+
+        $this->poliPola = [
+            'umum_ringan'    => in_array(1, $poliIds) ? 1 : $fallbackPoliId,
+            'kronik'         => in_array(5, $poliIds) ? 5 : $fallbackPoliId,
+            'tindakan_minor' => in_array(1, $poliIds) ? 1 : $fallbackPoliId,
+            'anak'           => in_array(3, $poliIds) ? 3 : $fallbackPoliId,
+            'nebulisasi'     => in_array(1, $poliIds) ? 1 : $fallbackPoliId,
+        ];
+
+        $t1 = in_array(1, $masterTindakanIds) ? 1 : $fallbackTindakanId;
+        $t7 = in_array(7, $masterTindakanIds) ? 7 : $fallbackTindakanId;
+        $t10 = in_array(10, $masterTindakanIds) ? 10 : $fallbackTindakanId;
+        $t11 = in_array(11, $masterTindakanIds) ? 11 : $fallbackTindakanId;
+
+        $this->tindakanPola = [
+            'umum_ringan'    => [[$t1, 1]],
+            'kronik'         => [[$t1, 1], [$t11, 1]],
+            'tindakan_minor' => [[$t1, 1], [$t7, 1]],
+            'anak'           => [[$t1, 1]],
+            'nebulisasi'     => [[$t1, 1], [$t10, 1]],
+        ];
+
         $pasienIds      = Pasien::aktif()->pluck('id')->toArray();
         $barang         = Barang::where('is_active', 1)->get()->keyBy('id');
         $perawatId      = Perawat::first()?->id;   // FK ke perawat.id, nullable

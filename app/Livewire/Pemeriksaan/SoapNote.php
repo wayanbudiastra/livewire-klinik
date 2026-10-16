@@ -359,6 +359,13 @@ class SoapNote extends Component
     {
         if ($this->isFinal) return;
         $this->validateMinimalDiagnosis();
+        
+        // Pastikan primary diagnosis valid
+        $hasPrimary = collect($this->diagnoses)->contains('is_primary', true);
+        if (!$hasPrimary && count($this->diagnoses) > 0) {
+            $this->diagnoses[0]['is_primary'] = true;
+        }
+
         if (! $this->doSimpan()) return;
 
         SoapNoteModel::where('id', $this->soapId)->update([

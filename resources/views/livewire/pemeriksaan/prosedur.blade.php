@@ -50,7 +50,7 @@
                      class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg max-h-60 overflow-y-auto">
                     @forelse($this->suggestionsTindakan as $t)
                     <button type="button"
-                            wire:click="pilihTindakan({{ $t->id }}, @js($t->nama), '{{ $t->tarif }}')"
+                            wire:click="pilihTindakan({{ $t->id }}, @js($t->nama), '{{ $t->tarif_aktif }}')"
                             @click="open = false"
                             class="w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left">
                         <div>
@@ -61,7 +61,7 @@
                             @endif
                         </div>
                         <span class="text-xs text-blue-600 dark:text-blue-400 font-semibold ml-4 flex-shrink-0">
-                            Rp {{ number_format($t->tarif, 0, ',', '.') }}
+                            Rp {{ number_format($t->tarif_aktif, 0, ',', '.') }}
                         </span>
                     </button>
                     @empty
