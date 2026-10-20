@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Livewire\Pasien\PasienForm;
+use App\Models\Pasien;
 use App\Models\User;
+use App\Services\PasienService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -90,5 +92,78 @@ class PasienFormValidasiTest extends TestCase
             ->set('telepon', '')
             ->call('save')
             ->assertHasErrors(['telepon' => 'required']);
+    }
+
+    // ── Edit tipe pasien WNI <-> WNA ──────────────────────────────
+
+    private function buatPasien(array $override = []): Pasien
+    {
+        return app(PasienService::class)->create(array_merge([
+            'nama' => 'Pasien Tipe Test', 'tempat_lahir' => 'Denpasar',
+            'tanggal_lahir' => '1990-01-01', 'jenis_kelamin' => 'L',
+            'tipe_pasien' => 'WNI', 'nik' => (string) random_int(3100000000000000, 3199999999999999),
+            'alamat' => 'Jl. Test', 'telepon' => '081234567890',
+        ], $override));
+    }
+
+    /** @test */
+    public function edit_pasien_wni_menjadi_wna_berhasil_dan_nik_dikosongkan(): void
+    {
+        $this->loginSebagaiAdmin();
+        $pasien = $this->buatPasien();
+        $paspor = 'X' . random_int(1000000, 9999999);
+
+        Livewire::test(PasienForm::class, ['pasienId' => $pasien->id])
+            ->assertSet('tipe_pasien', 'WNI')
+            ->set('tipe_pasien', 'WNA')
+            ->assertSet('nik', '')
+            ->set('no_paspor', $paspor)
+            ->set('negara_asal', 'Belanda')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $pasien->refresh();
+        $this->assertSame('WNA', $pasien->tipe_pasien);
+        $this->assertNull($pasien->nik);
+        $this->assertNull($pasien->no_bpjs);
+        $this->assertSame($paspor, $pasien->no_paspor);
+        $this->assertSame('Belanda', $pasien->negara_asal);
+    }
+
+    /** @test */
+    public function edit_pasien_wna_menjadi_wni_berhasil_dan_paspor_dikosongkan(): void
+    {
+        $this->loginSebagaiAdmin();
+        $pasien = $this->buatPasien([
+            'tipe_pasien' => 'WNA', 'nik' => null,
+            'no_paspor' => 'Y' . random_int(1000000, 9999999), 'negara_asal' => 'Jepang',
+        ]);
+        $nik = (string) random_int(3100000000000000, 3199999999999999);
+
+        Livewire::test(PasienForm::class, ['pasienId' => $pasien->id])
+            ->assertSet('tipe_pasien', 'WNA')
+            ->set('tipe_pasien', 'WNI')
+            ->set('nik', $nik)
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $pasien->refresh();
+        $this->assertSame('WNI', $pasien->tipe_pasien);
+        $this->assertSame($nik, $pasien->nik);
+        $this->assertNull($pasien->no_paspor);
+        $this->assertNull($pasien->negara_asal);
+    }
+
+    /** @test */
+    public function batal_ganti_tipe_saat_edit_memulihkan_identitas_asal(): void
+    {
+        $this->loginSebagaiAdmin();
+        $pasien = $this->buatPasien();
+
+        Livewire::test(PasienForm::class, ['pasienId' => $pasien->id])
+            ->set('tipe_pasien', 'WNA')
+            ->assertSet('nik', '')
+            ->set('tipe_pasien', 'WNI')
+            ->assertSet('nik', $pasien->nik);
     }
 }

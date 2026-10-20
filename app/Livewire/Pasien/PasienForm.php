@@ -76,6 +76,23 @@ class PasienForm extends Component
 
     public function updatedTipePasien(): void
     {
+        // Mode edit: kalau user kembali ke tipe asal pasien (mis. salah klik
+        // WNA lalu balik ke WNI), pulihkan data identitas dari database
+        // supaya NIK/BPJS/Paspor yang sudah tersimpan tidak ikut hilang.
+        if ($this->isEdit && $this->pasienId) {
+            $p = Pasien::find($this->pasienId);
+            if ($p && $p->tipe_pasien === $this->tipe_pasien) {
+                $this->nik         = $p->nik         ?? '';
+                $this->no_bpjs     = $p->no_bpjs     ?? '';
+                $this->no_paspor   = $p->no_paspor   ?? '';
+                $this->negara_asal = $p->negara_asal ?? '';
+                $this->resetErrorBag(['nik', 'no_bpjs', 'no_paspor', 'negara_asal']);
+                return;
+            }
+        }
+
+        $this->resetErrorBag(['nik', 'no_bpjs', 'no_paspor', 'negara_asal']);
+
         if ($this->tipe_pasien === 'WNI') {
             $this->no_paspor   = '';
             $this->negara_asal = '';
@@ -245,6 +262,16 @@ class PasienForm extends Component
             'sumber_informasi_id'          => $this->sumberInformasiId ?: null,
             'sumber_informasi_keterangan'  => $this->sumberButuhKeterangan ? ($this->sumberKeterangan ?: null) : null,
         ];
+
+        // Pastikan identitas tipe lain dikosongkan (penting saat edit WNI <-> WNA,
+        // agar NIK/BPJS lama tidak tertinggal di pasien WNA dan sebaliknya).
+        if ($this->tipe_pasien === 'WNA') {
+            $data['nik']     = null;
+            $data['no_bpjs'] = null;
+        } else {
+            $data['no_paspor']   = null;
+            $data['negara_asal'] = null;
+        }
 
         try {
             if ($this->isEdit) {

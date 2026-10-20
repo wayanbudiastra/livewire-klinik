@@ -21,8 +21,7 @@
         </div>
         <div class="card-body space-y-4">
 
-            {{-- Tipe Pasien --}}
-            @if (!$isEdit)
+            {{-- Tipe Pasien (bisa diubah juga saat edit: WNI <-> WNA) --}}
             <div class="form-group">
                 <label class="form-label dark:text-gray-300">Tipe Pasien <span class="text-red-500">*</span></label>
                 <div class="flex gap-3">
@@ -37,9 +36,14 @@
                     </button>
                     @endforeach
                 </div>
+                @if ($isEdit)
+                <p class="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                    Mengubah tipe pasien akan mengosongkan data identitas tipe sebelumnya
+                    (NIK/BPJS untuk WNI, No. Paspor/Negara Asal untuk WNA) saat disimpan.
+                </p>
+                @endif
                 @error('tipe_pasien') <p class="form-error">{{ $message }}</p> @enderror
             </div>
-            @endif
 
             <div class="form-group">
                 <label class="form-label dark:text-gray-300">Nama Lengkap <span class="text-red-500">*</span></label>
