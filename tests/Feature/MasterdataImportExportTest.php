@@ -174,6 +174,9 @@ class MasterdataImportExportTest extends TestCase
         $this->assertNotNull($item->kode);
         $this->assertStringStartsWith('TND-', $item->kode);
     }
+
+    /** @test */
+    public function import_tindakan_via_livewire_modal_baru(): void
     {
         Poli::create(['nama' => 'Anak Test', 'kode' => 'ANAKTEST', 'is_active' => true]);
         $admin = $this->buatUserDenganRole('admin');

@@ -39,6 +39,9 @@ class PasienForm extends Component
 
     // Kontak darurat
     public array $kontak = [];
+    public ?int $deleteKontakIndex = null;  // For delete confirmation dialog
+    public bool $showDeleteConfirm = false;
+    public ?int $copiedPhoneIndex = null;   // Track which phone was copied for feedback
 
     // Sumber Informasi
     public ?int  $sumberInformasiId     = null;
@@ -58,13 +61,65 @@ class PasienForm extends Component
         ];
     }
 
+    public function confirmDeleteKontak(int $index): void
+    {
+        // Cegah hapus jika hanya tersisa 1 kontak (mandatory requirement)
+        if (count($this->kontak) <= 1) {
+            $this->addError('kontak', 'Minimal 1 kontak darurat harus tetap ada. Tambahkan kontak baru sebelum menghapus kontak ini.');
+            return;
+        }
+
+        // Show confirmation dialog
+        $this->deleteKontakIndex = $index;
+        $this->showDeleteConfirm = true;
+    }
+
+    public function cancelDeleteKontak(): void
+    {
+        $this->deleteKontakIndex = null;
+        $this->showDeleteConfirm = false;
+    }
+
+    public function copyPhoneNumber(int $index): void
+    {
+        if (isset($this->kontak[$index]['nomor_hp'])) {
+            // Mark as copied for visual feedback
+            $this->copiedPhoneIndex = $index;
+            
+            // Reset after 2 seconds
+            $this->dispatch('resetCopiedPhone', delay: 2000);
+        }
+    }
+
+    #[\Livewire\Attributes\On('resetCopiedPhone')]
+    public function resetCopiedPhone(): void
+    {
+        $this->copiedPhoneIndex = null;
+    }
+
     public function removeKontak(int $index): void
     {
+        // Cegah hapus jika hanya tersisa 1 kontak (mandatory requirement)
+        if (count($this->kontak) <= 1) {
+            $this->addError('kontak', 'Minimal 1 kontak darurat harus tetap ada. Tambahkan kontak baru sebelum menghapus kontak ini.');
+            return;
+        }
+
+        // Store info sebelum di-splice
+        $namaKontak = $this->kontak[$index]['nama'] ?? 'Unknown';
         $wasPrimary = $this->kontak[$index]['is_primary'] ?? false;
+        
+        // Hapus kontak dari array
         array_splice($this->kontak, $index, 1);
+        
+        // Update primary jika yang dihapus adalah primary
         if ($wasPrimary && count($this->kontak) > 0) {
             $this->kontak[0]['is_primary'] = true;
         }
+
+        // Close dialog
+        $this->showDeleteConfirm = false;
+        $this->deleteKontakIndex = null;
     }
 
     public function setPrimaryKontak(int $index): void
@@ -187,10 +242,12 @@ class PasienForm extends Component
             'golongan_darah'=> ['nullable', 'in:A,B,AB,O,tidak_diketahui'],
             'alergi'        => ['nullable', 'string', 'max:1000'],
             'no_asuransi'   => ['nullable', 'string', 'max:50'],
-            'kontak.*.nama'     => ['required_with:kontak', 'string', 'min:3'],
-            'kontak.*.nomor_hp' => ['required_with:kontak', 'string',
+            // Kontak Darurat — MANDATORY (minimal 1 kontak)
+            'kontak'            => ['required', 'array', 'min:1'],
+            'kontak.*.nama'     => ['required', 'string', 'min:3'],
+            'kontak.*.nomor_hp' => ['required', 'string',
                                     'regex:/^(\+62|62|0)[0-9]{8,13}$/'],
-            'kontak.*.hubungan' => ['required_with:kontak',
+            'kontak.*.hubungan' => ['required',
                                     'in:suami,istri,ayah,ibu,anak,kakak,adik,kakek,nenek,paman,bibi,keponakan,teman,rekan_kerja,lainnya'],
         ];
 
@@ -213,7 +270,18 @@ class PasienForm extends Component
             'no_bpjs.size'               => 'BPJS harus tepat 13 digit.',
             'no_bpjs.regex'              => 'BPJS hanya boleh berisi angka.',
             'telepon.regex'              => 'Format nomor telepon tidak valid.',
+            
+            // Kontak Darurat — error messages
+            'kontak.required'            => 'Minimal 1 kontak darurat wajib ditambahkan.',
+            'kontak.min'                 => 'Minimal 1 kontak darurat wajib ditambahkan.',
+            'kontak.*.nama.required'     => 'Nama kontak wajib diisi.',
+            'kontak.*.nomor_hp.required' => 'No. HP kontak wajib diisi.',
             'kontak.*.nomor_hp.regex'    => 'Format HP kontak tidak valid.',
+            'kontak.*.hubungan.required' => 'Hubungan kontak wajib dipilih.',
+            
+            // Duplikasi kontak
+            // 'kontak.*.nama' dan 'kontak.*.nomor_hp' untuk duplikasi ditangani di save()
+            
             'sumberInformasiId.required' => 'Mohon pilih sumber informasi pasien.',
             'sumberInformasiId.exists'   => 'Sumber informasi tidak valid.',
             'sumberKeterangan.required'  => 'Mohon isi keterangan sumber informasi.',
@@ -240,6 +308,40 @@ class PasienForm extends Component
             if (empty($this->negara_asal)) {
                 $this->addError('negara_asal', 'Negara asal wajib untuk pasien WNA.');
                 return;
+            }
+        }
+
+        // Validasi nomor HP kontak tidak boleh sama dengan nomor pasien
+        foreach ($this->kontak as $index => $k) {
+            if (!empty($k['nomor_hp']) && $k['nomor_hp'] === $this->telepon) {
+                $this->addError("kontak.{$index}.nomor_hp", 'Nomor HP kontak tidak boleh sama dengan nomor telepon pasien.');
+                return;
+            }
+        }
+
+        // Validasi duplikasi kontak dalam form (nama atau nomor HP yang sama)
+        $namaList = [];
+        $nomorHpList = [];
+        foreach ($this->kontak as $index => $k) {
+            $namaLower = strtolower(trim($k['nama'] ?? ''));
+            $nomorHp = trim($k['nomor_hp'] ?? '');
+            
+            // Check duplikasi nama
+            if (!empty($namaLower)) {
+                if (in_array($namaLower, $namaList)) {
+                    $this->addError("kontak.{$index}.nama", 'Nama kontak "' . $k['nama'] . '" sudah ada dalam daftar.');
+                    return;
+                }
+                $namaList[] = $namaLower;
+            }
+            
+            // Check duplikasi nomor HP
+            if (!empty($nomorHp)) {
+                if (in_array($nomorHp, $nomorHpList)) {
+                    $this->addError("kontak.{$index}.nomor_hp", 'Nomor HP kontak sudah ada dalam daftar.');
+                    return;
+                }
+                $nomorHpList[] = $nomorHp;
             }
         }
 

@@ -98,12 +98,17 @@ class PasienFormValidasiTest extends TestCase
 
     private function buatPasien(array $override = []): Pasien
     {
-        return app(PasienService::class)->create(array_merge([
-            'nama' => 'Pasien Tipe Test', 'tempat_lahir' => 'Denpasar',
-            'tanggal_lahir' => '1990-01-01', 'jenis_kelamin' => 'L',
-            'tipe_pasien' => 'WNI', 'nik' => (string) random_int(3100000000000000, 3199999999999999),
-            'alamat' => 'Jl. Test', 'telepon' => '081234567890',
-        ], $override));
+        return app(PasienService::class)->create(
+            array_merge([
+                'nama' => 'Pasien Tipe Test', 'tempat_lahir' => 'Denpasar',
+                'tanggal_lahir' => '1990-01-01', 'jenis_kelamin' => 'L',
+                'tipe_pasien' => 'WNI', 'nik' => (string) random_int(3100000000000000, 3199999999999999),
+                'alamat' => 'Jl. Test', 'telepon' => '081234567890',
+            ], $override),
+            [
+                ['nama' => 'Keluarga', 'nomor_hp' => '082234567890', 'hubungan' => 'lainnya'],
+            ]
+        );
     }
 
     /** @test */

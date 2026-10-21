@@ -185,18 +185,29 @@
     {{-- ── Seksi 3: Kontak Darurat ──────────────────────────── --}}
     <div class="card">
         <div class="card-header">
-            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100">
-                Kontak Darurat
-                <span class="text-xs font-normal text-gray-400 ml-1">(disarankan min. 1)</span>
-            </h3>
-            <button type="button" wire:click="addKontak" class="btn-secondary btn-sm">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                Tambah Kontak
-            </button>
+            <div class="flex items-center justify-between w-full">
+                <div class="flex items-center gap-2">
+                    <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                        Kontak Darurat <span class="text-red-500">*</span>
+                        <span class="text-xs font-normal text-gray-400 ml-1">(Wajib minimal 1)</span>
+                    </h3>
+                    <span class="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-blue-600 rounded-full dark:bg-blue-500">
+                        {{ count($kontak) }}
+                    </span>
+                </div>
+                <button type="button" wire:click="addKontak" class="btn-secondary btn-sm">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Tambah Kontak
+                </button>
+            </div>
         </div>
         <div class="card-body space-y-3">
+            @error('kontak') 
+            <p class="form-error bg-red-50 dark:bg-red-900/20 p-2 rounded border border-red-200 dark:border-red-700">{{ $message }}</p> 
+            @enderror
+            
             @if (empty($kontak))
             <p class="text-sm text-center text-gray-400 py-3">
                 Belum ada kontak darurat. Klik "Tambah Kontak" untuk menambahkan.
@@ -224,8 +235,15 @@
                             Jadikan Utama
                         </button>
                         @endif
-                        <button type="button" wire:click="removeKontak({{ $i }})"
-                                class="text-xs text-red-500 hover:text-red-700">Hapus</button>
+                        <button type="button" wire:click="confirmDeleteKontak({{ $i }})"
+                                @if(count($kontak) <= 1) disabled @endif
+                                @class([
+                                    'text-xs text-red-500 hover:text-red-700',
+                                    'opacity-50 cursor-not-allowed' => count($kontak) <= 1,
+                                ])
+                                title="{{ count($kontak) <= 1 ? 'Tambahkan kontak baru sebelum menghapus kontak terakhir' : '' }}">
+                            Hapus
+                        </button>
                     </div>
                 </div>
 
@@ -248,14 +266,52 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label text-xs dark:text-gray-400">No. HP <span class="text-red-500">*</span></label>
-                        <input wire:model="kontak.{{ $i }}.nomor_hp" type="tel" placeholder="08xxxxxxxxxx"
-                               class="form-input dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                        <div class="flex items-center gap-2">
+                            <input wire:model="kontak.{{ $i }}.nomor_hp" type="tel" placeholder="08xxxxxxxxxx"
+                                   class="form-input flex-1 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                            @if ($kontak[$i]['nomor_hp'])
+                            <button type="button" 
+                                    @click="navigator.clipboard.writeText('{{ $kontak[$i]['nomor_hp'] }}'); $wire.copyPhoneNumber({{ $i }});"
+                                    @class([
+                                        'px-2 py-1 text-xs rounded transition-colors',
+                                        'bg-green-500 text-white' => $copiedPhoneIndex === $i,
+                                        'bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300' => $copiedPhoneIndex !== $i,
+                                    ])
+                                    title="Copy nomor HP">
+                                {{ $copiedPhoneIndex === $i ? '✓ Copied' : 'Copy' }}
+                            </button>
+                            @endif
+                        </div>
                         @error("kontak.{$i}.nomor_hp") <p class="form-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
             </div>
             @endforeach
         </div>
+
+        {{-- Delete Confirmation Dialog --}}
+        @if ($showDeleteConfirm && $deleteKontakIndex !== null && isset($kontak[$deleteKontakIndex]))
+        <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 dark:bg-black/60">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm mx-4">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                    Konfirmasi Hapus Kontak
+                </h3>
+                <p class="text-gray-600 dark:text-gray-300 mb-4">
+                    Anda yakin ingin menghapus kontak <span class="font-semibold">{{ $kontak[$deleteKontakIndex]['nama'] }}</span>?
+                </p>
+                <div class="flex gap-3 justify-end">
+                    <button type="button" wire:click="cancelDeleteKontak()"
+                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 rounded-lg">
+                        Batal
+                    </button>
+                    <button type="button" wire:click="removeKontak({{ $deleteKontakIndex }})"
+                            class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 rounded-lg">
+                        Hapus
+                    </button>
+                </div>
+            </div>
+        </div>
+        @endif
     </div>
 
     {{-- ── Section: Sumber Informasi ───────────────────────── --}}
