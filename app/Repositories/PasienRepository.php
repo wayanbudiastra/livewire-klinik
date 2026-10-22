@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use App\Models\KontakDarurat;
 use App\Models\Pasien;
+use App\Models\PasienAsuransi;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -35,9 +36,9 @@ class PasienRepository
         return Pasien::where('nomor_rm', $nomorRM)->first();
     }
 
-    public function create(array $data, array $kontakList = []): Pasien
+    public function create(array $data, array $kontakList = [], ?array $asuransiData = null): Pasien
     {
-        return DB::transaction(function () use ($data, $kontakList) {
+        return DB::transaction(function () use ($data, $kontakList, $asuransiData) {
             $pasien = Pasien::create($data);
 
             if (! empty($kontakList)) {
@@ -49,13 +50,24 @@ class PasienRepository
                 }
             }
 
+            // Handle asuransi if provided
+            if ($asuransiData && isset($asuransiData['asuransi_id']) && isset($asuransiData['nomor_polis'])) {
+                PasienAsuransi::create([
+                    'pasien_id'   => $pasien->id,
+                    'asuransi_id' => $asuransiData['asuransi_id'],
+                    'nomor_polis' => $asuransiData['nomor_polis'],
+                    'is_primary'  => true,
+                    'is_active'   => true,
+                ]);
+            }
+
             return $pasien->load('kontakDarurat');
         });
     }
 
-    public function update(int $id, array $data, ?array $kontakList = null): Pasien
+    public function update(int $id, array $data, ?array $kontakList = null, ?array $asuransiData = null): Pasien
     {
-        return DB::transaction(function () use ($id, $data, $kontakList) {
+        return DB::transaction(function () use ($id, $data, $kontakList, $asuransiData) {
             $pasien = Pasien::findOrFail($id);
             $pasien->update($data);
 
@@ -68,6 +80,25 @@ class PasienRepository
                     foreach ($kontakList as $k) {
                         $pasien->kontakDarurat()->create($k);
                     }
+                }
+            }
+
+            // Handle asuransi update
+            if ($asuransiData) {
+                if (isset($asuransiData['asuransi_id']) && isset($asuransiData['nomor_polis'])) {
+                    // Clear existing primary asuransi
+                    PasienAsuransi::where('pasien_id', $id)
+                        ->where('is_primary', true)
+                        ->delete();
+                    
+                    // Create new primary asuransi
+                    PasienAsuransi::create([
+                        'pasien_id'   => $id,
+                        'asuransi_id' => $asuransiData['asuransi_id'],
+                        'nomor_polis' => $asuransiData['nomor_polis'],
+                        'is_primary'  => true,
+                        'is_active'   => true,
+                    ]);
                 }
             }
 

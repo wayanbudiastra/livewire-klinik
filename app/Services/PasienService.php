@@ -49,7 +49,7 @@ class PasienService
         });
     }
 
-    public function create(array $data, array $kontakList = []): Pasien
+    public function create(array $data, array $kontakList = [], ?array $asuransiData = null): Pasien
     {
         // Cek NIK duplikat
         if (($data['tipe_pasien'] ?? '') === 'WNI' && ! empty($data['nik'])) {
@@ -82,9 +82,9 @@ class PasienService
         // RM yang sama, dan yang kedua gagal dengan error SQL mentah saat
         // constraint unique menolaknya. Dengan dibungkus satu transaksi,
         // lock baru dilepas setelah insert benar-benar terjadi.
-        $pasien = DB::transaction(function () use ($data, $kontakList) {
+        $pasien = DB::transaction(function () use ($data, $kontakList, $asuransiData) {
             $data['nomor_rm'] = $this->generateNomorRM();
-            return $this->repo->create($data, $kontakList);
+            return $this->repo->create($data, $kontakList, $asuransiData);
         });
 
         activity('pasien')
@@ -96,7 +96,7 @@ class PasienService
         return $pasien;
     }
 
-    public function update(int $id, array $data, ?array $kontakList = null): Pasien
+    public function update(int $id, array $data, ?array $kontakList = null, ?array $asuransiData = null): Pasien
     {
         $existing = Pasien::findOrFail($id);
 
@@ -109,7 +109,7 @@ class PasienService
             }
         }
 
-        $pasien = $this->repo->update($id, $data, $kontakList);
+        $pasien = $this->repo->update($id, $data, $kontakList, $asuransiData);
 
         activity('pasien')
             ->performedOn($pasien)

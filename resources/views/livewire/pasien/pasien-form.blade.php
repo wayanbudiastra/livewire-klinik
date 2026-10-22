@@ -143,10 +143,27 @@
                     @error('negara_asal') <p class="form-error">{{ $message }}</p> @enderror
                 </div>
             </div>
+            @endif
+
+            {{-- Asuransi Section --}}
             <div class="form-group">
-                <label class="form-label dark:text-gray-300">No. Asuransi</label>
-                <input wire:model="no_asuransi" type="text" placeholder="Nomor asuransi swasta"
+                <label class="form-label dark:text-gray-300">Nama Asuransi</label>
+                <select wire:model="asuransi_id"
+                        class="form-select dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200">
+                    <option value="">-- Pilih Asuransi (opsional) --</option>
+                    @foreach($daftarAsuransi as $asuransi)
+                    <option value="{{ $asuransi->id }}">{{ $asuransi->nama }}</option>
+                    @endforeach
+                </select>
+                @error('asuransi_id') <p class="form-error">{{ $message }}</p> @enderror
+            </div>
+
+            @if($asuransi_id)
+            <div class="form-group">
+                <label class="form-label dark:text-gray-300">Nomor Polis</label>
+                <input wire:model="nomor_polis" type="text" placeholder="Nomor polis asuransi"
                        class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
+                @error('nomor_polis') <p class="form-error">{{ $message }}</p> @enderror
             </div>
             @endif
 

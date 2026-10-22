@@ -2,7 +2,9 @@
 
 namespace App\Livewire\Pasien;
 
+use App\Models\Asuransi;
 use App\Models\Pasien;
+use App\Models\PasienAsuransi;
 use App\Models\SumberInformasi;
 use App\Services\PasienService;
 use Illuminate\Validation\Rule;
@@ -35,7 +37,10 @@ class PasienForm extends Component
     // Medis
     public string $golongan_darah = '';
     public string $alergi        = '';
-    public string $no_asuransi   = '';
+    
+    // Asuransi
+    public ?int $asuransi_id    = null;
+    public string $nomor_polis  = '';
 
     // Kontak darurat
     public array $kontak = [];
@@ -200,7 +205,17 @@ class PasienForm extends Component
         $this->email         = $p->email         ?? '';
         $this->golongan_darah= $p->golongan_darah ?? '';
         $this->alergi        = $p->alergi        ?? '';
-        $this->no_asuransi   = $p->no_asuransi   ?? '';
+        
+        // Load asuransi primary jika ada
+        $asuransiPrimary = PasienAsuransi::where('pasien_id', $pasienId)
+            ->where('is_active', true)
+            ->where('is_primary', true)
+            ->first();
+        if ($asuransiPrimary) {
+            $this->asuransi_id  = $asuransiPrimary->asuransi_id;
+            $this->nomor_polis  = $asuransiPrimary->nomor_polis;
+        }
+        
         $this->kontak        = $p->kontakDarurat->map(fn ($k) => [
             'nama'       => $k->nama,
             'nomor_hp'   => $k->nomor_hp,
@@ -241,7 +256,8 @@ class PasienForm extends Component
             'email'         => ['nullable', 'email'],
             'golongan_darah'=> ['nullable', 'in:A,B,AB,O,tidak_diketahui'],
             'alergi'        => ['nullable', 'string', 'max:1000'],
-            'no_asuransi'   => ['nullable', 'string', 'max:50'],
+            'asuransi_id'   => ['nullable', 'integer', 'exists:asuransi,id'],
+            'nomor_polis'   => ['nullable', 'string', 'max:50'],
             // Kontak Darurat — MANDATORY (minimal 1 kontak)
             'kontak'            => ['required', 'array', 'min:1'],
             'kontak.*.nama'     => ['required', 'string', 'min:3'],
@@ -360,10 +376,18 @@ class PasienForm extends Component
             'email'                        => $this->email           ?: null,
             'golongan_darah'               => $this->golongan_darah  ?: null,
             'alergi'                       => $this->alergi          ?: null,
-            'no_asuransi'                  => $this->no_asuransi      ?: null,
             'sumber_informasi_id'          => $this->sumberInformasiId ?: null,
             'sumber_informasi_keterangan'  => $this->sumberButuhKeterangan ? ($this->sumberKeterangan ?: null) : null,
         ];
+        
+        // Prepare asuransi data if provided
+        $asuransiData = null;
+        if ($this->asuransi_id && !empty($this->nomor_polis)) {
+            $asuransiData = [
+                'asuransi_id' => $this->asuransi_id,
+                'nomor_polis' => $this->nomor_polis,
+            ];
+        }
 
         // Pastikan identitas tipe lain dikosongkan (penting saat edit WNI <-> WNA,
         // agar NIK/BPJS lama tidak tertinggal di pasien WNA dan sebaliknya).
@@ -378,11 +402,11 @@ class PasienForm extends Component
         try {
             if ($this->isEdit) {
                 $data['pasien_id'] = $this->pasienId;
-                $service->update($this->pasienId, $data, $this->kontak ?: null);
+                $service->update($this->pasienId, $data, $this->kontak ?: null, $asuransiData);
                 $this->dispatch('notify', type: 'success', message: 'Data pasien berhasil diupdate.');
                 $this->dispatch('pasien-saved');
             } else {
-                $pasien = $service->create($data, $this->kontak);
+                $pasien = $service->create($data, $this->kontak, $asuransiData);
                 $this->dispatch('notify', type: 'success',
                     message: "Pasien berhasil didaftarkan. No. RM: {$pasien->nomor_rm}");
                 return redirect()->route('pasien.show', $pasien->id);
@@ -402,10 +426,16 @@ class PasienForm extends Component
         return Pasien::getHubunganOptions();
     }
 
+    public function getDaftarAsuransiProperty()
+    {
+        return Asuransi::where('is_active', true)->orderBy('nama')->get();
+    }
+
     public function render()
     {
         return view('livewire.pasien.pasien-form', [
-            'daftarSumber' => SumberInformasi::active()->get(),
+            'daftarSumber'   => SumberInformasi::active()->get(),
+            'daftarAsuransi' => $this->daftarAsuransi,
         ]);
     }
 }
