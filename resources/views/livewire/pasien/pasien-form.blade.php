@@ -191,10 +191,11 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label dark:text-gray-300">Riwayat Alergi</label>
+                <label class="form-label dark:text-gray-300">Riwayat Alergi <span class="text-red-500">*</span></label>
                 <input wire:model="alergi" type="text"
-                       placeholder="Penisilin, Seafood — kosongkan jika tidak ada"
+                       placeholder="Contoh: Penisilin, Seafood — atau tuliskan 'Tidak ada alergi'"
                        class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
+                @error('alergi') <p class="form-error">{{ $message }}</p> @enderror
             </div>
         </div>
     </div>

@@ -171,4 +171,39 @@ class PasienFormValidasiTest extends TestCase
             ->set('tipe_pasien', 'WNI')
             ->assertSet('nik', $pasien->nik);
     }
+
+    // ── Riwayat Alergi Mandatory ──────────────────────────────────────
+
+    /** @test */
+    public function riwayat_alergi_wajib_diisi(): void
+    {
+        $this->loginSebagaiAdmin();
+
+        Livewire::test(PasienForm::class)
+            ->set('alergi', '')
+            ->call('save')
+            ->assertHasErrors(['alergi' => 'required']);
+    }
+
+    /** @test */
+    public function riwayat_alergi_boleh_tidak_ada_alergi(): void
+    {
+        $this->loginSebagaiAdmin();
+
+        Livewire::test(PasienForm::class)
+            ->set('alergi', 'Tidak ada alergi')
+            ->call('save')
+            ->assertHasNoErrors(['alergi']);
+    }
+
+    /** @test */
+    public function riwayat_alergi_boleh_spesifik(): void
+    {
+        $this->loginSebagaiAdmin();
+
+        Livewire::test(PasienForm::class)
+            ->set('alergi', 'Penisilin, Seafood')
+            ->call('save')
+            ->assertHasNoErrors(['alergi']);
+    }
 }

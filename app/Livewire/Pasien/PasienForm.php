@@ -255,7 +255,7 @@ class PasienForm extends Component
             'telepon'       => ['required', 'string', 'regex:/^\+?[0-9\s\-]{6,20}$/'],
             'email'         => ['nullable', 'email'],
             'golongan_darah'=> ['nullable', 'in:A,B,AB,O,tidak_diketahui'],
-            'alergi'        => ['nullable', 'string', 'max:1000'],
+            'alergi'        => ['required', 'string', 'max:1000'],
             'asuransi_id'   => ['nullable', 'integer', 'exists:asuransi,id'],
             'nomor_polis'   => ['nullable', 'string', 'max:50'],
             // Kontak Darurat — MANDATORY (minimal 1 kontak)
@@ -286,6 +286,7 @@ class PasienForm extends Component
             'no_bpjs.size'               => 'BPJS harus tepat 13 digit.',
             'no_bpjs.regex'              => 'BPJS hanya boleh berisi angka.',
             'telepon.regex'              => 'Format nomor telepon tidak valid.',
+            'alergi.required'            => 'Riwayat alergi wajib diisi. Tulis "Tidak ada alergi" jika tidak ada.',
             
             // Kontak Darurat — error messages
             'kontak.required'            => 'Minimal 1 kontak darurat wajib ditambahkan.',
