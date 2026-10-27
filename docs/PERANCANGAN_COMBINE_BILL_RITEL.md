@@ -76,7 +76,7 @@ Hari-N  Hasil lab keluar → Dokter buka riwayat pasien
 
 1. Combine **hanya** jika `transaksi_ritel.pasien_id` terisi. Pembeli umum tanpa ID pasien tidak bisa ditautkan.
 2. `kunjungan_id` yang ditautkan harus milik pasien yang sama dengan `pasien_id` ritel (divalidasi di service, bukan hanya di UI).
-3. Billing asal harus berstatus `lunas` (kalau masih `belum_bayar`/`sebagian`, tambahan cukup masuk ke billing itu lewat alur normal).
+3. **Susulan wajib punya kunjungan asal** (`kunjungan_id` terisi). Billing asal harus berstatus `lunas` (kalau masih `belum_bayar`/`sebagian`, tambahan cukup masuk ke billing itu lewat alur normal).
 4. Billing asal tidak diubah sama sekali.
 5. Batas waktu susulan **14 hari** sejak tanggal kunjungan (**sudah dikonfirmasi klinik**), disimpan sebagai config agar mudah diubah.
 6. Satu kunjungan boleh punya **banyak** ritel susulan.
@@ -84,22 +84,13 @@ Hari-N  Hasil lab keluar → Dokter buka riwayat pasien
 8. Hanya role dengan permission baru (usulan `ritel.susulan` untuk dokter, `billing.gabung` untuk kasir) yang bisa membuat/melihat.
 9. Semua aksi dicatat di audit (pola `AuditKasirService` yang sudah ada).
 
-### 4.2a Perubahan keputusan: registrasi utama TIDAK wajib (perlu konfirmasi arti)
+### 4.2a Keputusan final: susulan WAJIB punya registrasi utama
 
-Klinik menyatakan: **"tidak harus ada registrasi utama"**. Tafsiran saya: transaksi susulan (lab/obat) untuk pasien ber-ID **boleh dibuat tanpa kunjungan asal**; penautan ke kunjungan bersifat **opsional**. Syarat tetap: `pasien_id` wajib terisi.
+Klinik menegaskan: **susulan tidak boleh dibuat tanpa registrasi utama.** Artinya setiap transaksi susulan **wajib ditautkan ke kunjungan asal** (`kunjungan_id` terisi) milik pasien yang sama (`pasien_id` terisi). Aturan billing asal `lunas` dan batas 14 hari berlaku selalu. (Catatan: pada draf sebelumnya saya sempat menafsirkan sebaliknya; tafsiran itu dibatalkan.)
 
-Dampak terhadap rancangan di atas (jika tafsiran benar):
+Konsekuensi data: di tingkat database kolom `transaksi_ritel.kunjungan_id` tetap **nullable** karena ritel biasa (non-susulan) tidak punya kunjungan; kewajiban untuk `tipe = 'susulan'` ditegakkan di **service** (dan idealnya constraint/validasi tes).
 
-| Hal | Sebelumnya | Sekarang |
-|---|---|---|
-| `transaksi_ritel.kunjungan_id` / `billing_id` | Wajib untuk susulan | **Opsional**; kosong = susulan mandiri milik pasien |
-| Aturan billing asal harus `lunas` & batas 14 hari | Selalu berlaku | **Hanya jika ditautkan** ke kunjungan |
-| "Tagihan Gabungan" | Selalu billing asal + susulan | Jika ditautkan: gabungan seperti rancangan. Jika mandiri: dokumen per pasien (daftar susulan pasien tsb), tidak ada billing asal |
-| Lab susulan → `permintaan_penunjang` | Dibuat untuk kunjungan asal | **Terhalang:** `permintaan_penunjang.kunjungan_id` **NOT NULL** (FK ke `kunjungan`, terverifikasi di database). Lab susulan mandiri tidak punya kunjungan |
-| Sharing fee | Penerima = `dokter_id` penyaran | Tidak berubah (tidak bergantung kunjungan) |
-| Asuransi | Mengikuti data asuransi kunjungan (`pasien_asuransi_id`, `tipe_pembayaran`) | **Belum jelas:** tanpa kunjungan, data asuransi diambil dari kartu asuransi pasien; perlu diputuskan |
-
-Keputusan yang dibutuhkan (lihat pertanyaan 10-12 di bagian 7).
+**Lab susulan tidak membuat `permintaan_penunjang`** (keputusan klinik, pilihan b): lab dikerjakan pihak ketiga, jadi cukup tercatat sebagai item di transaksi ritel susulan. Kolom `permintaan_penunjang.kunjungan_id` tidak perlu diubah.
 
 ---
 
@@ -126,7 +117,7 @@ Constraint di service: `kunjungan_id` terisi ⇒ `pasien_id` wajib terisi dan co
 
 Stok dan HPP hanya diproses untuk transaksi `obat`. Validasi di service: transaksi `lab` hanya boleh berisi item penunjang, transaksi `obat` hanya barang.
 
-**Lab susulan:** saat ritel susulan dibayar, sistem membuat `permintaan_penunjang` untuk kunjungan asal agar lab tetap menerima order di alur penunjang yang sudah ada.
+**Lab susulan:** hanya tercatat sebagai item di transaksi ritel susulan; **tidak** membuat `permintaan_penunjang` (lihat 4.2a).
 
 **Tagihan gabungan** tidak butuh tabel baru di tahap awal: dihitung dari `billing` + `transaksi_ritel` yang `kunjungan_id`-nya sama dan `status` ≠ `dibatalkan`. Nomor dokumen gabungan bisa memakai nomor invoice asal + sufiks (contoh: `INV-…-G`).
 
@@ -136,7 +127,7 @@ Stok dan HPP hanya diproses untuk transaksi `obat`. Validasi di service: transak
 |---|---|
 | Migrasi baru | Kolom di atas (kompatibel MySQL production). |
 | `TransaksiRitel` / `TransaksiRitelItem` | Relasi `kunjungan()`, `billing()`, `dokter()`, scope `susulan()`. |
-| `ObatRitelService` | Validasi pasien/kunjungan/billing lunas; dukung item `penunjang`; lewati stok & HPP untuk lab; buat `permintaan_penunjang`. |
+| `ObatRitelService` | Validasi pasien/kunjungan/billing lunas/14 hari; dukung transaksi lab (item penunjang); lewati stok & HPP untuk lab; **tidak** membuat `permintaan_penunjang`. |
 | Livewire Dokter (baru) | Form "Order Susulan" di riwayat pasien: pilih kunjungan asal, tambah lab/obat, tanpa SOAP. |
 | Livewire Kasir | Halaman **Tagihan Gabungan** (ringkasan billing asal + susulan, status bayar tiap bagian). |
 | `CetakInvoiceService` | Cetak invoice gabungan (satu dokumen, dua bagian). |
@@ -160,14 +151,14 @@ Stok dan HPP hanya diproses untuk transaksi `obat`. Validasi di service: transak
   - Perlu pola yang sama dengan fee yang ada: jurnal `sharing_fee_dokter` dengan sumber `transaksi_ritel`, dicatat saat transaksi lunas, dan **reversal** saat dibatalkan.
   - **Obat susulan: tidak ada setup sharing fee.** Tabel `sharing_fee` hanya mengenal kategori `tindakan`, `lab`, `radiologi`, `peralatan` (enum di `2026_01_03_000003_create_sharing_fee_table.php`), dan SharingFeeForm hanya menyediakan kategori itu. Tidak ada kategori `obat`, baik di tabel, form, maupun layanan fee. Jika klinik ingin dokter mendapat fee dari obat susulan, perlu **kategori baru `obat`** (migrasi mengubah enum — harus aman untuk MySQL dan SQLite), kolom di form, dan perhitungan fee. **Default perancangan: obat susulan tanpa fee.**
 
-### 4.6 Dampak asuransi
+### 4.6 Dampak asuransi (disederhanakan: pembayaran reimburse)
 
-Kebutuhan: asuransi menerima **satu bill**.
+Keputusan klinik: asuransi meminta bill **dijadikan satu**, dan pembayarannya **reimburse** — pasien **membayar sendiri lebih dulu**, lalu mengklaim ke asuransi.
 
-- `PenagihanService::buatPenagihan(asuransiId, piutangIds, …)` sudah bisa menggabungkan banyak piutang dalam satu penagihan, sehingga **satu surat penagihan** per kunjungan secara teknis memungkinkan.
-- `CoverCalculatorService::hitungCover` saat ini menerima **satu `Invoice`**. Perlu diperluas agar bisa menghitung cover untuk item ritel susulan (obat/penunjang) memakai aturan cover yang sama, atau menerima kumpulan item.
-- Ritel perlu menyimpan `asuransi_id`, `total_cover_asuransi`, `total_tanggungan_pasien` (seperti kolom di `billing`), dan membentuk piutang asuransi sendiri.
-- **Belum saya verifikasi di kode:** detail `PembayaranAsuransiService::prosesPembayaranAsuransi` dan cara piutang dibentuk dari billing. Ini harus dibaca ulang tepat sebelum implementasi tahap asuransi.
+- Susulan **dibayar penuh oleh pasien** lewat alur ritel biasa; **tidak ada** perhitungan cover, **tidak ada** piutang asuransi, dan **tidak ada** penagihan ke asuransi untuk susulan.
+- Tidak perlu mengubah `CoverCalculatorService`, `PembayaranAsuransiService`, atau `PenagihanService`.
+- **Tagihan Gabungan** berfungsi sebagai **dokumen bukti klaim reimburse** yang diserahkan pasien ke asuransi: satu dokumen berisi billing asal + semua susulan non-batal, dengan rincian pembayaran tiap bagian.
+- Belum dibahas (tidak menghalangi rancangan): apakah **billing asal** juga berstatus reimburse atau memakai alur piutang asuransi yang sudah ada. Dokumen gabungan tetap berfungsi pada kedua kasus.
 
 ---
 
@@ -181,7 +172,7 @@ Kebutuhan: asuransi menerima **satu bill**.
 | 2b | Sharing fee dokter untuk lab susulan (persentase sesuai pertanyaan 8; jurnal + reversal) | Butuh jawaban pertanyaan 8; kode akun (9) **pending** |
 | 3 | UI dokter "Order Susulan" + permission | Alur utama permintaan dokter |
 | 4 | Halaman & cetak **Tagihan Gabungan** (kasir) | Kebutuhan "satu bill" |
-| 5 | Asuransi: cover ritel susulan + penagihan satu surat | Setelah baca ulang service asuransi |
+| 5 | (Dibatalkan) Tidak ada perubahan asuransi: susulan reimburse, tanpa cover/piutang. Dokumen gabungan = bukti klaim | Disederhanakan oleh keputusan klinik |
 | 6 | Laporan (kasir/keuangan) & audit trail | Hindari hitung ganda |
 | 7 | Tes otomatis (lihat bagian 6) | Berjalan di setiap tahap |
 
@@ -200,7 +191,9 @@ Kebutuhan: asuransi menerima **satu bill**.
 - Billing asal tidak berubah (total, status, jurnal) setelah susulan dibayar.
 - Tagihan gabungan: total = billing asal + susulan non-batal; tidak ada hitung ganda di rekap sesi kas.
 - Pembatalan susulan mengeluarkannya dari gabungan.
-- Asuransi: satu penagihan memuat piutang billing asal + susulan.
+- Susulan tanpa `kunjungan_id` ditolak; kunjungan milik pasien lain ditolak.
+- Lab susulan tidak membuat `permintaan_penunjang`.
+- Susulan tidak membentuk piutang asuransi; tagihan gabungan memuat billing asal + susulan sebagai dokumen klaim reimburse.
 - Hak akses: dokter bisa buat, kasir bisa gabung, role lain ditolak.
 - Dijalankan di **MySQL** (sama dengan production), bukan hanya SQLite.
 
@@ -212,13 +205,13 @@ Kebutuhan: asuransi menerima **satu bill**.
 2. ~~**Batas waktu susulan**~~ **Dijawab klinik: 14 hari.**
 3. ~~**Sharing fee dokter** untuk susulan~~ **Dijawab klinik: dokter tetap mendapat sharing fee.** Rincian aturannya (persentase, dasar hitung) lihat pertanyaan 8.
 4. ~~**Akun pendapatan** lab susulan~~ **Dijawab klinik: lab ritel dipisah dari obat** (transaksi dan akun terpisah). Kode akun lab tetap perlu ditentukan keuangan (pertanyaan 9).
-5. **Pembayaran susulan** — selalu bayar sendiri oleh pasien, atau bisa langsung ditanggung asuransi (cover)?
+5. ~~**Pembayaran susulan**~~ **Dijawab klinik: reimburse** — pasien bayar sendiri, lalu klaim ke asuransi; tanpa cover/piutang (lihat 4.6).
 6. **Retur/pembatalan** setelah obat diserahkan — memakai alur retur yang ada?
 7. **Siapa yang boleh membuat order susulan** — dokter saja, atau juga perawat/apoteker atas arahan dokter?
 8. **Persentase sharing fee lab susulan** — klinik menjawab "sama dengan sharing fee utama". Yang dimaksud persentase **`tindakan`** dokter (opsi i) atau persentase **`lab`** yang sudah ada di pengaturan dokter (opsi ii)? Keduanya bisa berbeda nilainya. **Obat susulan:** sudah dicek, **tidak ada setup sharing fee obat** (lihat 4.5); defaultnya tanpa fee, kecuali klinik meminta kategori `obat` baru.
-10. **Arti "tidak harus ada registrasi utama"** — benar bahwa susulan boleh dibuat **tanpa kunjungan asal** (cukup `pasien_id`)? Atau maksudnya hal lain (mis. susulan tidak harus lewat SOAP)?
-11. **Lab susulan tanpa kunjungan** — `permintaan_penunjang.kunjungan_id` wajib terisi. Pilihan: (a) buat kolom itu **nullable** + simpan `pasien_id` di permintaan; atau (b) lab susulan mandiri **tidak membuat** `permintaan_penunjang` (hanya tercatat di transaksi ritel). Karena lab dikerjakan pihak ketiga, (b) lebih sederhana; (a) lebih rapi bila hasil lab perlu dilacak di sistem.
-12. **Asuransi tanpa kunjungan** — sumber data asuransi untuk susulan mandiri (kartu asuransi pasien?), dan apakah susulan mandiri boleh ditanggung asuransi.
+10. ~~**Registrasi utama**~~ **Dijawab klinik: susulan TIDAK boleh tanpa registrasi utama** (kunjungan asal wajib).
+11. ~~**Lab susulan dan `permintaan_penunjang`**~~ **Dijawab klinik: pilihan (b)** — lab susulan tidak membuat `permintaan_penunjang`.
+12. ~~**Asuransi untuk susulan**~~ **Dijawab klinik: reimburse** (lihat 5 dan 4.6).
 9. **Akun pendapatan lab & beban sharing fee** — **DITUNDA (pending) atas keputusan pemilik.** Kode akun lab dan akun beban belum ditentukan; hanya memblokir pemostingan jurnal lab susulan dan sharing fee (Tahap 2 bagian jurnal dan Tahap 2b). Tahap 0, 1, 3, 4 tidak bergantung padanya.
 
 ---
@@ -253,4 +246,4 @@ Kebutuhan: asuransi menerima **satu bill**.
 | Ritel ditautkan ke kunjungan pasien salah | Validasi di service (pasien harus cocok), bukan hanya di UI |
 | Lab hari H tidak tertagih (bagian 7a) | Verifikasi di alur nyata & di production; terapkan dulu sebelum fitur combine |
 | Migrasi memakai sintaks MySQL-only | Uji di MySQL; hindari `MODIFY COLUMN ... ENUM` pada migrasi baru |
-| Klaim asuransi ditolak karena dokumen terpisah | Cetak & penagihan gabungan (Tahap 4–5) |
+| Klaim reimburse ditolak karena dokumen terpisah | Cetak tagihan gabungan satu dokumen (Tahap 4) |
