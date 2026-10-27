@@ -1,6 +1,6 @@
 # Perancangan: Combine Bill Registrasi + Bill Ritel (Susulan Hasil Lab)
 
-Status: **DRAFT perancangan — belum ada kode yang diubah.**
+Status: **Tahap 0–4 + sharing fee/jurnal lab SUDAH DIIMPLEMENTASI** (lihat bagian "Status implementasi" di bawah). Dokumen ini tetap menjadi acuan aturan bisnis.
 Tanggal: 2026-10-27
 
 ---
@@ -251,3 +251,23 @@ Keputusan klinik: asuransi meminta bill **dijadikan satu**, dan pembayarannya **
 | Lab hari H tidak tertagih (bagian 7a) | Verifikasi di alur nyata & di production; terapkan dulu sebelum fitur combine |
 | Migrasi memakai sintaks MySQL-only | Uji di MySQL; hindari `MODIFY COLUMN ... ENUM` pada migrasi baru |
 | Klaim reimburse ditolak karena dokumen terpisah | Cetak tagihan gabungan satu dokumen (Tahap 4) |
+
+---
+
+## 9. Status implementasi (2026-10-28)
+
+| Tahap | Status | Rujukan kode |
+|---|---|---|
+| 0 Lab SOAP `selesai` & masuk bill | ✅ selesai + tes | `Livewire/Pemeriksaan/Penunjang.php`, migrasi `hasil_diterima_at`, `LabSoapTagihanTest` |
+| 1 Kolom & relasi susulan | ✅ | migrasi `…000002_add_susulan_columns…`, `TransaksiRitel`, `TransaksiRitelItem` |
+| 2 Lab susulan (tanpa `permintaan_penunjang`), jurnal 4-1200 | ✅ | `Services/Farmasi/SusulanService.php`, `RitelJurnalService` |
+| 2b Sharing fee dokter (persentase `lab`, 5-1200/2-1200) | ✅ | `SharingFeeService::catatSharingFeeSusulan` |
+| 3 UI kasir Order Susulan + permission | ✅ | `Livewire/Kasir/Susulan/SusulanKasir.php`, route `kasir.susulan.index`, permission `ritel.susulan` |
+| 4 Tagihan Gabungan (cetak) | ✅ | `Services/Kasir/TagihanGabunganService.php`, route `kasir.billing.gabungan`, permission `billing.gabung` |
+| 5 Asuransi | Dibatalkan (reimburse) | — |
+
+Catatan operasional:
+- **Deploy:** jalankan `php artisan migrate --force` dan `php artisan db:seed --class=RolePermissionSeeder --force` (membuat permission baru dan memberikannya ke role kasir).
+- **Tes:** `phpunit.xml` kini mengarah ke database `emr_test` (harus dibuat dulu). Tes baru memakai `RefreshDatabase`.
+- **Belum dibuat:** UI untuk mencatat penerimaan hasil lab dari pihak ketiga (kolom `hasil_diterima_at`/`hasil_url` sudah ada, tampilan badge sudah membedakan "Tertagih · Menunggu Hasil" dan "Hasil Diterima").
+- **Belum diverifikasi:** perilaku di production (apakah lab dari SOAP di sana sudah masuk bill).
