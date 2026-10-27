@@ -78,10 +78,10 @@
                     <tr wire:key="detail-item-{{ $item->id }}">
                         <td class="text-gray-400 text-sm">{{ $i + 1 }}</td>
                         <td>
-                            <p class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ $item->barang->nama }}</p>
-                            <p class="text-xs text-gray-400">{{ $item->barang->kode }} · {{ $item->barang->satuan }}</p>
+                            <p class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ $item->nama_item }}</p>
+                            <p class="text-xs text-gray-400">{{ $item->barang?->kode ?? $item->itemPenunjang?->kode }}@if($item->barang) · {{ $item->barang->satuan }}@endif</p>
                         </td>
-                        <td class="text-center text-sm">{{ $item->jumlah }} {{ $item->barang->satuan }}</td>
+                        <td class="text-center text-sm">{{ $item->jumlah }} {{ $item->barang?->satuan }}</td>
                         <td class="text-right text-sm text-gray-600 dark:text-gray-400">
                             Rp {{ number_format($item->harga_satuan, 0, ',', '.') }}
                         </td>

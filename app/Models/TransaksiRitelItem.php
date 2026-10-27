@@ -31,4 +31,15 @@ class TransaksiRitelItem extends Model
     {
         return $this->belongsTo(Barang::class);
     }
+
+    public function itemPenunjang()
+    {
+        return $this->belongsTo(ItemPenunjang::class);
+    }
+
+    /** Nama tampilan: obat (barang) atau lab (item penunjang) untuk susulan. */
+    public function getNamaItemAttribute(): string
+    {
+        return $this->barang?->nama ?? $this->itemPenunjang?->nama ?? '-';
+    }
 }

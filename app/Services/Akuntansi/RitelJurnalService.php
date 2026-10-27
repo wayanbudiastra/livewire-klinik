@@ -10,6 +10,7 @@ class RitelJurnalService
     const AKUN_BANK              = '1-1200';
     const AKUN_PERSEDIAAN_BARANG = '1-1300';
     const AKUN_PENDAPATAN_OBAT   = '4-1300';
+    const AKUN_PENDAPATAN_LAB    = '4-1200'; // Pendapatan Penunjang (Lab/Radiologi)
     const AKUN_HPP_FARMASI       = '5-1100';
 
     public function __construct(private JurnalService $jurnal) {}
@@ -25,7 +26,7 @@ class RitelJurnalService
             tipeTransaksi: 'penjualan_ritel',
             tanggal:       $tr->dibayar_at ?? now(),
             akunDebit:     $akunDebit,
-            akunKredit:    self::AKUN_PENDAPATAN_OBAT,
+            akunKredit:    $tr->isLab() ? self::AKUN_PENDAPATAN_LAB : self::AKUN_PENDAPATAN_OBAT,
             nominal:       (float) $tr->total_bayar,
             keterangan:    "Penjualan ritel {$tr->nomor_ritel}",
             metadata:      ['metode_bayar' => $tr->metode_bayar],

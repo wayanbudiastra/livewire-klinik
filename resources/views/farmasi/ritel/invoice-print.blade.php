@@ -173,10 +173,10 @@
             <tr>
                 <td>{{ $i + 1 }}</td>
                 <td>
-                    <strong>{{ $item->barang->nama }}</strong>
-                    <span style="color:#9ca3af;font-size:10px;margin-left:4px;">{{ $item->barang->kode }}</span>
+                    <strong>{{ $item->nama_item }}</strong>
+                    <span style="color:#9ca3af;font-size:10px;margin-left:4px;">{{ $item->barang?->kode ?? $item->itemPenunjang?->kode }}</span>
                 </td>
-                <td>{{ $item->barang->satuan }}</td>
+                <td>{{ $item->barang?->satuan ?? 'tes' }}</td>
                 <td class="right">{{ $item->jumlah }}</td>
                 <td class="right">Rp {{ number_format($item->harga_satuan, 0, ',', '.') }}</td>
                 <td class="right"><strong>Rp {{ number_format($item->subtotal, 0, ',', '.') }}</strong></td>

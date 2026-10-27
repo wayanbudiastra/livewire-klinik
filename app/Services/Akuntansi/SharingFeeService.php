@@ -2,10 +2,12 @@
 
 namespace App\Services\Akuntansi;
 
+use App\Models\Akuntansi\JurnalPending;
 use App\Models\Invoice;
 use App\Models\KonfigurasiSharingFeePerawat;
 use App\Models\SharingFee;
 use App\Models\Tindakan;
+use App\Models\TransaksiRitel;
 
 /**
  * Scope v1 (sederhana): hanya menghitung sharing fee kategori 'tindakan',
@@ -59,6 +61,45 @@ class SharingFeeService
             nominal:       $nominal,
             keterangan:    "Sharing fee dokter - {$billing->nomor_invoice}",
             metadata:      ['dokter_id' => $dokterId, 'persentase' => $persentase],
+        );
+    }
+
+    /**
+     * Sharing fee dokter penyaran untuk LAB susulan: persentase kategori 'lab'
+     * dokter tsb (SharingFeeForm) x subtotal item lab. Obat susulan tanpa fee.
+     * Dipanggil saat transaksi lab susulan dibayar. Susulan tidak bisa
+     * diretur/dibatalkan setelah dibayar, jadi tidak ada reversal.
+     * Idempoten: tidak membuat jurnal kedua untuk transaksi yang sama.
+     */
+    public function catatSharingFeeSusulan(TransaksiRitel $tr): void
+    {
+        if (! $tr->isLab() || ! $tr->dokter_id) return;
+
+        $sudahAda = JurnalPending::where('sumber_tipe', 'transaksi_ritel')
+            ->where('sumber_id', $tr->id)
+            ->where('tipe_transaksi', 'sharing_fee_dokter')
+            ->exists();
+        if ($sudahAda) return;
+
+        $sharingFee = SharingFee::where('dokter_id', $tr->dokter_id)
+            ->where('kategori', 'lab')
+            ->first();
+        if (! $sharingFee || (float) $sharingFee->persentase <= 0) return;
+
+        $dasar   = (float) $tr->items()->sum('subtotal');
+        $nominal = round($dasar * ((float) $sharingFee->persentase / 100), 2);
+        if ($nominal <= 0) return;
+
+        $this->jurnal->catat(
+            sumberTipe:    'transaksi_ritel',
+            sumberId:      $tr->id,
+            tipeTransaksi: 'sharing_fee_dokter',
+            tanggal:       $tr->dibayar_at ?? now(),
+            akunDebit:     self::AKUN_BIAYA_JASA_DOKTER,
+            akunKredit:    self::AKUN_HUTANG_JASA_DOKTER,
+            nominal:       $nominal,
+            keterangan:    "Sharing fee dokter (lab susulan) - {$tr->nomor_ritel}",
+            metadata:      ['dokter_id' => $tr->dokter_id, 'persentase' => (float) $sharingFee->persentase, 'kategori' => 'lab'],
         );
     }
 

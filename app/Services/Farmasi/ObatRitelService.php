@@ -4,6 +4,7 @@ namespace App\Services\Farmasi;
 
 use App\Models\{Barang, MutasiStok, SesiKas, TransaksiRitel, TransaksiRitelItem};
 use App\Services\Akuntansi\RitelJurnalService;
+use App\Services\Akuntansi\SharingFeeService;
 use Illuminate\Support\Facades\DB;
 
 class ObatRitelService
@@ -145,6 +146,14 @@ class ObatRitelService
 
             $tr = $tr->fresh();
             app(RitelJurnalService::class)->catatPenjualan($tr);
+
+            // Lab susulan tidak ada penyerahan barang/stok/HPP: lunas = selesai.
+            // Dokter penyaran mendapat sharing fee (persentase 'lab').
+            if ($tr->isLab()) {
+                $tr->update(['status' => 'selesai']);
+                app(SharingFeeService::class)->catatSharingFeeSusulan($tr->fresh());
+                $tr = $tr->fresh();
+            }
 
             return $tr;
         });
