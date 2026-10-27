@@ -10,7 +10,8 @@ class TransaksiRitel extends Model
     protected $table = 'transaksi_ritel';
 
     protected $fillable = [
-        'nomor_ritel', 'nama_pembeli', 'nomor_hp', 'pasien_id',
+        'nomor_ritel', 'tipe', 'jenis_susulan', 'nama_pembeli', 'nomor_hp', 'pasien_id',
+        'kunjungan_id', 'billing_id', 'dokter_id',
         'apoteker_id', 'kasir_id', 'sesi_kas_id', 'status', 'metode_bayar',
         'total_harga', 'total_bayar', 'kembalian', 'catatan',
         'dibayar_at', 'diserahkan_at',
@@ -45,6 +46,36 @@ class TransaksiRitel extends Model
     public function pasien()
     {
         return $this->belongsTo(Pasien::class);
+    }
+
+    public function kunjungan()
+    {
+        return $this->belongsTo(Kunjungan::class);
+    }
+
+    public function billing()
+    {
+        return $this->belongsTo(Invoice::class, 'billing_id');
+    }
+
+    public function dokter()
+    {
+        return $this->belongsTo(Dokter::class);
+    }
+
+    public function scopeSusulan($query)
+    {
+        return $query->where('tipe', 'susulan');
+    }
+
+    public function isSusulan(): bool
+    {
+        return $this->tipe === 'susulan';
+    }
+
+    public function isLab(): bool
+    {
+        return $this->isSusulan() && $this->jenis_susulan === 'lab';
     }
 
     public function sesiKas()

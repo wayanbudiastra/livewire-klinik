@@ -10,7 +10,7 @@ class TransaksiRitelItem extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'transaksi_ritel_id', 'barang_id',
+        'transaksi_ritel_id', 'barang_id', 'item_penunjang_id',
         'jumlah', 'harga_satuan', 'subtotal', 'catatan',
     ];
 
