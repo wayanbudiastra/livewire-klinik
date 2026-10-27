@@ -217,7 +217,9 @@
                                 $badge = match($order->status) {
                                     'dipesan'    => ['label' => 'Dipesan',    'class' => 'badge-warning'],
                                     'diproses'   => ['label' => 'Diproses',   'class' => 'badge-primary'],
-                                    'selesai'    => ['label' => 'Selesai',    'class' => 'badge-success'],
+                                    'selesai'    => $order->hasil_diterima_at
+                                        ? ['label' => 'Hasil Diterima', 'class' => 'badge-success']
+                                        : ['label' => 'Tertagih · Menunggu Hasil', 'class' => 'badge-primary'],
                                     'dibatalkan' => ['label' => 'Dibatalkan', 'class' => 'badge-danger'],
                                     default      => ['label' => ucfirst($order->status), 'class' => 'badge-gray'],
                                 };
@@ -233,7 +235,7 @@
                             @endif
                         </td>
                         <td>
-                            @if($order->status === 'dipesan')
+                            @if(in_array($order->status, ['dipesan', 'selesai'], true))
                             <x-confirm-button
                                 :action="'batalkan(' . $order->id . ')'"
                                 title="Batalkan Order?"

@@ -3,6 +3,7 @@
 namespace App\Livewire\Pemeriksaan;
 
 use App\Models\ItemPenunjang;
+use App\Models\Invoice;
 use App\Models\PermintaanPenunjang;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
@@ -135,7 +136,7 @@ class Penunjang extends Component
                 'jumlah'            => 1,
                 'prioritas'         => $item['prioritas'],
                 'catatan'           => $item['catatan'] ?: null,
-                'status'            => 'dipesan',
+                'status'            => 'selesai', // lab dikerjakan pihak ketiga: langsung tertagih ke bill
                 'ordered_by'        => auth()->id(),
             ]);
         }
@@ -214,8 +215,8 @@ class Penunjang extends Component
         $order = PermintaanPenunjang::find($id);
         if (! $order || $order->kunjungan_id !== $this->kunjunganId) return;
 
-        if ($order->status !== 'dipesan') {
-            $this->dispatch('notify', type: 'warning', message: 'Order sudah diproses, tidak dapat dibatalkan.');
+        if (! $this->bisaDibatalkan($order)) {
+            $this->dispatch('notify', type: 'warning', message: 'Order sudah diproses atau billing sudah lunas, tidak dapat dibatalkan.');
             return;
         }
 
@@ -224,6 +225,24 @@ class Penunjang extends Component
         unset($this->ordersLab);
         unset($this->ordersRad);
         $this->dispatch('notify', type: 'success', message: 'Order berhasil dibatalkan.');
+    }
+
+    /**
+     * Order 'dipesan' (mis. radiologi) boleh dibatalkan seperti biasa. Order lab
+     * 'selesai' (sudah ikut tertagih) hanya boleh dibatalkan selama billing
+     * kunjungan belum lunas; tagihan dihitung ulang saat kasir membukanya
+     * (InvoiceService::createOrRefresh hanya menagih order 'selesai').
+     */
+    private function bisaDibatalkan(PermintaanPenunjang $order): bool
+    {
+        if ($order->status === 'dipesan') return true;
+        if ($order->status !== 'selesai') return false;
+
+        $statusBilling = Invoice::where('kunjungan_id', $order->kunjungan_id)
+            ->where('status', '!=', 'dibatalkan')
+            ->value('status');
+
+        return $statusBilling !== 'lunas';
     }
 
     public function render()

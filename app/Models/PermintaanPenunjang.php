@@ -11,7 +11,7 @@ class PermintaanPenunjang extends Model
     protected $fillable = [
         'kunjungan_id', 'item_penunjang_id',
         'jumlah', 'prioritas', 'lokasi_tubuh', 'indikasi_klinis',
-        'catatan', 'status', 'hasil_url', 'ordered_by',
+        'catatan', 'status', 'hasil_url', 'hasil_diterima_at', 'ordered_by',
     ];
 
     public function kunjungan()
