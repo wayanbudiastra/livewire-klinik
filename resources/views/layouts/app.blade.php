@@ -89,6 +89,7 @@
             <p class="px-3 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-white/40">Administrasi</p>
 
             <x-sidebar-item route="billing.index" icon="cash" permission="billing.view">Billing & Kasir</x-sidebar-item>
+            <x-sidebar-item route="kasir.susulan.index" icon="shopping-bag" permission="ritel.susulan">Order Susulan</x-sidebar-item>
             <x-sidebar-item route="inventory.index" icon="office-building" permission="obat.view">Inventory</x-sidebar-item>
             <x-sidebar-item route="inventory.kartu-stok.index" icon="clipboard-check" permission="obat.view">Kartu Stok</x-sidebar-item>
             @can('obat.view')

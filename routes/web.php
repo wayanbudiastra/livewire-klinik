@@ -171,6 +171,11 @@ Route::middleware(['auth', 'active'])->group(function () {
         })->name('invoice.print');
     });
 
+    // Order Susulan (lab/obat tambahan setelah bill lunas) — dibuat kasir
+    Route::get('/kasir/susulan', fn () => view('kasir.susulan'))
+        ->name('kasir.susulan.index')
+        ->middleware('permission:ritel.susulan');
+
     // Kasir v2 — Billing Detail, Split Payment, Cetak
     Route::prefix('kasir')->name('kasir.')->middleware('permission:billing.view')->group(function () {
         Route::get('/billing', fn () => view('kasir.index'))->name('billing.index');
