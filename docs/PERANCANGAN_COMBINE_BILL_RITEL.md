@@ -84,6 +84,25 @@ Hari-N  Hasil lab keluar → Dokter buka riwayat pasien
 8. Hanya role dengan permission baru (usulan `ritel.susulan` untuk dokter, `billing.gabung` untuk kasir) yang bisa membuat/melihat.
 9. Semua aksi dicatat di audit (pola `AuditKasirService` yang sudah ada).
 
+### 4.2a Perubahan keputusan: registrasi utama TIDAK wajib (perlu konfirmasi arti)
+
+Klinik menyatakan: **"tidak harus ada registrasi utama"**. Tafsiran saya: transaksi susulan (lab/obat) untuk pasien ber-ID **boleh dibuat tanpa kunjungan asal**; penautan ke kunjungan bersifat **opsional**. Syarat tetap: `pasien_id` wajib terisi.
+
+Dampak terhadap rancangan di atas (jika tafsiran benar):
+
+| Hal | Sebelumnya | Sekarang |
+|---|---|---|
+| `transaksi_ritel.kunjungan_id` / `billing_id` | Wajib untuk susulan | **Opsional**; kosong = susulan mandiri milik pasien |
+| Aturan billing asal harus `lunas` & batas 14 hari | Selalu berlaku | **Hanya jika ditautkan** ke kunjungan |
+| "Tagihan Gabungan" | Selalu billing asal + susulan | Jika ditautkan: gabungan seperti rancangan. Jika mandiri: dokumen per pasien (daftar susulan pasien tsb), tidak ada billing asal |
+| Lab susulan → `permintaan_penunjang` | Dibuat untuk kunjungan asal | **Terhalang:** `permintaan_penunjang.kunjungan_id` **NOT NULL** (FK ke `kunjungan`, terverifikasi di database). Lab susulan mandiri tidak punya kunjungan |
+| Sharing fee | Penerima = `dokter_id` penyaran | Tidak berubah (tidak bergantung kunjungan) |
+| Asuransi | Mengikuti data asuransi kunjungan (`pasien_asuransi_id`, `tipe_pembayaran`) | **Belum jelas:** tanpa kunjungan, data asuransi diambil dari kartu asuransi pasien; perlu diputuskan |
+
+Keputusan yang dibutuhkan (lihat pertanyaan 10-12 di bagian 7).
+
+---
+
 ### 4.3 Perubahan data (usulan)
 
 **Tabel `transaksi_ritel`** — tambah kolom:
@@ -197,6 +216,9 @@ Kebutuhan: asuransi menerima **satu bill**.
 6. **Retur/pembatalan** setelah obat diserahkan — memakai alur retur yang ada?
 7. **Siapa yang boleh membuat order susulan** — dokter saja, atau juga perawat/apoteker atas arahan dokter?
 8. **Persentase sharing fee lab susulan** — klinik menjawab "sama dengan sharing fee utama". Yang dimaksud persentase **`tindakan`** dokter (opsi i) atau persentase **`lab`** yang sudah ada di pengaturan dokter (opsi ii)? Keduanya bisa berbeda nilainya. **Obat susulan:** sudah dicek, **tidak ada setup sharing fee obat** (lihat 4.5); defaultnya tanpa fee, kecuali klinik meminta kategori `obat` baru.
+10. **Arti "tidak harus ada registrasi utama"** — benar bahwa susulan boleh dibuat **tanpa kunjungan asal** (cukup `pasien_id`)? Atau maksudnya hal lain (mis. susulan tidak harus lewat SOAP)?
+11. **Lab susulan tanpa kunjungan** — `permintaan_penunjang.kunjungan_id` wajib terisi. Pilihan: (a) buat kolom itu **nullable** + simpan `pasien_id` di permintaan; atau (b) lab susulan mandiri **tidak membuat** `permintaan_penunjang` (hanya tercatat di transaksi ritel). Karena lab dikerjakan pihak ketiga, (b) lebih sederhana; (a) lebih rapi bila hasil lab perlu dilacak di sistem.
+12. **Asuransi tanpa kunjungan** — sumber data asuransi untuk susulan mandiri (kartu asuransi pasien?), dan apakah susulan mandiri boleh ditanggung asuransi.
 9. **Akun pendapatan lab & beban sharing fee** — **DITUNDA (pending) atas keputusan pemilik.** Kode akun lab dan akun beban belum ditentukan; hanya memblokir pemostingan jurnal lab susulan dan sharing fee (Tahap 2 bagian jurnal dan Tahap 2b). Tahap 0, 1, 3, 4 tidak bergantung padanya.
 
 ---
