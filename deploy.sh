@@ -10,6 +10,7 @@
 #  Tahap 2b (MySQL sudah ada,
 #    hanya buat DB kosong,
 #    user/pass & migrate manual): sudo bash deploy.sh --create-db
+#  Pasang backup harian saja     : sudo bash deploy.sh --backup
 #  Full sekaligus                : sudo bash deploy.sh
 # =============================================================
 
@@ -30,6 +31,11 @@ DB_PASS="ganti_password_kuat"
 # User MySQL admin (untuk Adminer)
 MYSQL_ADMIN_USER="admin"
 MYSQL_ADMIN_PASS="Admin2030@"
+
+# Backup database harian (cron)
+BACKUP_DIR="/var/backups/emr"          # lokasi file backup
+BACKUP_KEEP_DAYS="7"                   # simpan maksimal N hari
+BACKUP_HOUR="2"                        # jam backup (0-23)
 # ────────────────────────────────────────────────────────────
 
 GREEN='\033[0;32m'
@@ -47,12 +53,14 @@ error()   { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 SKIP_DB=false
 ONLY_DB=false
 CREATE_DB=false
+BACKUP_ONLY=false
 
 for arg in "$@"; do
     case $arg in
         --skip-db) SKIP_DB=true ;;
         --only-db) ONLY_DB=true ;;
         --create-db) CREATE_DB=true ;;
+        --backup) BACKUP_ONLY=true ;;
     esac
 done
 
@@ -67,6 +75,8 @@ elif $ONLY_DB; then
     echo -e "  Mode: ${YELLOW}Tahap 2 — Setup Database Saja${NC}"
 elif $CREATE_DB; then
     echo -e "  Mode: ${YELLOW}Buat Database Saja (MySQL sudah ada)${NC}"
+elif $BACKUP_ONLY; then
+    echo -e "  Mode: ${YELLOW}Pasang Backup Harian Saja${NC}"
 else
     echo -e "  Mode: ${GREEN}Full Deploy${NC}"
 fi
@@ -159,6 +169,62 @@ ADMINERCONF
 }
 
 # ════════════════════════════════════════════════════════════
+#  FUNGSI: BACKUP DATABASE HARIAN (cron, simpan N hari)
+# ════════════════════════════════════════════════════════════
+setup_backup() {
+
+    step "Setup Backup Database Harian"
+    command -v mysqldump &> /dev/null || error "mysqldump tidak ditemukan. Install mysql-client dulu."
+
+    # Kredensial di file khusus (chmod 600) — tidak tampil di daftar proses
+    install -m 600 /dev/null /etc/emr-backup.cnf
+    cat > /etc/emr-backup.cnf <<BACKUPCNF
+[client]
+user="${DB_USER}"
+password="${DB_PASS}"
+BACKUPCNF
+
+    mkdir -p "$BACKUP_DIR"
+    chmod 700 "$BACKUP_DIR"
+
+    cat > /usr/local/bin/backup-emr.sh <<BACKUPSCRIPT
+#!/bin/bash
+set -euo pipefail
+FILE="${BACKUP_DIR}/${DB_NAME}_\$(date +%F_%H%M).sql.gz"
+
+# tulis ke .tmp dulu agar dump gagal tidak meninggalkan file yang tampak valid
+mysqldump --defaults-extra-file=/etc/emr-backup.cnf \\
+    --single-transaction --routines --triggers --no-tablespaces ${DB_NAME} \\
+    | gzip > "\$FILE.tmp"
+mv "\$FILE.tmp" "\$FILE"
+
+# hapus backup lebih lama dari ${BACKUP_KEEP_DAYS} hari
+find "${BACKUP_DIR}" -name '${DB_NAME}_*.sql.gz' -mtime +$((BACKUP_KEEP_DAYS - 1)) -delete
+BACKUPSCRIPT
+    chmod 700 /usr/local/bin/backup-emr.sh
+
+    echo "0 ${BACKUP_HOUR} * * * root /usr/local/bin/backup-emr.sh >> /var/log/backup-emr.log 2>&1" \
+        > /etc/cron.d/backup-emr
+    chmod 644 /etc/cron.d/backup-emr
+
+    info "Uji backup pertama..."
+    /usr/local/bin/backup-emr.sh || error "Backup gagal. Cek kredensial DB_USER/DB_PASS dan database '${DB_NAME}'."
+    info "Backup harian aktif: jam ${BACKUP_HOUR}:00, simpan ${BACKUP_KEEP_DAYS} hari di ${BACKUP_DIR}"
+    warning "Salinan masih di server yang sama — salin juga ke luar server (rsync/rclone)."
+}
+
+# ════════════════════════════════════════════════════════════
+#  MODE: --backup  (pasang backup harian saja)
+# ════════════════════════════════════════════════════════════
+if $BACKUP_ONLY; then
+    setup_backup
+    echo ""
+    ls -lh "$BACKUP_DIR"
+    echo ""
+    exit 0
+fi
+
+# ════════════════════════════════════════════════════════════
 #  MODE: --create-db  (MySQL sudah terpasang di VPS — hanya
 #  buat database kosong. User/password & migrate dilakukan
 #  manual: isi .env sendiri lalu jalankan sudo bash update.sh)
@@ -208,6 +274,8 @@ if $ONLY_DB; then
     php8.3 artisan migrate --force
     php8.3 artisan db:seed --force
     info "Database berhasil dimigrate & di-seed."
+
+    setup_backup
 
     step "Rebuild Cache"
     php8.3 artisan config:clear
@@ -349,6 +417,8 @@ if ! $SKIP_DB; then
     php8.3 artisan migrate --force
     php8.3 artisan db:seed --force
     info "Database siap."
+
+    setup_backup
 fi
 
 step "STEP 13: Konfigurasi Nginx untuk EMR"
