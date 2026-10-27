@@ -160,7 +160,7 @@ Keputusan klinik: asuransi meminta bill **dijadikan satu**, dan pembayarannya **
 - Susulan **dibayar penuh oleh pasien** lewat alur ritel biasa; **tidak ada** perhitungan cover, **tidak ada** piutang asuransi, dan **tidak ada** penagihan ke asuransi untuk susulan.
 - Tidak perlu mengubah `CoverCalculatorService`, `PembayaranAsuransiService`, atau `PenagihanService`.
 - **Tagihan Gabungan** berfungsi sebagai **dokumen bukti klaim reimburse** yang diserahkan pasien ke asuransi: satu dokumen berisi billing asal + semua susulan non-batal, dengan rincian pembayaran tiap bagian.
-- Belum dibahas (tidak menghalangi rancangan): apakah **billing asal** juga berstatus reimburse atau memakai alur piutang asuransi yang sudah ada. Dokumen gabungan tetap berfungsi pada kedua kasus.
+- **Dijawab klinik:** billing asal **dibayar cash** oleh pasien, sehingga **tidak masuk piutang**. Sistem hanya **mencetak bill**; proses reimburse adalah urusan pasien langsung dengan asuransi. Tagihan Gabungan tidak mengubah billing/jurnal apa pun.
 
 ---
 
