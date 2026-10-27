@@ -64,8 +64,9 @@ Kasir memilih manual dua tagihan untuk dicetak bersama. Tidak ada relasi data.
 ```
 Hari-1  Kunjungan → SOAP → order lab + resep → Billing LUNAS (close)
                                   │
-Hari-N  Hasil lab keluar → Dokter buka riwayat pasien
-        → "Order Susulan" (tanpa SOAP): tambah lab / obat
+Hari-N  Hasil lab keluar → Dokter menyarankan tambahan lab / obat
+        → KASIR membuat "Order Susulan" (tanpa SOAP) atas saran dokter:
+          pilih kunjungan asal, pilih dokter penyaran, tambah lab / obat
         → Ritel Susulan (draft) ditautkan ke kunjungan asal
         → Submit ke kasir → bayar (alur ritel biasa) → obat diserahkan
                                   │
@@ -81,7 +82,8 @@ Hari-N  Hasil lab keluar → Dokter buka riwayat pasien
 5. Batas waktu susulan **14 hari** sejak tanggal kunjungan (**sudah dikonfirmasi klinik**), disimpan sebagai config agar mudah diubah.
 6. Satu kunjungan boleh punya **banyak** ritel susulan.
 7. Ritel susulan yang dibatalkan tidak ikut dihitung di tagihan gabungan.
-8. Hanya role dengan permission baru (usulan `ritel.susulan` untuk dokter, `billing.gabung` untuk kasir) yang bisa membuat/melihat.
+8. **Yang membuat order susulan adalah kasir** (keputusan klinik), atas saran dokter. Permission baru `ritel.susulan` (membuat) dan `billing.gabung` (melihat/cetak tagihan gabungan) diberikan ke role kasir. Kasir **wajib memilih dokter penyaran** (`dokter_id`) karena menentukan penerima sharing fee lab.
+8a. **Tidak ada retur** untuk susulan (keputusan klinik). Susulan hanya bisa **dibatalkan sebelum dibayar** (status `draft`/`menunggu_kasir`, sesuai `TransaksiRitel::bisaDibatalkan()`); setelah `dibayar` tidak bisa dibatalkan maupun diretur lewat fitur ini.
 9. Semua aksi dicatat di audit (pola `AuditKasirService` yang sudah ada).
 
 ### 4.2a Keputusan final: susulan WAJIB punya registrasi utama
@@ -128,7 +130,7 @@ Stok dan HPP hanya diproses untuk transaksi `obat`. Validasi di service: transak
 | Migrasi baru | Kolom di atas (kompatibel MySQL production). |
 | `TransaksiRitel` / `TransaksiRitelItem` | Relasi `kunjungan()`, `billing()`, `dokter()`, scope `susulan()`. |
 | `ObatRitelService` | Validasi pasien/kunjungan/billing lunas/14 hari; dukung transaksi lab (item penunjang); lewati stok & HPP untuk lab; **tidak** membuat `permintaan_penunjang`. |
-| Livewire Dokter (baru) | Form "Order Susulan" di riwayat pasien: pilih kunjungan asal, tambah lab/obat, tanpa SOAP. |
+| Livewire Kasir (baru) | Form "Order Susulan": cari pasien, pilih kunjungan asal (dalam 14 hari, billing lunas), pilih dokter penyaran, tambah lab **atau** obat (dipisah), tanpa SOAP. |
 | Livewire Kasir | Halaman **Tagihan Gabungan** (ringkasan billing asal + susulan, status bayar tiap bagian). |
 | `CetakInvoiceService` | Cetak invoice gabungan (satu dokumen, dua bagian). |
 | `SesiKasService` | Tidak diubah hitungannya; pastikan tampilan gabungan **tidak menjumlah dua kali**. |
@@ -144,12 +146,12 @@ Stok dan HPP hanya diproses untuk transaksi `obat`. Validasi di service: transak
   - **Keputusan klinik: fee lab susulan = "sama dengan sharing fee utama".** Setelah dicek ulang, kalimat ini bisa berarti dua hal, dan **datanya berbeda** (di database lokal: `tindakan` 15%, `lab` 10%):
     - **(i) Persentase `tindakan` dokter** (fee utama, yang dihitung sekarang di billing); atau
     - **(ii) Persentase `lab` dokter** — kategori ini **sudah ada dan bisa diatur** di SharingFeeForm (`fee_lab`), tetapi **belum dipakai** oleh `SharingFeeService` mana pun.
-    - Saya sebelumnya mengasumsikan (i). **Perlu konfirmasi klinik** mana yang dimaksud (pertanyaan 8).
+    - **Diputuskan: opsi (ii), persentase `lab`** (pertanyaan 8).
   - Dasar hitung mengikuti fee tindakan: jumlah `subtotal` item (sudah net diskon item) × persentase dokter. Untuk transaksi lab susulan, dasarnya adalah subtotal item lab di transaksi itu.
   - Penerima = `dokter_id` yang menyarankan di transaksi susulan (bukan otomatis dokter kunjungan asal). Kalau dokter itu tidak punya baris sharing fee untuk kategori yang dipakai, atau persentasenya 0, **tidak ada fee** (perilaku sama dengan billing sekarang).
   - Yang tetap baru: fungsi hitung fee untuk `TransaksiRitel` (bukan `Invoice`), karena `SharingFeeService` sekarang hanya menerima `Invoice`.
   - Perlu pola yang sama dengan fee yang ada: jurnal `sharing_fee_dokter` dengan sumber `transaksi_ritel`, dicatat saat transaksi lunas, dan **reversal** saat dibatalkan.
-  - **Obat susulan: tidak ada setup sharing fee.** Tabel `sharing_fee` hanya mengenal kategori `tindakan`, `lab`, `radiologi`, `peralatan` (enum di `2026_01_03_000003_create_sharing_fee_table.php`), dan SharingFeeForm hanya menyediakan kategori itu. Tidak ada kategori `obat`, baik di tabel, form, maupun layanan fee. Jika klinik ingin dokter mendapat fee dari obat susulan, perlu **kategori baru `obat`** (migrasi mengubah enum — harus aman untuk MySQL dan SQLite), kolom di form, dan perhitungan fee. **Default perancangan: obat susulan tanpa fee.**
+  - **Obat susulan: tidak ada setup sharing fee (dikonfirmasi klinik: obat susulan tanpa fee).** Tabel `sharing_fee` hanya mengenal kategori `tindakan`, `lab`, `radiologi`, `peralatan` (enum di `2026_01_03_000003_create_sharing_fee_table.php`), dan SharingFeeForm hanya menyediakan kategori itu. Tidak ada kategori `obat`, baik di tabel, form, maupun layanan fee. Jika klinik ingin dokter mendapat fee dari obat susulan, perlu **kategori baru `obat`** (migrasi mengubah enum — harus aman untuk MySQL dan SQLite), kolom di form, dan perhitungan fee. **Default perancangan: obat susulan tanpa fee.**
 
 ### 4.6 Dampak asuransi (disederhanakan: pembayaran reimburse)
 
@@ -169,8 +171,8 @@ Keputusan klinik: asuransi meminta bill **dijadikan satu**, dan pembayarannya **
 | 0 | Pastikan/terapkan penagihan lab hari H: order lab SOAP berstatus `selesai` + masuk bill (bagian 7a) | Prasyarat; cek dulu apakah ada di versi production |
 | 1 | Migrasi + model + relasi + validasi service | Fondasi, belum terlihat di UI |
 | 2 | Transaksi ritel susulan jenis `lab` (item penunjang) + pembuatan `permintaan_penunjang` + jurnal ke akun lab | Lab terpisah dari obat |
-| 2b | Sharing fee dokter untuk lab susulan (persentase sesuai pertanyaan 8; jurnal + reversal) | Butuh jawaban pertanyaan 8; kode akun (9) **pending** |
-| 3 | UI dokter "Order Susulan" + permission | Alur utama permintaan dokter |
+| 2b | Sharing fee dokter untuk lab susulan (persentase `lab` dokter; jurnal 5-1200 / 2-1200; tanpa reversal karena tidak ada retur) | Siap dikerjakan |
+| 3 | UI kasir "Order Susulan" + permission (`ritel.susulan` ke role kasir) | Alur utama; dokter hanya menyarankan |
 | 4 | Halaman & cetak **Tagihan Gabungan** (kasir) | Kebutuhan "satu bill" |
 | 5 | (Dibatalkan) Tidak ada perubahan asuransi: susulan reimburse, tanpa cover/piutang. Dokumen gabungan = bukti klaim | Disederhanakan oleh keputusan klinik |
 | 6 | Laporan (kasir/keuangan) & audit trail | Hindari hitung ganda |
@@ -187,14 +189,16 @@ Keputusan klinik: asuransi meminta bill **dijadikan satu**, dan pembayarannya **
 - Dokter menyarankan lab + obat: terbentuk **dua** transaksi terpisah; stok hanya berkurang untuk transaksi obat; `permintaan_penunjang` terbentuk untuk transaksi lab.
 - Transaksi susulan yang mencampur lab dan obat ditolak.
 - Jurnal: lab susulan masuk akun pendapatan lab, obat ke akun obat + HPP.
-- Sharing fee: terbentuk untuk `dokter_id` penyaran dengan persentase yang diputuskan (pertanyaan 8) saat lunas; nominal = subtotal lab × persentase; di-reversal saat dibatalkan; tidak terbentuk dua kali; tidak terbentuk jika persentase 0 / baris tidak ada; obat susulan tidak menghasilkan fee (kecuali kategori `obat` ditambahkan).
+- Sharing fee: terbentuk untuk `dokter_id` penyaran dengan persentase **`lab`** dokter itu saat transaksi lab susulan lunas; nominal = subtotal lab × persentase; tidak terbentuk dua kali; tidak terbentuk jika persentase 0 / baris tidak ada; **obat susulan tidak menghasilkan fee**. Karena susulan tidak bisa dibatalkan/diretur setelah dibayar, reversal fee untuk susulan tidak diperlukan.
 - Billing asal tidak berubah (total, status, jurnal) setelah susulan dibayar.
 - Tagihan gabungan: total = billing asal + susulan non-batal; tidak ada hitung ganda di rekap sesi kas.
 - Pembatalan susulan mengeluarkannya dari gabungan.
 - Susulan tanpa `kunjungan_id` ditolak; kunjungan milik pasien lain ditolak.
 - Lab susulan tidak membuat `permintaan_penunjang`.
 - Susulan tidak membentuk piutang asuransi; tagihan gabungan memuat billing asal + susulan sebagai dokumen klaim reimburse.
-- Hak akses: dokter bisa buat, kasir bisa gabung, role lain ditolak.
+- Hak akses: **kasir** bisa membuat order susulan dan melihat tagihan gabungan; role lain ditolak.
+- Susulan yang sudah `dibayar` tidak bisa dibatalkan/diretur; yang `draft`/`menunggu_kasir` bisa dibatalkan.
+- Membuat susulan tanpa memilih `dokter_id` ditolak.
 - Dijalankan di **MySQL** (sama dengan production), bukan hanya SQLite.
 
 ---
@@ -206,13 +210,13 @@ Keputusan klinik: asuransi meminta bill **dijadikan satu**, dan pembayarannya **
 3. ~~**Sharing fee dokter** untuk susulan~~ **Dijawab klinik: dokter tetap mendapat sharing fee.** Rincian aturannya (persentase, dasar hitung) lihat pertanyaan 8.
 4. ~~**Akun pendapatan** lab susulan~~ **Dijawab klinik: lab ritel dipisah dari obat** (transaksi dan akun terpisah). Kode akun lab tetap perlu ditentukan keuangan (pertanyaan 9).
 5. ~~**Pembayaran susulan**~~ **Dijawab klinik: reimburse** — pasien bayar sendiri, lalu klaim ke asuransi; tanpa cover/piutang (lihat 4.6).
-6. **Retur/pembatalan** setelah obat diserahkan — memakai alur retur yang ada?
-7. **Siapa yang boleh membuat order susulan** — dokter saja, atau juga perawat/apoteker atas arahan dokter?
-8. **Persentase sharing fee lab susulan** — klinik menjawab "sama dengan sharing fee utama". Yang dimaksud persentase **`tindakan`** dokter (opsi i) atau persentase **`lab`** yang sudah ada di pengaturan dokter (opsi ii)? Keduanya bisa berbeda nilainya. **Obat susulan:** sudah dicek, **tidak ada setup sharing fee obat** (lihat 4.5); defaultnya tanpa fee, kecuali klinik meminta kategori `obat` baru.
+6. ~~**Retur/pembatalan**~~ **Dijawab klinik: tidak ada retur** untuk susulan (lihat aturan 8a).
+7. ~~**Siapa yang membuat order susulan**~~ **Dijawab klinik: kasir** (lihat aturan 8).
+8. ~~**Persentase sharing fee lab susulan**~~ **Dijawab klinik: ya, mengikuti saran** — memakai persentase **`lab`** dokter (kategori yang sudah ada di SharingFeeForm); **obat susulan tanpa fee**.
 10. ~~**Registrasi utama**~~ **Dijawab klinik: susulan TIDAK boleh tanpa registrasi utama** (kunjungan asal wajib).
 11. ~~**Lab susulan dan `permintaan_penunjang`**~~ **Dijawab klinik: pilihan (b)** — lab susulan tidak membuat `permintaan_penunjang`.
 12. ~~**Asuransi untuk susulan**~~ **Dijawab klinik: reimburse** (lihat 5 dan 4.6).
-9. **Akun pendapatan lab & beban sharing fee** — **DITUNDA (pending) atas keputusan pemilik.** Kode akun lab dan akun beban belum ditentukan; hanya memblokir pemostingan jurnal lab susulan dan sharing fee (Tahap 2 bagian jurnal dan Tahap 2b). Tahap 0, 1, 3, 4 tidak bergantung padanya.
+9. ~~**Akun pendapatan lab & beban sharing fee**~~ **Dijawab klinik: ya** — dipakai akun yang **sudah ada** di `ChartOfAccountSeeder`/`SharingFeeService`: pendapatan lab **4-1200** (Pendapatan Penunjang Lab/Radiologi), beban **5-1200** (Biaya Jasa Dokter) dan hutang **2-1200** (Hutang Jasa Dokter). *Jawaban "ya" saya tafsirkan sebagai persetujuan memakai akun-akun ini; koreksi bila keliru.*
 
 ---
 
