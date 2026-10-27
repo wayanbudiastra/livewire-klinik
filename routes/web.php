@@ -191,6 +191,12 @@ Route::middleware(['auth', 'active'])->group(function () {
         })->name('billing.split-payment')
           ->middleware('permission:pembayaran.create');
 
+        // Tagihan Gabungan: billing asal + susulan (bukti klaim reimburse asuransi)
+        Route::get('/billing/{billing}/gabungan', function (\App\Models\Invoice $billing) {
+            return view('kasir.billing-gabungan', app(\App\Services\Kasir\TagihanGabunganService::class)->susun($billing));
+        })->name('billing.gabungan')
+          ->middleware('permission:billing.gabung');
+
         Route::get('/billing/{billing}/cetak', function (\App\Models\Invoice $billing) {
             $service = app(\App\Services\Kasir\CetakInvoiceService::class);
             return $service->cetak($billing, auth()->id());

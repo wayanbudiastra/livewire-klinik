@@ -14,6 +14,13 @@
                 <p class="page-subtitle">{{ $billing->nomor_invoice }}</p>
             </div>
         </div>
+        @can('billing.gabung')
+            @if ($billing->status === 'lunas')
+                <a href="{{ route('kasir.billing.gabungan', $billing) }}" target="_blank" class="btn btn-secondary btn-sm">
+                    Tagihan Gabungan
+                </a>
+            @endif
+        @endcan
     </div>
 
     <div class="page-content max-w-3xl">
