@@ -84,6 +84,12 @@ class RolePermissionSeeder extends Seeder
 
             // Permission khusus untuk membatalkan billing/tagihan
             'billing.cancel',
+
+            // Order susulan (lab/obat tambahan atas saran dokter setelah bill
+            // lunas) dibuat KASIR; tagihan gabungan = billing asal + susulan.
+            // Lihat docs/PERANCANGAN_COMBINE_BILL_RITEL.md.
+            'ritel.susulan',
+            'billing.gabung',
         ];
 
         foreach ($permissions as $perm) {
@@ -135,6 +141,7 @@ class RolePermissionSeeder extends Seeder
             'kasir' => [
                 'pasien.view', 'kunjungan.view',
                 'billing.view', 'billing.create', 'billing.edit', 'billing.cancel',
+                'ritel.susulan', 'billing.gabung',
                 'pembayaran.view', 'pembayaran.create',
                 'laporan.keuangan',
                 'laporan.kasir.view',
