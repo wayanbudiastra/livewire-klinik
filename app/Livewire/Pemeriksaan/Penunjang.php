@@ -127,6 +127,11 @@ class Penunjang extends Component
 
     public function submitLab(): void
     {
+        if (\App\Models\Invoice::kunjunganSudahLunas($this->kunjunganId)) {
+            $this->dispatch('notify', type: 'error', message: 'Bill pasien sudah lunas: data yang memengaruhi tagihan tidak dapat diubah.');
+            return;
+        }
+
         if (empty($this->cartLab)) return;
 
         foreach ($this->cartLab as $item) {
@@ -189,6 +194,11 @@ class Penunjang extends Component
 
     public function submitRad(): void
     {
+        if (\App\Models\Invoice::kunjunganSudahLunas($this->kunjunganId)) {
+            $this->dispatch('notify', type: 'error', message: 'Bill pasien sudah lunas: data yang memengaruhi tagihan tidak dapat diubah.');
+            return;
+        }
+
         if (empty($this->cartRad)) return;
 
         foreach ($this->cartRad as $item) {
@@ -235,6 +245,7 @@ class Penunjang extends Component
      */
     private function bisaDibatalkan(PermintaanPenunjang $order): bool
     {
+        if (Invoice::kunjunganSudahLunas($order->kunjungan_id)) return false;
         if ($order->status === 'dipesan') return true;
         if ($order->status !== 'selesai') return false;
 

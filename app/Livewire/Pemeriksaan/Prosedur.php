@@ -140,6 +140,11 @@ class Prosedur extends Component
 
     public function simpanTindakan(): void
     {
+        if (\App\Models\Invoice::kunjunganSudahLunas($this->kunjunganId)) {
+            $this->dispatch('notify', type: 'error', message: 'Bill pasien sudah lunas: data yang memengaruhi tagihan tidak dapat diubah.');
+            return;
+        }
+
         if (! $this->tindakanId) {
             $this->dispatch('notify', type: 'error', message: 'Pilih tindakan terlebih dahulu.');
             return;
@@ -164,6 +169,11 @@ class Prosedur extends Component
 
     public function hapusTindakan(int $id): void
     {
+        if (\App\Models\Invoice::kunjunganSudahLunas($this->kunjunganId)) {
+            $this->dispatch('notify', type: 'error', message: 'Bill pasien sudah lunas: data yang memengaruhi tagihan tidak dapat diubah.');
+            return;
+        }
+
         $row = Tindakan::where('id', $id)
             ->where('kunjungan_id', $this->kunjunganId)
             ->first();
@@ -187,6 +197,11 @@ class Prosedur extends Component
 
     public function simpanAlkes(): void
     {
+        if (\App\Models\Invoice::kunjunganSudahLunas($this->kunjunganId)) {
+            $this->dispatch('notify', type: 'error', message: 'Bill pasien sudah lunas: data yang memengaruhi tagihan tidak dapat diubah.');
+            return;
+        }
+
         if (! $this->alkesId) {
             $this->dispatch('notify', type: 'error', message: 'Pilih alat/BMHP terlebih dahulu.');
             return;
@@ -219,6 +234,11 @@ class Prosedur extends Component
 
     public function hapusAlkes(int $id): void
     {
+        if (\App\Models\Invoice::kunjunganSudahLunas($this->kunjunganId)) {
+            $this->dispatch('notify', type: 'error', message: 'Bill pasien sudah lunas: data yang memengaruhi tagihan tidak dapat diubah.');
+            return;
+        }
+
         $row = PemakaianAlkes::where('id', $id)
             ->where('kunjungan_id', $this->kunjunganId)
             ->first();

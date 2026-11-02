@@ -115,6 +115,11 @@ class ResepObat extends Component
 
     public function submitNonRacikan(): void
     {
+        if (\App\Models\Invoice::kunjunganSudahLunas($this->kunjunganId)) {
+            $this->dispatch('notify', type: 'error', message: 'Bill pasien sudah lunas: data yang memengaruhi tagihan tidak dapat diubah.');
+            return;
+        }
+
         if (empty($this->cartObat)) return;
 
         foreach ($this->cartObat as $item) {
@@ -174,6 +179,11 @@ class ResepObat extends Component
 
     public function submitRacikan(): void
     {
+        if (\App\Models\Invoice::kunjunganSudahLunas($this->kunjunganId)) {
+            $this->dispatch('notify', type: 'error', message: 'Bill pasien sudah lunas: data yang memengaruhi tagihan tidak dapat diubah.');
+            return;
+        }
+
         $this->validate([
             'namaRacikan'          => 'required|string|max:255',
             'metodeRacikan'        => 'required|in:puyer,kapsul,salep,krim,sirup',
@@ -214,6 +224,11 @@ class ResepObat extends Component
     // ── Delete actions ───────────────────────────────────────
     public function batalkanItem(int $itemId): void
     {
+        if (\App\Models\Invoice::kunjunganSudahLunas($this->kunjunganId)) {
+            $this->dispatch('notify', type: 'error', message: 'Bill pasien sudah lunas: data yang memengaruhi tagihan tidak dapat diubah.');
+            return;
+        }
+
         $item = ItemResep::find($itemId);
         if (! $item || $item->resep->kunjungan_id !== $this->kunjunganId) return;
         if ($item->resep->is_locked) {
@@ -228,6 +243,11 @@ class ResepObat extends Component
 
     public function batalkanRacikan(int $racikanId): void
     {
+        if (\App\Models\Invoice::kunjunganSudahLunas($this->kunjunganId)) {
+            $this->dispatch('notify', type: 'error', message: 'Bill pasien sudah lunas: data yang memengaruhi tagihan tidak dapat diubah.');
+            return;
+        }
+
         $racikan = Racikan::find($racikanId);
         if (! $racikan || $racikan->resep->kunjungan_id !== $this->kunjunganId) return;
         if ($racikan->resep->is_locked) {

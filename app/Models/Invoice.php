@@ -31,6 +31,15 @@ class Invoice extends Model
         ];
     }
 
+    /**
+     * Billing kunjungan sudah lunas (bill closed)? Dipakai modul Pemeriksaan untuk
+     * mengunci data yang memengaruhi tagihan (tindakan, alkes, resep, order penunjang).
+     */
+    public static function kunjunganSudahLunas(int $kunjunganId): bool
+    {
+        return static::where('kunjungan_id', $kunjunganId)->where('status', 'lunas')->exists();
+    }
+
     public function kunjungan()
     {
         return $this->belongsTo(Kunjungan::class);
