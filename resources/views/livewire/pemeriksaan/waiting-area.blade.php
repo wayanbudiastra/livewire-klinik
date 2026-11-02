@@ -223,6 +223,13 @@
                  dalam kotak ini, tidak ikut menggeser tombol Tutup (x) di sebelahnya. --}}
             <div class="flex items-start gap-3 shrink-0">
                 <div class="flex flex-wrap items-center gap-2 justify-end max-w-xs">
+                    @can('soap.revisi')
+                    @if($soap?->is_final)
+                    {{-- Revisi SOAP dilakukan di halaman detail (tab SOAP Note) -- modal ini read-only. --}}
+                    <a href="{{ route('pemeriksaan.index', ['tab' => 'detail', 'kunjunganId' => $vk->id]) }}"
+                       class="btn-secondary btn-sm">Revisi SOAP</a>
+                    @endif
+                    @endcan
                     <livewire:pemeriksaan.cetak-surat :kunjunganId="$viewKunjunganId" wire:key="cetak-surat-view-{{ $viewKunjunganId }}" />
                 </div>
                 <button wire:click="closeView" type="button"
