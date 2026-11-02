@@ -67,6 +67,7 @@
                                 'text-[#0a3d62] dark:text-blue-400' => $isAppointment,
                                 'text-gray-600 dark:text-gray-400'  => !$isAppointment,
                             ])>{{ $k->nomor_antrean }}</span>
+                            <span class="text-xs text-gray-400">{{ $k->tanggal->format('d/m/Y') }}</span>
                             @if($isAppointment)
                             <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold
                                          bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 uppercase">
