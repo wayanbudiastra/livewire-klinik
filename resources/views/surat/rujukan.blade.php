@@ -59,7 +59,7 @@
 
 <div class="section">
     <div class="section-title">Indikasi / Alasan Rujukan</div>
-    <div class="box" style="line-height:1.6;">{{ $d['indikasi'] }}</div>
+    <div class="box" style="line-height:1.6;">{!! nl2br(e($d['indikasi'])) !!}</div>
 </div>
 
 @if(!empty($d['penunjang_snapshot']))

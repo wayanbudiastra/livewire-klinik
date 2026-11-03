@@ -51,7 +51,7 @@
 @if(!empty($d['instruksi']))
 <div class="instruksi-box">
     <strong>Instruksi / Pesan dokter:</strong><br>
-    {{ $d['instruksi'] }}
+    {!! nl2br(e($d['instruksi'])) !!}
 </div>
 @endif
 

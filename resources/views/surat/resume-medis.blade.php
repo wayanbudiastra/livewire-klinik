@@ -9,7 +9,8 @@
     .meta-row td { padding:1px 0; font-size:9.5px; }
     .section-title { font-size:10.5px; font-weight:bold; color:#0a3d62; text-transform:uppercase; border-bottom:1px solid #0a3d62; padding-bottom:2px; margin:12px 0 5px; }
     .field-label { font-size:8.5px; color:#666; text-transform:uppercase; }
-    .field-value { font-size:9.5px; margin-bottom:6px; }
+    /* line-height agak longgar supaya baris hasil Enter dokter tetap terbaca */
+    .field-value { font-size:9.5px; margin-bottom:6px; line-height:1.45; }
     .info-table td { padding:2px 6px 2px 0; vertical-align:top; width:50%; }
     .vitals-table td { padding:2px 10px 2px 0; }
     .item-table { width:100%; border-collapse:collapse; margin-top:4px; }
@@ -83,6 +84,9 @@
     ];
 
     $d = $surat->data;
+    // Teks bebas dari dokter: escape dulu, lalu Enter (newline) jadi <br>
+    // supaya format baris di PDF sama seperti saat diketik di form.
+    $teks = fn ($s) => nl2br(e($s));
     $tglLahir = $pasien->tanggal_lahir
         ? \Carbon\Carbon::parse($pasien->tanggal_lahir)->locale($bahasa)->translatedFormat('d F Y')
         : $L['no_data'];
@@ -147,29 +151,29 @@
 <div class="section-title">{{ $L['subjective'] }}</div>
 
 <span class="field-label">{{ $L['chief_complaint'] }}</span>
-<div class="field-value">{{ ($d['chief_complaint_snapshot'] ?? $d['anamnesis_snapshot'] ?? null) ?: $L['no_data'] }}</div>
+<div class="field-value">{!! $teks(($d['chief_complaint_snapshot'] ?? $d['anamnesis_snapshot'] ?? null) ?: $L['no_data']) !!}</div>
 
 <span class="field-label">{{ $L['presenting_complaint'] }}</span>
-<div class="field-value">{{ $d['subjektif_snapshot'] ?: $L['no_data'] }}</div>
+<div class="field-value">{!! $teks(($d['subjektif_snapshot'] ?? null) ?: $L['no_data']) !!}</div>
 
 @if(!empty($d['s_past_medical_snapshot']))
 <span class="field-label">{{ $L['past_medical'] }}</span>
-<div class="field-value">{{ $d['s_past_medical_snapshot'] }}</div>
+<div class="field-value">{!! $teks($d['s_past_medical_snapshot']) !!}</div>
 @endif
 
 @if(!empty($d['s_past_surgical_snapshot']))
 <span class="field-label">{{ $L['past_surgical'] }}</span>
-<div class="field-value">{{ $d['s_past_surgical_snapshot'] }}</div>
+<div class="field-value">{!! $teks($d['s_past_surgical_snapshot']) !!}</div>
 @endif
 
 @if(!empty($d['s_allergies_snapshot']))
 <span class="field-label">{{ $L['allergies'] }}</span>
-<div class="field-value">{{ $d['s_allergies_snapshot'] }}</div>
+<div class="field-value">{!! $teks($d['s_allergies_snapshot']) !!}</div>
 @endif
 
 @if(!empty($d['s_other_snapshot']))
 <span class="field-label">{{ $L['other_subjective'] }}</span>
-<div class="field-value">{{ $d['s_other_snapshot'] }}</div>
+<div class="field-value">{!! $teks($d['s_other_snapshot']) !!}</div>
 @endif
 
 @if(!empty($d['vitals_snapshot']))
@@ -196,11 +200,11 @@
 
 <div class="section-title">{{ $L['objective'] }}</div>
 <span class="field-label">{{ $L['physical_exam'] }}</span>
-<div class="field-value">{{ $d['objektif_snapshot'] ?: $L['no_data'] }}</div>
+<div class="field-value">{!! $teks(($d['objektif_snapshot'] ?? null) ?: $L['no_data']) !!}</div>
 
 @if(!empty($d['o_supporting_exam_snapshot']))
 <span class="field-label">{{ $L['supporting_exam_notes'] }}</span>
-<div class="field-value">{{ $d['o_supporting_exam_snapshot'] }}</div>
+<div class="field-value">{!! $teks($d['o_supporting_exam_snapshot']) !!}</div>
 @endif
 
 <span class="field-label">{{ $L['penunjang'] }}</span>
@@ -216,11 +220,11 @@
 
 <div class="section-title">{{ $L['assessment'] }}</div>
 <span class="field-label">{{ $L['primary_diagnosis'] }}</span>
-<div class="field-value">{{ ($diagnosaUtama['nama'] ?? $d['a_primary_diagnosis_snapshot'] ?? null) ?: $L['no_data'] }}</div>
+<div class="field-value">{!! $teks(($diagnosaUtama['nama'] ?? $d['a_primary_diagnosis_snapshot'] ?? null) ?: $L['no_data']) !!}</div>
 
 @if(!empty($d['a_differential_diagnosis_snapshot']))
 <span class="field-label">{{ $L['differential_diagnosis'] }}</span>
-<div class="field-value">{{ $d['a_differential_diagnosis_snapshot'] }}</div>
+<div class="field-value">{!! $teks($d['a_differential_diagnosis_snapshot']) !!}</div>
 @endif
 
 <span class="field-label">{{ $L['diagnosis_icd10'] }}</span>
@@ -273,29 +277,29 @@
 
 @if(!empty($d['p_treatment_snapshot']))
 <span class="field-label">{{ $L['treatment'] }}</span>
-<div class="field-value">{{ $d['p_treatment_snapshot'] }}</div>
+<div class="field-value">{!! $teks($d['p_treatment_snapshot']) !!}</div>
 @endif
 
 @if(!empty($d['plan_snapshot']))
 <span class="field-label">{{ $L['doctor_recommendation'] }}</span>
-<div class="field-value">{{ $d['plan_snapshot'] }}</div>
+<div class="field-value">{!! $teks($d['plan_snapshot']) !!}</div>
 @endif
 
 @if(!empty($d['p_notes_snapshot']))
 <span class="field-label">{{ $L['plan_notes'] }}</span>
-<div class="field-value">{{ $d['p_notes_snapshot'] }}</div>
+<div class="field-value">{!! $teks($d['p_notes_snapshot']) !!}</div>
 @endif
 @endif
 
 @if(!empty($d['escorted']) || !empty($d['flight']) || !empty($d['recommendation']) || !empty($d['fasilitas_bandara']))
 <table class="info-table" style="width:100%; margin-top:8px;">
     <tr>
-        <td><span class="field-label">{{ $L['escorted'] }}</span><br><span class="field-value">{{ $d['escorted'] ?: '-' }}</span></td>
-        <td><span class="field-label">{{ $L['recommendation'] }}</span><br><span class="field-value">{{ $d['recommendation'] ?: '-' }}</span></td>
+        <td><span class="field-label">{{ $L['escorted'] }}</span><br><span class="field-value">{!! $teks(($d['escorted'] ?? null) ?: '-') !!}</span></td>
+        <td><span class="field-label">{{ $L['recommendation'] }}</span><br><span class="field-value">{!! $teks(($d['recommendation'] ?? null) ?: '-') !!}</span></td>
     </tr>
     <tr>
-        <td><span class="field-label">{{ $L['flight'] }}</span><br><span class="field-value">{{ $d['flight'] ?: '-' }}</span></td>
-        <td><span class="field-label">{{ $L['airport_facilities'] }}</span><br><span class="field-value">{{ $d['fasilitas_bandara'] ?: '-' }}</span></td>
+        <td><span class="field-label">{{ $L['flight'] }}</span><br><span class="field-value">{!! $teks(($d['flight'] ?? null) ?: '-') !!}</span></td>
+        <td><span class="field-label">{{ $L['airport_facilities'] }}</span><br><span class="field-value">{!! $teks(($d['fasilitas_bandara'] ?? null) ?: '-') !!}</span></td>
     </tr>
 </table>
 @endif
