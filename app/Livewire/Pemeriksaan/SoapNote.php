@@ -24,6 +24,15 @@ class SoapNote extends Component
         'p_treatment', 'p_advice', 'p_transportation', 'p_escort', 'p_notes',
     ];
 
+    /**
+     * Kolom TTV di asesmen_perawat yang ikut dicatat before/after saat
+     * revisi. TTV disimpan di tabel terpisah (asesmen_perawat), bukan di
+     * soap_note, jadi jejaknya dicatat sendiri -- lihat simpanRevisi().
+     */
+    private const KOLOM_TTV = [
+        'berat_badan', 'tinggi_badan', 'tekanan_darah', 'nadi', 'suhu', 'saturasi', 'gds',
+    ];
+
     public int $kunjunganId;
 
     public string $activeSection = 's';
@@ -63,6 +72,15 @@ class SoapNote extends Component
     public bool   $showRevisiPrompt = false;
     public string $alasanRevisi     = '';
 
+    // ── TTV (Tanda Vital) — bisa direvisi saat sedang revisi SOAP ──
+    public string $beratBadan    = '';
+    public string $tinggiBadan   = '';
+    public string $tekananDarah  = '';
+    public string $nadi          = '';
+    public string $suhu          = '';
+    public string $saturasi      = '';
+    public string $gds           = '';
+
     // ── Lampiran (foto luka, hasil jahitan, radiologi, dll) ───
     /** @var \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null */
     public $lampiranBaru = null;
@@ -80,6 +98,7 @@ class SoapNote extends Component
         $this->authorize('soap.view');
 
         $this->loadExisting();
+        $this->loadTtv();
         $this->autoFillAllergies();
         $this->autoFillChiefComplaint();
     }
@@ -113,6 +132,21 @@ class SoapNote extends Component
         $this->pTransportation  = $soap->p_transportation ?? '';
         $this->pEscort          = $soap->p_escort         ?? '';
         $this->pNotes           = $soap->p_notes          ?? '';
+    }
+
+    /** TTV ikut di-load ke form supaya bisa direvisi bareng SOAP -- sumber datanya tetap asesmen_perawat. */
+    private function loadTtv(): void
+    {
+        $asesmen = AsesmenPerawat::where('kunjungan_id', $this->kunjunganId)->first();
+        if (! $asesmen) return;
+
+        $this->beratBadan   = $asesmen->berat_badan   ? (string) $asesmen->berat_badan   : '';
+        $this->tinggiBadan  = $asesmen->tinggi_badan  ? (string) $asesmen->tinggi_badan  : '';
+        $this->tekananDarah = $asesmen->tekanan_darah ?? '';
+        $this->nadi         = $asesmen->nadi          ? (string) $asesmen->nadi          : '';
+        $this->suhu         = $asesmen->suhu          ? (string) $asesmen->suhu          : '';
+        $this->saturasi     = $asesmen->saturasi      ? (string) $asesmen->saturasi      : '';
+        $this->gds          = $asesmen->gds           ? (string) $asesmen->gds           : '';
     }
 
     private function autoFillAllergies(): void
@@ -416,7 +450,9 @@ class SoapNote extends Component
     {
         $this->sedangRevisi = false;
         $this->alasanRevisi = '';
+        $this->resetValidation();
         $this->loadExisting();
+        $this->loadTtv();
         unset($this->kunjungan, $this->soapModel);
     }
 
@@ -426,10 +462,21 @@ class SoapNote extends Component
         if (! $this->isFinal || ! $this->sedangRevisi) return;
         $this->authorize('soap.revisi');
         $this->validateMinimalDiagnosis();
+        $this->validate([
+            'beratBadan'   => 'nullable|numeric|min:1|max:500',
+            'tinggiBadan'  => 'nullable|numeric|min:1|max:300',
+            'nadi'         => 'nullable|integer|min:1|max:300',
+            'suhu'         => 'nullable|numeric|min:30|max:45',
+            'saturasi'     => 'nullable|integer|min:1|max:100',
+            'gds'          => 'nullable|numeric|min:0|max:9999',
+        ]);
 
-        $sebelum = SoapNoteModel::find($this->soapId)?->only(self::KOLOM_ISI);
+        $sebelum    = SoapNoteModel::find($this->soapId)?->only(self::KOLOM_ISI);
+        $ttvSebelum = AsesmenPerawat::where('kunjungan_id', $this->kunjunganId)->first()?->only(self::KOLOM_TTV);
 
         if (! $this->doSimpan()) return;
+
+        $asesmen = $this->simpanTtv();
 
         $soap = SoapNoteModel::find($this->soapId);
         $soap->update([
@@ -443,15 +490,43 @@ class SoapNote extends Component
             ->performedOn($soap)
             ->causedBy(auth()->user())
             ->withProperties([
-                'sebelum' => $sebelum,
-                'sesudah' => $soap->only(self::KOLOM_ISI),
-                'alasan'  => $this->alasanRevisi,
+                'sebelum'     => $sebelum,
+                'sesudah'     => $soap->only(self::KOLOM_ISI),
+                'ttv_sebelum' => $ttvSebelum,
+                'ttv_sesudah' => $asesmen?->only(self::KOLOM_TTV),
+                'alasan'      => $this->alasanRevisi,
             ])
             ->log('SOAP Note direvisi setelah finalisasi');
 
         $this->sedangRevisi = false;
         $this->alasanRevisi = '';
-        $this->dispatch('notify', type: 'success', message: 'Revisi SOAP Note berhasil disimpan.');
+        $this->dispatch('notify', type: 'success', message: 'Revisi SOAP Note & Tanda Vital berhasil disimpan.');
+    }
+
+    /**
+     * Simpan TTV ke asesmen_perawat -- dipanggil dari simpanRevisi() saja
+     * (TTV di SOAP Note cuma bisa diedit saat mode revisi, lihat
+     * isLocked()). Perawat_id yang sudah ada dipertahankan, bukan ditimpa
+     * jadi dokter yang merevisi.
+     */
+    private function simpanTtv(): AsesmenPerawat
+    {
+        $asesmen = AsesmenPerawat::updateOrCreate(
+            ['kunjungan_id' => $this->kunjunganId],
+            [
+                'berat_badan'   => $this->beratBadan   ?: null,
+                'tinggi_badan'  => $this->tinggiBadan  ?: null,
+                'tekanan_darah' => $this->tekananDarah ?: null,
+                'nadi'          => $this->nadi         ?: null,
+                'suhu'          => $this->suhu         ?: null,
+                'saturasi'      => $this->saturasi     ?: null,
+                'gds'           => $this->gds          ?: null,
+            ]
+        );
+
+        unset($this->kunjungan);
+
+        return $asesmen;
     }
 
     /**

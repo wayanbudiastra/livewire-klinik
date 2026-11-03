@@ -110,7 +110,15 @@
     {{-- Tanda Vital (dari Asesmen Perawat) -- tampil di atas tab, terlepas dari section yang aktif --}}
     @if(count($this->vitals) > 0)
     <div class="card p-3">
-        <p class="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Tanda Vital (dari Asesmen Perawat)</p>
+        <div class="flex items-center justify-between gap-2 mb-2">
+            <p class="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500">Tanda Vital (dari Asesmen Perawat)</p>
+            @if($sedangRevisi && $activeSection !== 'o')
+            <button type="button" wire:click="$set('activeSection', 'o')"
+                    class="text-[11px] font-medium text-amber-700 dark:text-amber-400 hover:underline">
+                Revisi TTV di tab Objective →
+            </button>
+            @endif
+        </div>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             @foreach($this->vitals as $label => $val)
             <div class="text-center">
@@ -123,6 +131,11 @@
     @else
     <div class="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
         Belum ada data vital dari asesmen perawat untuk kunjungan ini.
+        @if($sedangRevisi && $activeSection !== 'o')
+        <button type="button" wire:click="$set('activeSection', 'o')" class="ml-1 font-medium hover:underline">
+            Isi di tab Objective →
+        </button>
+        @endif
     </div>
     @endif
 
@@ -224,6 +237,68 @@
     {{-- ══════════ OBJECTIVE ══════════ --}}
     @elseif($activeSection === 'o')
     <div class="space-y-3">
+        {{-- TTV cuma bisa diedit saat mode revisi; di luar itu tetap read-only
+             di kartu "Tanda Vital" di atas tab. Sumber datanya asesmen_perawat,
+             jadi perubahan di sini ikut terbaca di modul lain (resume medis,
+             surat keterangan) yang membacanya dari tabel yang sama. --}}
+        @if($sedangRevisi)
+        <div class="card p-4 border-amber-300 dark:border-amber-700 bg-amber-50/40 dark:bg-amber-900/10">
+            <div class="flex items-start justify-between gap-3 mb-3">
+                <div>
+                    <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">Revisi Tanda Vital</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        Perbaikan di sini menimpa data asesmen perawat untuk kunjungan ini dan tercatat di jejak revisi.
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="form-group">
+                    <label class="form-label dark:text-gray-300">Berat Badan <span class="text-gray-400 font-normal">(kg)</span></label>
+                    <input wire:model="beratBadan" type="number" step="0.01" min="1" max="500" placeholder="60"
+                           class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200">
+                    @error('beratBadan') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div class="form-group">
+                    <label class="form-label dark:text-gray-300">Tinggi Badan <span class="text-gray-400 font-normal">(cm)</span></label>
+                    <input wire:model="tinggiBadan" type="number" step="0.01" min="1" max="300" placeholder="165"
+                           class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200">
+                    @error('tinggiBadan') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div class="form-group">
+                    <label class="form-label dark:text-gray-300">Tekanan Darah <span class="text-gray-400 font-normal">(mmHg)</span></label>
+                    <input wire:model="tekananDarah" type="text" maxlength="20" placeholder="120/80"
+                           class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200">
+                    @error('tekananDarah') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div class="form-group">
+                    <label class="form-label dark:text-gray-300">Nadi <span class="text-gray-400 font-normal">(bpm)</span></label>
+                    <input wire:model="nadi" type="number" min="1" max="300" placeholder="80"
+                           class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200">
+                    @error('nadi') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div class="form-group">
+                    <label class="form-label dark:text-gray-300">Suhu <span class="text-gray-400 font-normal">(°C)</span></label>
+                    <input wire:model="suhu" type="number" step="0.1" min="30" max="45" placeholder="36.5"
+                           class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200">
+                    @error('suhu') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div class="form-group">
+                    <label class="form-label dark:text-gray-300">SpO2 <span class="text-gray-400 font-normal">(%)</span></label>
+                    <input wire:model="saturasi" type="number" min="1" max="100" placeholder="98"
+                           class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200">
+                    @error('saturasi') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div class="form-group">
+                    <label class="form-label dark:text-gray-300">GDS <span class="text-gray-400 font-normal">(mg/dL)</span></label>
+                    <input wire:model="gds" type="number" step="0.01" min="0" max="9999" placeholder="110"
+                           class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200">
+                    @error('gds') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+            </div>
+        </div>
+        @endif
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div class="form-group">
                 <label class="form-label dark:text-gray-300">Physical Examination</label>
