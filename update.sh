@@ -181,14 +181,27 @@ info "STEP 7: Build frontend assets..."
 npm install --silent
 npm run build
 
-# ── 8. Fix permission (setelah artisan & build membuat file baru) ──
+# ── 8. Ensure symlink storage (untuk akses logo & file upload di browser) ──
+# Logo & file upload tersimpan di storage/app/public/, namun perlu symlink
+# public/storage → storage/app/public agar bisa diakses dari web.
+# (Di PDF, logo sudah embed sbg base64, jadi tidak bergantung symlink ini)
+info "STEP 8: Ensure symlink storage..."
+if [ -L "$PROJECT_DIR/public/storage" ]; then
+    info "Symlink public/storage sudah ada, skip."
+elif [ -e "$PROJECT_DIR/public/storage" ]; then
+    warning "public/storage ada tapi BUKAN symlink -- tidak disentuh, cek manual."
+else
+    php8.3 artisan storage:link
+fi
+
+# ── 9. Fix permission (setelah artisan & build membuat file baru) ──
 # artisan/npm berjalan sebagai root → file baru bisa owned root
-info "STEP 8: Fix permission storage & cache (final)..."
+info "STEP 9: Fix permission storage & cache (final)..."
 chown -R www-data:www-data "$PROJECT_DIR/storage" "$PROJECT_DIR/bootstrap/cache"
 chmod -R 775 "$PROJECT_DIR/storage" "$PROJECT_DIR/bootstrap/cache"
 
-# ── 9. Restart PHP FPM ─────────────────────────────────────────
-info "STEP 9: Restart PHP 8.3 FPM..."
+# ── 10. Restart PHP FPM ─────────────────────────────────────────
+info "STEP 10: Restart PHP 8.3 FPM..."
 systemctl restart php8.3-fpm
 
 echo ""
