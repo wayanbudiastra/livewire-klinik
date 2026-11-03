@@ -1,12 +1,12 @@
 <div class="kop">
     <table style="width:100%;border-bottom:3px double #0a3d62;padding-bottom:8px;margin-bottom:6px;">
         <tr>
-            @if($klinik->logo)
+            @if($klinik->logo_data_uri)
             <td style="width:70px;vertical-align:middle;">
-                <img src="{{ public_path('storage/' . $klinik->logo) }}" style="height:55px;width:auto;">
+                <img src="{{ $klinik->logo_data_uri }}" style="height:55px;width:auto;">
             </td>
             @endif
-            <td style="vertical-align:middle;padding-left:{{ $klinik->logo ? '10px' : '0' }};">
+            <td style="vertical-align:middle;padding-left:{{ $klinik->logo_data_uri ? '10px' : '0' }};">
                 <div style="font-size:16px;font-weight:bold;color:#0a3d62;letter-spacing:0.5px;">{{ $klinik->nama }}</div>
                 @if($klinik->alamat)
                 <div style="font-size:9px;color:#444;margin-top:2px;">{{ $klinik->alamat }}</div>

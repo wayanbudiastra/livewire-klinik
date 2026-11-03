@@ -60,8 +60,8 @@
 <div class="header-bar">
     <div style="display: flex; align-items: center; gap: 10px;">
         @php $klinik = \App\Models\Klinik::profil(); @endphp
-        @if($klinik->logo)
-        <img src="{{ public_path('storage/' . $klinik->logo) }}" style="height: 35px; width: auto; background: white; padding: 2px; border-radius: 4px;">
+        @if($klinik->logo_data_uri)
+        <img src="{{ $klinik->logo_data_uri }}" style="height: 35px; width: auto; background: white; padding: 2px; border-radius: 4px;">
         @endif
         <div>
             <div class="klinik-nama">{{ $klinik->nama ?: config('emr.klinik_nama', 'Klinik Sehat') }}</div>
