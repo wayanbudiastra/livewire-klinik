@@ -157,7 +157,12 @@
                 <td>{{ ucfirst($item->jenis) }}</td>
                 <td class="right">{{ rtrim(rtrim(number_format($item->qty, 2, ',', '.'), '0'), ',') }} {{ $item->satuan }}</td>
                 <td class="right">{{ number_format($item->harga_satuan, 0, ',', '.') }}</td>
-                <td class="right">{{ $item->diskon_item > 0 ? number_format($item->diskon_item, 0, ',', '.') : '-' }}</td>
+                <td class="right">
+                    {{ $item->diskon_item > 0 ? number_format($item->diskon_item, 0, ',', '.') : '-' }}
+                    @if ($item->diskon_item > 0 && $item->diskon_tipe === 'persen')
+                        <span style="color:#6b7280; font-size:9px;">({{ rtrim(rtrim(number_format($item->diskon_nilai, 2, ',', '.'), '0'), ',') }}%)</span>
+                    @endif
+                </td>
                 <td class="right"><strong>{{ number_format($item->subtotal, 0, ',', '.') }}</strong></td>
             </tr>
             @endforeach
@@ -182,7 +187,12 @@
         @endif
         @if ($invoice->diskon_global > 0)
         <tr>
-            <td style="color:#6b7280">Diskon Global</td>
+            <td style="color:#6b7280">
+                Diskon Global
+                @if ($invoice->diskon_global_tipe === 'persen')
+                    ({{ rtrim(rtrim(number_format($invoice->diskon_global_nilai, 2, ',', '.'), '0'), ',') }}%)
+                @endif
+            </td>
             <td style="color:#dc2626">- Rp {{ number_format($invoice->diskon_global, 0, ',', '.') }}</td>
         </tr>
         @endif

@@ -207,9 +207,26 @@ class ReturResepService
             return;
         }
 
+        // Diskon persen harus dihitung ULANG dari bruto qty yg baru -- kalau
+        // tidak, nominal diskon lama (yg dihitung dari qty penuh) ikut terbawah
+        // ke qty yg lebih kecil. Mis. 10 tablet diskon 10% = Rp 1.704; setelah
+        // diretur jadi 5 tablet, diskonnya harus Rp 852, bukan tetap Rp 1.704.
+        //
+        // Diskon nominal (Rp) sengaja TIDAK diproporsionalkan: kasir memasukkan
+        // angka rupiah tertentu secara sadar, jd dipertahankan apa adanya --
+        // cuma di-clamp ke bruto baru supaya subtotal tidak pernah negatif.
+        $brutoBaru = $qtyBaru * (float) $invoiceItem->harga_satuan;
+
+        if ($invoiceItem->diskon_tipe === 'persen') {
+            $diskonBaru = ($brutoBaru * (float) $invoiceItem->diskon_nilai) / 100;
+        } else {
+            $diskonBaru = min((float) $invoiceItem->diskon_item, $brutoBaru);
+        }
+
         $invoiceItem->update([
-            'qty'      => $qtyBaru,
-            'subtotal' => max(0, $qtyBaru * (float) $invoiceItem->harga_satuan - (float) $invoiceItem->diskon_item),
+            'qty'         => $qtyBaru,
+            'diskon_item' => $diskonBaru,
+            'subtotal'    => max(0, $brutoBaru - $diskonBaru),
         ]);
     }
 
