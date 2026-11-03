@@ -140,13 +140,25 @@ class SoapNote extends Component
         $asesmen = AsesmenPerawat::where('kunjungan_id', $this->kunjunganId)->first();
         if (! $asesmen) return;
 
-        $this->beratBadan   = $asesmen->berat_badan   ? (string) $asesmen->berat_badan   : '';
-        $this->tinggiBadan  = $asesmen->tinggi_badan  ? (string) $asesmen->tinggi_badan  : '';
+        $this->beratBadan   = $this->formatAngka($asesmen->berat_badan);
+        $this->tinggiBadan  = $this->formatAngka($asesmen->tinggi_badan);
         $this->tekananDarah = $asesmen->tekanan_darah ?? '';
-        $this->nadi         = $asesmen->nadi          ? (string) $asesmen->nadi          : '';
-        $this->suhu         = $asesmen->suhu          ? (string) $asesmen->suhu          : '';
-        $this->saturasi     = $asesmen->saturasi      ? (string) $asesmen->saturasi      : '';
-        $this->gds          = $asesmen->gds           ? (string) $asesmen->gds           : '';
+        $this->nadi         = $this->formatAngka($asesmen->nadi);
+        $this->suhu         = $this->formatAngka($asesmen->suhu);
+        $this->saturasi     = $this->formatAngka($asesmen->saturasi);
+        $this->gds          = $this->formatAngka($asesmen->gds);
+    }
+
+    /**
+     * Cast decimal di AsesmenPerawat mengembalikan "98.0"/"65.50" -- nol di
+     * belakang koma dibuang, kalau tidak "98.0" gagal rule integer saturasi
+     * di simpanRevisi() walau dokter tidak menyentuh field TTV sama sekali.
+     */
+    private function formatAngka($nilai): string
+    {
+        if ($nilai === null || $nilai === '') return '';
+        $s = (string) $nilai;
+        return str_contains($s, '.') ? rtrim(rtrim($s, '0'), '.') : $s;
     }
 
     private function autoFillAllergies(): void

@@ -103,18 +103,24 @@ class RevisiSoapTtvTest extends TestCase
             ->call('mulaiRevisi')
             ->set('alasanRevisi', 'Koreksi TTV TD yang salah input')
             ->call('konfirmasiRevisi')
+            // TTV ter-load ke form tanpa nol-ekor dari cast decimal
             ->assertSet('beratBadan', '65.5')
+            ->assertSet('saturasi', '98')
             ->assertSet('tekananDarah', '120/80')
             // Ubah TTV
             ->set('tekananDarah', '130/90')
             ->set('suhu', '37.2')
             ->call('simpanRevisi')
+            ->assertHasNoErrors()
             ->assertSet('sedangRevisi', false);
 
         // Verifikasi TTV tersimpan di asesmen_perawat
         $asesmen = $data['asesmen']->fresh();
         $this->assertSame('130/90', $asesmen->tekanan_darah);
-        $this->assertSame('37.2', (string) $asesmen->suhu);
+        $this->assertEquals(37.2, (float) $asesmen->suhu);
+        // TTV yang tidak disentuh tidak ikut berubah
+        $this->assertEquals(65.5, (float) $asesmen->berat_badan);
+        $this->assertSame(98, (int) $asesmen->saturasi);
         // Perawat_id dipertahankan
         $this->assertSame($data['perawatModel']->id, $asesmen->perawat_id);
 
@@ -131,8 +137,8 @@ class RevisiSoapTtvTest extends TestCase
         $this->assertNotNull($log, 'Jejak audit harus ada');
         $this->assertSame('120/80', $log->properties['ttv_sebelum']['tekanan_darah']);
         $this->assertSame('130/90', $log->properties['ttv_sesudah']['tekanan_darah']);
-        $this->assertSame('36.8', $log->properties['ttv_sebelum']['suhu']);
-        $this->assertSame('37.2', $log->properties['ttv_sesudah']['suhu']);
+        $this->assertEquals(36.8, (float) $log->properties['ttv_sebelum']['suhu']);
+        $this->assertEquals(37.2, (float) $log->properties['ttv_sesudah']['suhu']);
     }
 
     /** @test */
@@ -147,10 +153,11 @@ class RevisiSoapTtvTest extends TestCase
             ->call('konfirmasiRevisi')
             // Ubah hanya TTV, tidak ubah SOAP fields
             ->set('beratBadan', '70.0')
-            ->call('simpanRevisi');
+            ->call('simpanRevisi')
+            ->assertHasNoErrors();
 
         $asesmen = $data['asesmen']->fresh();
-        $this->assertSame('70.0', (string) $asesmen->berat_badan);
+        $this->assertEquals(70.0, (float) $asesmen->berat_badan);
 
         // SOAP fields tetap sama
         $soap = $data['soap']->fresh();
@@ -173,7 +180,7 @@ class RevisiSoapTtvTest extends TestCase
             ->assertHasErrors(['suhu']);
 
         // TTV tidak berubah
-        $this->assertSame('36.8', (string) $data['asesmen']->fresh()->suhu);
+        $this->assertEquals(36.8, (float) $data['asesmen']->fresh()->suhu);
     }
 
     /** @test */
@@ -197,7 +204,7 @@ class RevisiSoapTtvTest extends TestCase
 
         // TTV di database tetap sama
         $asesmen = $data['asesmen']->fresh();
-        $this->assertSame('65.5', (string) $asesmen->berat_badan);
+        $this->assertEquals(65.5, (float) $asesmen->berat_badan);
         $this->assertSame('120/80', $asesmen->tekanan_darah);
 
         // Activity log tidak ada (revisi dibatalkan)
@@ -261,13 +268,14 @@ class RevisiSoapTtvTest extends TestCase
             ->set('nadi', '80')
             ->set('suhu', '36.5')
             ->set('saturasi', '98')
-            ->call('simpanRevisi');
+            ->call('simpanRevisi')
+            ->assertHasNoErrors();
 
         // TTV baru tersimpan (create, bukan update)
         $asesmen = AsesmenPerawat::where('kunjungan_id', $kunjungan->id)->first();
         $this->assertNotNull($asesmen);
-        $this->assertSame('60', (string) $asesmen->berat_badan);
-        $this->assertSame('165', (string) $asesmen->tinggi_badan);
+        $this->assertEquals(60, (float) $asesmen->berat_badan);
+        $this->assertEquals(165, (float) $asesmen->tinggi_badan);
     }
 
     /** @test */
@@ -291,7 +299,7 @@ class RevisiSoapTtvTest extends TestCase
             ->where('subject_id', $data['soap']->id)
             ->latest()
             ->first();
-        $this->assertSame('110.5', $log->properties['ttv_sebelum']['gds']);
+        $this->assertEquals(110.5, (float) $log->properties['ttv_sebelum']['gds']);
         $this->assertNull($log->properties['ttv_sesudah']['gds']);
     }
 }
