@@ -117,11 +117,11 @@ class DemoKunjunganGenerator
 
     // Vitals baseline per pola
     private array $vitalsPola = [
-        'umum_ringan'    => ['sistol' => 120, 'diastol' => 80, 'nadi' => 82, 'suhu' => 37.4, 'saturasi' => 98, 'bb' => 62, 'tb' => 165, 'gds' => null],
-        'kronik'         => ['sistol' => 140, 'diastol' => 90, 'nadi' => 78, 'suhu' => 36.7, 'saturasi' => 99, 'bb' => 70, 'tb' => 162, 'gds' => 210],
-        'tindakan_minor' => ['sistol' => 118, 'diastol' => 76, 'nadi' => 88, 'suhu' => 36.9, 'saturasi' => 99, 'bb' => 65, 'tb' => 170, 'gds' => null],
-        'anak'           => ['sistol' => 100, 'diastol' => 70, 'nadi' => 95, 'suhu' => 38.2, 'saturasi' => 97, 'bb' => 22, 'tb' => 118, 'gds' => null],
-        'nebulisasi'     => ['sistol' => 125, 'diastol' => 85, 'nadi' => 98, 'suhu' => 37.1, 'saturasi' => 94, 'bb' => 58, 'tb' => 160, 'gds' => null],
+        'umum_ringan'    => ['sistol' => 120, 'diastol' => 80, 'nadi' => 82, 'rr' => 18, 'suhu' => 37.4, 'saturasi' => 98, 'bb' => 62, 'tb' => 165, 'gds' => null],
+        'kronik'         => ['sistol' => 140, 'diastol' => 90, 'nadi' => 78, 'rr' => 18, 'suhu' => 36.7, 'saturasi' => 99, 'bb' => 70, 'tb' => 162, 'gds' => 210],
+        'tindakan_minor' => ['sistol' => 118, 'diastol' => 76, 'nadi' => 88, 'rr' => 19, 'suhu' => 36.9, 'saturasi' => 99, 'bb' => 65, 'tb' => 170, 'gds' => null],
+        'anak'           => ['sistol' => 100, 'diastol' => 70, 'nadi' => 95, 'rr' => 24, 'suhu' => 38.2, 'saturasi' => 97, 'bb' => 22, 'tb' => 118, 'gds' => null],
+        'nebulisasi'     => ['sistol' => 125, 'diastol' => 85, 'nadi' => 98, 'rr' => 28, 'suhu' => 37.1, 'saturasi' => 94, 'bb' => 58, 'tb' => 160, 'gds' => null],
     ];
 
     /**
@@ -246,6 +246,7 @@ class DemoKunjunganGenerator
                     'tinggi_badan'  => $vitals['tb'],
                     'tekanan_darah' => "{$vitals['sistol']}/{$vitals['diastol']}",
                     'nadi'          => $vitals['nadi'],
+                    'frekuensi_napas' => $vitals['rr'],
                     'suhu'          => $vitals['suhu'],
                     'saturasi'      => $vitals['saturasi'],
                     'gds'           => $vitals['gds'],
@@ -404,6 +405,7 @@ class DemoKunjunganGenerator
             'sistol'   => $base['sistol'] + mt_rand(-10, 10),
             'diastol'  => $base['diastol'] + mt_rand(-5, 5),
             'nadi'     => $base['nadi'] + mt_rand(-8, 8),
+            'rr'       => $base['rr'] + mt_rand(-2, 2),
             'suhu'     => round($base['suhu'] + (mt_rand(-3, 3) / 10), 1),
             'saturasi' => min(100, $base['saturasi'] + mt_rand(-1, 1)),
             'bb'       => $base['bb'] + mt_rand(-5, 5),
@@ -428,7 +430,7 @@ class DemoKunjunganGenerator
     private function soapObjektif(string $pola, array $v): string
     {
         $td   = "{$v['sistol']}/{$v['diastol']} mmHg";
-        $nadi = "{$v['nadi']}x/mnt";
+        $nadi = "{$v['nadi']}x/mnt, RR {$v['rr']}x/mnt";
         $suhu = "{$v['suhu']} C";
         $spo2 = "{$v['saturasi']}%";
         $gds  = $v['gds'] ? " GDS {$v['gds']} mg/dL." : '';

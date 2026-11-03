@@ -42,7 +42,7 @@ class RegistrasiPoliklinikSeeder extends Seeder
                 'poli_id' => 1, 'dokter_id' => 1, 'dokter_user_id' => 3,
                 'keluhan' => 'Demam, batuk, dan pilek sejak 3 hari yang lalu',
                 'vitals' => ['berat_badan' => 68, 'tinggi_badan' => 170, 'tekanan_darah' => '120/80',
-                    'nadi' => 88, 'suhu' => 38.2, 'saturasi' => 98, 'gds' => null,
+                    'nadi' => 88, 'frekuensi_napas' => 20, 'suhu' => 38.2, 'saturasi' => 98, 'gds' => null,
                     'anamnesis_awal' => 'Pasien mengeluh demam naik turun, batuk berdahak, dan pilek. Belum minum obat.'],
                 'soap' => [
                     's_chief_complaint' => 'Demam, batuk, dan pilek sejak 3 hari.',
@@ -76,7 +76,7 @@ class RegistrasiPoliklinikSeeder extends Seeder
                 'poli_id' => 1, 'dokter_id' => 2, 'dokter_user_id' => 9,
                 'keluhan' => 'BAB cair lebih dari 5 kali sejak kemarin, disertai demam',
                 'vitals' => ['berat_badan' => 52, 'tinggi_badan' => 158, 'tekanan_darah' => '100/70',
-                    'nadi' => 96, 'suhu' => 37.8, 'saturasi' => 98, 'gds' => null,
+                    'nadi' => 96, 'frekuensi_napas' => 20, 'suhu' => 37.8, 'saturasi' => 98, 'gds' => null,
                     'anamnesis_awal' => 'BAB cair >5x/hari sejak kemarin, tidak ada darah/lendir. Masih bisa minum.'],
                 'soap' => [
                     's_chief_complaint' => 'Diare cair >5x/hari sejak kemarin.',
@@ -109,7 +109,7 @@ class RegistrasiPoliklinikSeeder extends Seeder
                 'poli_id' => 1, 'dokter_id' => 1, 'dokter_user_id' => 3,
                 'keluhan' => 'Kontrol tekanan darah tinggi, kadang pusing dan tengkuk berat',
                 'vitals' => ['berat_badan' => 75, 'tinggi_badan' => 165, 'tekanan_darah' => '160/100',
-                    'nadi' => 84, 'suhu' => 36.7, 'saturasi' => 97, 'gds' => 110,
+                    'nadi' => 84, 'frekuensi_napas' => 18, 'suhu' => 36.7, 'saturasi' => 97, 'gds' => 110,
                     'anamnesis_awal' => 'Pasien rutin kontrol hipertensi, mengaku kadang lupa minum obat.'],
                 'soap' => [
                     's_chief_complaint' => 'Kontrol hipertensi, pusing dan tengkuk berat.',
@@ -141,7 +141,7 @@ class RegistrasiPoliklinikSeeder extends Seeder
                 'poli_id' => 7, 'dokter_id' => 1, 'dokter_user_id' => 3,
                 'keluhan' => 'Mata kanan merah, berair, dan terasa mengganjal sejak 2 hari',
                 'vitals' => ['berat_badan' => 50, 'tinggi_badan' => 156, 'tekanan_darah' => '110/70',
-                    'nadi' => 80, 'suhu' => 36.5, 'saturasi' => 99, 'gds' => null,
+                    'nadi' => 80, 'frekuensi_napas' => 18, 'suhu' => 36.5, 'saturasi' => 99, 'gds' => null,
                     'anamnesis_awal' => 'Mata kanan merah dan berair sejak 2 hari, ada kotoran mata saat bangun pagi.'],
                 'soap' => [
                     's_chief_complaint' => 'Mata kanan merah dan berair sejak 2 hari.',
@@ -173,7 +173,7 @@ class RegistrasiPoliklinikSeeder extends Seeder
                 'poli_id' => 1, 'dokter_id' => 2, 'dokter_user_id' => 9,
                 'keluhan' => 'Nyeri ulu hati dan mual sejak 4 hari, terutama saat terlambat makan',
                 'vitals' => ['berat_badan' => 70, 'tinggi_badan' => 168, 'tekanan_darah' => '118/76',
-                    'nadi' => 82, 'suhu' => 36.6, 'saturasi' => 98, 'gds' => null,
+                    'nadi' => 82, 'frekuensi_napas' => 18, 'suhu' => 36.6, 'saturasi' => 98, 'gds' => null,
                     'anamnesis_awal' => 'Nyeri ulu hati seperti terbakar, mual, sering terlambat makan karena kerja shift.'],
                 'soap' => [
                     's_chief_complaint' => 'Nyeri ulu hati seperti terbakar sejak 4 hari.',

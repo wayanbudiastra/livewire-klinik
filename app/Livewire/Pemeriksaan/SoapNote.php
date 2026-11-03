@@ -30,7 +30,7 @@ class SoapNote extends Component
      * soap_note, jadi jejaknya dicatat sendiri -- lihat simpanRevisi().
      */
     private const KOLOM_TTV = [
-        'berat_badan', 'tinggi_badan', 'tekanan_darah', 'nadi', 'suhu', 'saturasi', 'gds',
+        'berat_badan', 'tinggi_badan', 'tekanan_darah', 'nadi', 'frekuensi_napas', 'suhu', 'saturasi', 'gds',
     ];
 
     public int $kunjunganId;
@@ -73,13 +73,14 @@ class SoapNote extends Component
     public string $alasanRevisi     = '';
 
     // ── TTV (Tanda Vital) — bisa direvisi saat sedang revisi SOAP ──
-    public string $beratBadan    = '';
-    public string $tinggiBadan   = '';
-    public string $tekananDarah  = '';
-    public string $nadi          = '';
-    public string $suhu          = '';
-    public string $saturasi      = '';
-    public string $gds           = '';
+    public string $beratBadan      = '';
+    public string $tinggiBadan     = '';
+    public string $tekananDarah    = '';
+    public string $nadi            = '';
+    public string $frekuensiNapas  = '';
+    public string $suhu            = '';
+    public string $saturasi        = '';
+    public string $gds             = '';
 
     // ── Lampiran (foto luka, hasil jahitan, radiologi, dll) ───
     /** @var \Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null */
@@ -140,13 +141,14 @@ class SoapNote extends Component
         $asesmen = AsesmenPerawat::where('kunjungan_id', $this->kunjunganId)->first();
         if (! $asesmen) return;
 
-        $this->beratBadan   = $this->formatAngka($asesmen->berat_badan);
-        $this->tinggiBadan  = $this->formatAngka($asesmen->tinggi_badan);
-        $this->tekananDarah = $asesmen->tekanan_darah ?? '';
-        $this->nadi         = $this->formatAngka($asesmen->nadi);
-        $this->suhu         = $this->formatAngka($asesmen->suhu);
-        $this->saturasi     = $this->formatAngka($asesmen->saturasi);
-        $this->gds          = $this->formatAngka($asesmen->gds);
+        $this->beratBadan      = $this->formatAngka($asesmen->berat_badan);
+        $this->tinggiBadan     = $this->formatAngka($asesmen->tinggi_badan);
+        $this->tekananDarah    = $asesmen->tekanan_darah ?? '';
+        $this->nadi            = $this->formatAngka($asesmen->nadi);
+        $this->frekuensiNapas  = $this->formatAngka($asesmen->frekuensi_napas);
+        $this->suhu            = $this->formatAngka($asesmen->suhu);
+        $this->saturasi        = $this->formatAngka($asesmen->saturasi);
+        $this->gds             = $this->formatAngka($asesmen->gds);
     }
 
     /**
@@ -227,6 +229,7 @@ class SoapNote extends Component
             'BMI'   => $bmi             ? (string) $bmi            : null,
             'TD'    => $a->tekanan_darah ?: null,
             'Nadi'  => $a->nadi         ? $a->nadi.' bpm'         : null,
+            'RR'    => $a->frekuensi_napas ? $a->frekuensi_napas.' x/mnt' : null,
             'Suhu'  => $a->suhu         ? $a->suhu.'°C'           : null,
             'SpO2'  => $a->saturasi     ? $a->saturasi.'%'        : null,
             'GDS'   => $a->gds          ? $a->gds.' mg/dL'        : null,
@@ -475,12 +478,13 @@ class SoapNote extends Component
         $this->authorize('soap.revisi');
         $this->validateMinimalDiagnosis();
         $this->validate([
-            'beratBadan'   => 'nullable|numeric|min:1|max:500',
-            'tinggiBadan'  => 'nullable|numeric|min:1|max:300',
-            'nadi'         => 'nullable|integer|min:1|max:300',
-            'suhu'         => 'nullable|numeric|min:30|max:45',
-            'saturasi'     => 'nullable|integer|min:1|max:100',
-            'gds'          => 'nullable|numeric|min:0|max:9999',
+            'beratBadan'      => 'nullable|numeric|min:1|max:500',
+            'tinggiBadan'     => 'nullable|numeric|min:1|max:300',
+            'nadi'            => 'nullable|integer|min:1|max:300',
+            'frekuensiNapas'  => 'nullable|integer|min:1|max:100',
+            'suhu'            => 'nullable|numeric|min:30|max:45',
+            'saturasi'        => 'nullable|integer|min:1|max:100',
+            'gds'             => 'nullable|numeric|min:0|max:9999',
         ]);
 
         $sebelum    = SoapNoteModel::find($this->soapId)?->only(self::KOLOM_ISI);
@@ -526,13 +530,14 @@ class SoapNote extends Component
         $asesmen = AsesmenPerawat::updateOrCreate(
             ['kunjungan_id' => $this->kunjunganId],
             [
-                'berat_badan'   => $this->beratBadan   ?: null,
-                'tinggi_badan'  => $this->tinggiBadan  ?: null,
-                'tekanan_darah' => $this->tekananDarah ?: null,
-                'nadi'          => $this->nadi         ?: null,
-                'suhu'          => $this->suhu         ?: null,
-                'saturasi'      => $this->saturasi     ?: null,
-                'gds'           => $this->gds          ?: null,
+                'berat_badan'    => $this->beratBadan      ?: null,
+                'tinggi_badan'   => $this->tinggiBadan     ?: null,
+                'tekanan_darah'  => $this->tekananDarah    ?: null,
+                'nadi'           => $this->nadi            ?: null,
+                'frekuensi_napas' => $this->frekuensiNapas ?: null,
+                'suhu'           => $this->suhu            ?: null,
+                'saturasi'       => $this->saturasi        ?: null,
+                'gds'            => $this->gds             ?: null,
             ]
         );
 

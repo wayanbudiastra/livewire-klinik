@@ -21,6 +21,7 @@ class DetailPemeriksaan extends Component
     public string $tinggiBadan   = '';
     public string $tekananDarah  = '';
     public string $nadi          = '';
+    public string $frekuensiNapas = '';
     public string $suhu          = '';
     public string $saturasi      = '';
     public string $gds           = '';
@@ -64,7 +65,8 @@ class DetailPemeriksaan extends Component
             $this->tinggiBadan  = $a->tinggi_badan  ? (string) $a->tinggi_badan  : '';
             $this->tekananDarah = $a->tekanan_darah ?? '';
             $this->nadi         = $a->nadi          ? (string) $a->nadi          : '';
-            $this->suhu         = $a->suhu          ? (string) $a->suhu          : '';
+            $this->frekuensiNapas = $a->frekuensi_napas ? (string) $a->frekuensi_napas : '';
+            $this->suhu       = $a->suhu          ? (string) $a->suhu          : '';
             $this->saturasi     = $a->saturasi      ? (string) $a->saturasi      : '';
             $this->gds          = $a->gds           ? (string) $a->gds           : '';
             $this->anamnesisAwal = $a->anamnesis_awal ?? '';
@@ -132,6 +134,7 @@ class DetailPemeriksaan extends Component
             'beratBadan'  => 'nullable|numeric|min:1|max:500',
             'tinggiBadan' => 'nullable|numeric|min:1|max:300',
             'nadi'        => 'nullable|integer|min:1|max:300',
+            'frekuensiNapas' => 'nullable|integer|min:1|max:100',
             'suhu'        => 'nullable|numeric|min:30|max:45',
             'saturasi'    => 'nullable|integer|min:1|max:100',
             'gds'         => 'nullable|numeric|min:0|max:9999',
@@ -142,6 +145,7 @@ class DetailPemeriksaan extends Component
             'tinggi_badan'   => $this->tinggiBadan  ?: null,
             'tekanan_darah'  => $this->tekananDarah ?: null,
             'nadi'           => $this->nadi         ?: null,
+            'frekuensi_napas' => $this->frekuensiNapas ?: null,
             'suhu'           => $this->suhu         ?: null,
             'saturasi'       => $this->saturasi     ?: null,
             'gds'            => $this->gds          ?: null,

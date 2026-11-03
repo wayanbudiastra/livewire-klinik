@@ -32,6 +32,7 @@ public string $beratBadan    = '';
 public string $tinggiBadan   = '';
 public string $tekananDarah  = '';
 public string $nadi          = '';
+public string $frekuensiNapas = ''; // RR (x/mnt)
 public string $suhu          = '';
 public string $saturasi      = '';
 public string $gds           = '';
@@ -47,7 +48,7 @@ TTV dimuat dari `asesmen_perawat` saat mount component.
  * soap_note, jadi jejaknya dicatat sendiri -- lihat simpanRevisi().
  */
 private const KOLOM_TTV = [
-    'berat_badan', 'tinggi_badan', 'tekanan_darah', 'nadi', 'suhu', 'saturasi', 'gds',
+    'berat_badan', 'tinggi_badan', 'tekanan_darah', 'nadi', 'frekuensi_napas', 'suhu', 'saturasi', 'gds',
 ];
 ```
 
@@ -76,6 +77,21 @@ Form hanya muncul saat `$sedangRevisi === true`, berisi 8 field input dengan val
 
 ---
 
+## RR (Frekuensi Napas)
+
+Ditambahkan sebagai tanda vital baru: kolom `asesmen_perawat.frekuensi_napas`
+(unsigned smallint, nullable) via migrasi
+`2026_11_03_000001_add_frekuensi_napas_to_asesmen_perawat_table.php`.
+
+Tampil/diinput di:
+- Form Asesmen Perawat (`DetailPemeriksaan`) + summary bar (merah bila < 12 atau > 24 x/mnt)
+- Kartu TTV & form revisi TTV di SOAP Note
+- Waiting area (ringkasan vital)
+- Resume Medis PDF (`Frekuensi Napas` / `Respiratory Rate`)
+- Seeder demo (`RegistrasiPoliklinikSeeder`, `DemoKunjunganGenerator`)
+
+---
+
 ## Validasi TTV
 
 Saat simpan revisi, TTV divalidasi dengan aturan yang sama seperti di DetailPemeriksaan (Asesmen Perawat):
@@ -84,6 +100,7 @@ Saat simpan revisi, TTV divalidasi dengan aturan yang sama seperti di DetailPeme
 'beratBadan'   => 'nullable|numeric|min:1|max:500',
 'tinggiBadan'  => 'nullable|numeric|min:1|max:300',
 'nadi'         => 'nullable|integer|min:1|max:300',
+'frekuensiNapas' => 'nullable|integer|min:1|max:100',
 'suhu'         => 'nullable|numeric|min:30|max:45',
 'saturasi'     => 'nullable|integer|min:1|max:100',
 'gds'          => 'nullable|numeric|min:0|max:9999',
@@ -137,6 +154,7 @@ Scenario coverage:
 5. ✅ Isi TTV baru jika sebelumnya kosong
 6. ✅ Jejak audit mencatat TTV null/kosong
 7. ✅ Perawat_id asesmen dipertahankan
+8. ✅ Revisi & validasi RR (frekuensi napas)
 
 Jalankan test:
 ```bash

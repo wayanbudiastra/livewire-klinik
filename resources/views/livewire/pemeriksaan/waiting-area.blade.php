@@ -258,6 +258,7 @@
                 $vitals = array_filter([
                     'TD'   => $asesmen->tekanan_darah ?: null,
                     'Nadi' => $asesmen->nadi ? $asesmen->nadi . ' bpm' : null,
+                    'RR'   => $asesmen->frekuensi_napas ? $asesmen->frekuensi_napas . ' x/mnt' : null,
                     'Suhu' => $asesmen->suhu ? $asesmen->suhu . '°C' : null,
                     'SpO₂' => $asesmen->saturasi ? $asesmen->saturasi . '%' : null,
                     'BB'   => $asesmen->berat_badan ? $asesmen->berat_badan . ' kg' : null,

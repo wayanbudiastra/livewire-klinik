@@ -35,7 +35,7 @@
         'allergies' => 'Allergies', 'other_subjective' => 'Other',
         'vital_signs' => 'Vital Signs', 'blood_pressure' => 'Blood Pressure',
         'temperature' => 'Temperature', 'body_weight' => 'Body Weight',
-        'heart_rate' => 'Heart Rate', 'spo2' => 'SpO2', 'body_height' => 'Body Height', 'gds' => 'Blood Glucose',
+        'heart_rate' => 'Heart Rate', 'resp_rate' => 'Respiratory Rate', 'spo2' => 'SpO2', 'body_height' => 'Body Height', 'gds' => 'Blood Glucose',
         'objective' => 'Objective', 'physical_exam' => 'Physical Examination Results',
         'supporting_exam_notes' => 'Supporting Examination Notes',
         'penunjang' => 'Supporting Examination',
@@ -63,7 +63,7 @@
         'allergies' => 'Alergi (Catatan Dokter)', 'other_subjective' => 'Lainnya',
         'vital_signs' => 'Tanda Vital', 'blood_pressure' => 'Tekanan Darah',
         'temperature' => 'Suhu', 'body_weight' => 'Berat Badan',
-        'heart_rate' => 'Nadi', 'spo2' => 'Saturasi O2', 'body_height' => 'Tinggi Badan', 'gds' => 'Gula Darah Sewaktu',
+        'heart_rate' => 'Nadi', 'resp_rate' => 'Frekuensi Napas', 'spo2' => 'Saturasi O2', 'body_height' => 'Tinggi Badan', 'gds' => 'Gula Darah Sewaktu',
         'objective' => 'Objektif', 'physical_exam' => 'Hasil Pemeriksaan Fisik',
         'supporting_exam_notes' => 'Catatan Pemeriksaan Penunjang',
         'penunjang' => 'Pemeriksaan Penunjang',
@@ -180,11 +180,12 @@
         <tr>
             @if($v['tekanan_darah'] ?? null)<td>{{ $L['blood_pressure'] }}: <strong>{{ $v['tekanan_darah'] }} mmHg</strong></td>@endif
             @if($v['nadi'] ?? null)<td>{{ $L['heart_rate'] }}: <strong>{{ $v['nadi'] }} x/mnt</strong></td>@endif
+            @if($v['frekuensi_napas'] ?? null)<td>{{ $L['resp_rate'] }}: <strong>{{ $v['frekuensi_napas'] }} x/mnt</strong></td>@endif
             @if($v['suhu'] ?? null)<td>{{ $L['temperature'] }}: <strong>{{ $v['suhu'] }} °C</strong></td>@endif
             @if($v['saturasi'] ?? null)<td>{{ $L['spo2'] }}: <strong>{{ $v['saturasi'] }} %</strong></td>@endif
-            @if($v['gds'] ?? null)<td>{{ $L['gds'] }}: <strong>{{ $v['gds'] }} mg/dL</strong></td>@endif
         </tr>
         <tr>
+            @if($v['gds'] ?? null)<td>{{ $L['gds'] }}: <strong>{{ $v['gds'] }} mg/dL</strong></td>@endif
             @if($v['berat_badan'] ?? null)<td>{{ $L['body_weight'] }}: <strong>{{ $v['berat_badan'] }} kg</strong></td>@endif
             @if($v['tinggi_badan'] ?? null)<td>{{ $L['body_height'] }}: <strong>{{ $v['tinggi_badan'] }} cm</strong></td>@endif
             @if($v['bmi'] ?? null)<td>BMI: <strong>{{ $v['bmi'] }}</strong></td>@endif

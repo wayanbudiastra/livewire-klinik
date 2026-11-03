@@ -11,7 +11,7 @@ class AsesmenPerawat extends Model
     protected $fillable = [
         'kunjungan_id', 'perawat_id',
         'berat_badan', 'tinggi_badan',
-        'tekanan_darah', 'nadi', 'suhu', 'saturasi', 'gds',
+        'tekanan_darah', 'nadi', 'frekuensi_napas', 'suhu', 'saturasi', 'gds',
         'anamnesis_awal',
     ];
 

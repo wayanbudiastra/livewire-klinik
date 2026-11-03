@@ -85,6 +85,7 @@ class RevisiSoapTtvTest extends TestCase
             'tinggi_badan' => 170.0,
             'tekanan_darah' => '120/80',
             'nadi'         => 78,
+            'frekuensi_napas' => 20,
             'suhu'         => 36.8,
             'saturasi'     => 98,
             'gds'          => 110.5,
@@ -107,9 +108,11 @@ class RevisiSoapTtvTest extends TestCase
             ->assertSet('beratBadan', '65.5')
             ->assertSet('saturasi', '98')
             ->assertSet('tekananDarah', '120/80')
+            ->assertSet('frekuensiNapas', '20')
             // Ubah TTV
             ->set('tekananDarah', '130/90')
             ->set('suhu', '37.2')
+            ->set('frekuensiNapas', '24')
             ->call('simpanRevisi')
             ->assertHasNoErrors()
             ->assertSet('sedangRevisi', false);
@@ -118,6 +121,7 @@ class RevisiSoapTtvTest extends TestCase
         $asesmen = $data['asesmen']->fresh();
         $this->assertSame('130/90', $asesmen->tekanan_darah);
         $this->assertEquals(37.2, (float) $asesmen->suhu);
+        $this->assertSame(24, (int) $asesmen->frekuensi_napas);
         // TTV yang tidak disentuh tidak ikut berubah
         $this->assertEquals(65.5, (float) $asesmen->berat_badan);
         $this->assertSame(98, (int) $asesmen->saturasi);
@@ -139,6 +143,25 @@ class RevisiSoapTtvTest extends TestCase
         $this->assertSame('130/90', $log->properties['ttv_sesudah']['tekanan_darah']);
         $this->assertEquals(36.8, (float) $log->properties['ttv_sebelum']['suhu']);
         $this->assertEquals(37.2, (float) $log->properties['ttv_sesudah']['suhu']);
+        $this->assertEquals(20, (int) $log->properties['ttv_sebelum']['frekuensi_napas']);
+        $this->assertEquals(24, (int) $log->properties['ttv_sesudah']['frekuensi_napas']);
+    }
+
+    /** @test */
+    public function validasi_rr_saat_simpan_revisi(): void
+    {
+        $data = $this->buatKunjunganDenganSoapFinalDanTtv();
+        $this->actingAs($data['dokterUser']);
+
+        Livewire::test(SoapNoteLivewire::class, ['kunjunganId' => $data['kunjungan']->id])
+            ->call('mulaiRevisi')
+            ->set('alasanRevisi', 'Tes validasi RR')
+            ->call('konfirmasiRevisi')
+            ->set('frekuensiNapas', '150')
+            ->call('simpanRevisi')
+            ->assertHasErrors(['frekuensiNapas']);
+
+        $this->assertSame(20, (int) $data['asesmen']->fresh()->frekuensi_napas);
     }
 
     /** @test */

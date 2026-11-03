@@ -297,6 +297,7 @@ class SuratKeteranganService
             'vitals_snapshot'           => $asesmen ? [
                 'tekanan_darah' => $asesmen->tekanan_darah,
                 'nadi'          => $asesmen->nadi,
+                'frekuensi_napas' => $asesmen->frekuensi_napas,
                 'suhu'          => $asesmen->suhu,
                 'saturasi'      => $asesmen->saturasi,
                 'berat_badan'   => $asesmen->berat_badan,

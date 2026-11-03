@@ -131,7 +131,7 @@
     @endif
 
     {{-- ═══ VITALS SUMMARY BAR ═══ --}}
-    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-4">
+    <div class="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-3 mb-4">
         @php
             $vitals = [
                 ['label' => 'BB', 'value' => $beratBadan ? $beratBadan.' kg' : '—', 'color' => 'gray'],
@@ -139,6 +139,7 @@
                 ['label' => 'BMI', 'value' => $bmi ? $bmi.' ('.$bmiLabel.')' : '—', 'color' => $bmi && $bmi >= 25 ? 'amber' : 'gray'],
                 ['label' => 'TD', 'value' => $tekananDarah ?: '—', 'color' => 'gray'],
                 ['label' => 'Nadi', 'value' => $nadi ? $nadi.' bpm' : '—', 'color' => 'gray'],
+                ['label' => 'RR', 'value' => $frekuensiNapas ? $frekuensiNapas.' x/mnt' : '—', 'color' => $frekuensiNapas && ($frekuensiNapas < 12 || $frekuensiNapas > 24) ? 'red' : 'gray'],
                 ['label' => 'Suhu', 'value' => $suhu ? $suhu.'°C' : '—', 'color' => $suhu && $suhu > 37.5 ? 'red' : 'gray'],
                 ['label' => 'SpO2', 'value' => $saturasi ? $saturasi.'%' : '—', 'color' => $saturasi && $saturasi < 95 ? 'red' : 'gray'],
                 ['label' => 'GDS', 'value' => $gds ? $gds.' mg/dL' : '—', 'color' => 'gray'],
@@ -274,6 +275,12 @@
                             <input wire:model="nadi" type="number" placeholder="80"
                                    class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
                             @error('nadi') <p class="form-error">{{ $message }}</p> @enderror
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label dark:text-gray-300">RR (x/mnt)</label>
+                            <input wire:model="frekuensiNapas" type="number" placeholder="20"
+                                   class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
+                            @error('frekuensiNapas') <p class="form-error">{{ $message }}</p> @enderror
                         </div>
                         <div class="form-group">
                             <label class="form-label dark:text-gray-300">Suhu (°C)</label>

@@ -278,6 +278,12 @@
                     @error('nadi') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div class="form-group">
+                    <label class="form-label dark:text-gray-300">RR <span class="text-gray-400 font-normal">(x/mnt)</span></label>
+                    <input wire:model="frekuensiNapas" type="number" min="1" max="100" placeholder="20"
+                           class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200">
+                    @error('frekuensiNapas') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div class="form-group">
                     <label class="form-label dark:text-gray-300">Suhu <span class="text-gray-400 font-normal">(°C)</span></label>
                     <input wire:model="suhu" type="number" step="0.1" min="30" max="45" placeholder="36.5"
                            class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200">
