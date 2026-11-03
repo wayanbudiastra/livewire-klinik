@@ -244,11 +244,24 @@
                                 <div class="flex items-center justify-end gap-1">
                                     <input wire:model="editDiskon.{{ $item->id }}"
                                         wire:change="updateDiskonItem({{ $item->id }})"
-                                        type="number" min="0" step="1000"
-                                        class="w-28 rounded border-gray-300 text-right text-xs shadow-sm">
+                                        type="number" min="0"
+                                        step="{{ ($editDiskonTipe[$item->id] ?? 'nominal') === 'persen' ? 1 : 1000 }}"
+                                        @if (($editDiskonTipe[$item->id] ?? 'nominal') === 'persen') max="100" @endif
+                                        class="w-20 rounded border-gray-300 text-right text-xs shadow-sm">
+                                    <select wire:model="editDiskonTipe.{{ $item->id }}"
+                                        wire:change="updateDiskonItem({{ $item->id }})"
+                                        class="rounded border-gray-300 text-xs shadow-sm">
+                                        <option value="nominal">Rp</option>
+                                        <option value="persen">%</option>
+                                    </select>
                                 </div>
                             @else
-                                <span class="text-gray-600">{{ $item->diskon_item > 0 ? 'Rp ' . number_format($item->diskon_item, 0, ',', '.') : '-' }}</span>
+                                <span class="text-gray-600">
+                                    {{ $item->diskon_item > 0 ? 'Rp ' . number_format($item->diskon_item, 0, ',', '.') : '-' }}
+                                    @if ($item->diskon_item > 0 && $item->diskon_tipe === 'persen')
+                                        <span class="text-gray-400">({{ rtrim(rtrim(number_format($item->diskon_nilai, 2, ',', '.'), '0'), ',') }}%)</span>
+                                    @endif
+                                </span>
                             @endif
                         </td>
                         <td class="px-3 py-2.5 text-right font-semibold text-gray-800">
@@ -285,15 +298,29 @@
                     {{-- Global discount --}}
                     @if ($this->invoice->status === 'belum_bayar')
                     <div class="flex items-center gap-2 text-sm">
-                        <label class="text-gray-600">Diskon Global (Rp):</label>
+                        <label class="text-gray-600">Diskon Global ({{ $diskonGlobalTipe === 'persen' ? '%' : 'Rp' }}):</label>
                         <input wire:model="diskonGlobalNominal"
                             wire:change="applyDiskonGlobal"
-                            type="number" min="0" step="1000"
-                            class="w-36 rounded-lg border-gray-300 text-right text-sm shadow-sm">
+                            type="number" min="0"
+                            step="{{ $diskonGlobalTipe === 'persen' ? 1 : 1000 }}"
+                            @if ($diskonGlobalTipe === 'persen') max="100" @endif
+                            class="w-28 rounded-lg border-gray-300 text-right text-sm shadow-sm">
+                        <select wire:model="diskonGlobalTipe"
+                            wire:change="applyDiskonGlobal"
+                            class="rounded-lg border-gray-300 text-sm shadow-sm">
+                            <option value="nominal">Rp</option>
+                            <option value="persen">%</option>
+                        </select>
+                        @if ($diskonGlobalTipe === 'persen' && $this->invoice->diskon_global > 0)
+                            <span class="text-xs text-gray-500">= Rp {{ number_format($this->invoice->diskon_global, 0, ',', '.') }}</span>
+                        @endif
                     </div>
                     @else
                     <div class="text-sm text-gray-600">
                         Diskon Global: <strong>Rp {{ number_format($this->invoice->diskon_global, 0, ',', '.') }}</strong>
+                        @if ($this->invoice->diskon_global > 0 && $this->invoice->diskon_global_tipe === 'persen')
+                            <span class="text-gray-400">({{ rtrim(rtrim(number_format($this->invoice->diskon_global_nilai, 2, ',', '.'), '0'), ',') }}%)</span>
+                        @endif
                     </div>
                     @endif
 

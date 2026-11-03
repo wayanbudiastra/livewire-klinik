@@ -31,7 +31,8 @@ class TagihanPasien extends Component
     public ?int $invoiceId   = null;
 
     // Invoice items (editable diskon)
-    public array $editDiskon = [];  // [itemId => diskon_value]
+    public array $editDiskon = [];      // [itemId => diskon_value]
+    public array $editDiskonTipe = [];  // [itemId => 'nominal'|'persen']
 
     // Add manual item form
     public bool   $showManualForm = false;
@@ -47,6 +48,7 @@ class TagihanPasien extends Component
 
     // Global discount
     public string $diskonGlobalNominal = '';
+    public string $diskonGlobalTipe = 'nominal';  // 'nominal' | 'persen'
 
     // Payment
     public string $metodePembayaran = 'tunai';
@@ -212,10 +214,14 @@ class TagihanPasien extends Component
         $invoice = $this->invoiceService->createOrRefresh($kunjungan, $this->activeSesi);
 
         $this->invoiceId     = $invoice->id;
-        $this->editDiskon    = $invoice->items->pluck('diskon_item', 'id')
-            ->map(fn ($v) => (string) $v)
+        $this->editDiskon    = $invoice->items->pluck('diskon_nilai', 'id')
+            ->map(fn ($v) => (string) ($v ?? 0))
             ->toArray();
-        $this->diskonGlobalNominal = (string) $invoice->diskon_global;
+        $this->editDiskonTipe    = $invoice->items->pluck('diskon_tipe', 'id')
+            ->map(fn ($v) => (string) ($v ?? 'nominal'))
+            ->toArray();
+        $this->diskonGlobalNominal = (string) ($invoice->diskon_global_nilai ?? $invoice->diskon_global ?? 0);
+        $this->diskonGlobalTipe = (string) ($invoice->diskon_global_tipe ?? 'nominal');
 
         unset($this->invoice, $this->kunjungan);
     }
@@ -227,12 +233,27 @@ class TagihanPasien extends Component
         $item = InvoiceItem::find($itemId);
         if (! $item || $item->billing->status !== 'belum_bayar') return;
 
-        $diskon = (float) ($this->editDiskon[$itemId] ?? 0);
-        $diskon = min($diskon, $item->harga_satuan * $item->qty);
+        $tipe  = (string) ($this->editDiskonTipe[$itemId] ?? 'nominal');
+        $nilai = (float) ($this->editDiskon[$itemId] ?? 0);
+
+        // Konversi nilai ke nominal Rp untuk disimpan
+        $bruto = $item->harga_satuan * $item->qty;
+        $diskonNominal = 0;
+
+        if ($tipe === 'persen') {
+            // Clamp persentase 0-100%
+            $nilai = max(0, min(100, $nilai));
+            $diskonNominal = ($bruto * $nilai) / 100;
+        } else {
+            // Nominal: clamp ke bruto
+            $diskonNominal = min($nilai, $bruto);
+        }
 
         $item->update([
-            'diskon_item' => $diskon,
-            'subtotal'    => max(0, ($item->harga_satuan * $item->qty) - $diskon),
+            'diskon_tipe'   => $tipe,
+            'diskon_nilai'  => $nilai,
+            'diskon_item'   => $diskonNominal,
+            'subtotal'      => max(0, $bruto - $diskonNominal),
         ]);
 
         $this->invoiceService->recalcTotal($item->billing);
@@ -246,8 +267,28 @@ class TagihanPasien extends Component
         $invoice = Invoice::find($this->invoiceId);
         if (! $invoice || $invoice->status !== 'belum_bayar') return;
 
-        $diskon = max(0, (float) $this->diskonGlobalNominal);
-        $invoice->update(['diskon_global' => $diskon]);
+        $tipe  = (string) ($this->diskonGlobalTipe ?? 'nominal');
+        $nilai = max(0, (float) $this->diskonGlobalNominal);
+
+        // Konversi nilai ke nominal Rp untuk disimpan
+        $subtotalItems   = $invoice->items->sum('subtotal');
+        $diskonNominal   = 0;
+
+        if ($tipe === 'persen') {
+            // Clamp persentase 0-100%
+            $nilai = min(100, $nilai);
+            $diskonNominal = ($subtotalItems * $nilai) / 100;
+        } else {
+            // Nominal: tidak di-clamp atas, tapi recalcTotal akan clamp total_tagihan >= 0
+            $diskonNominal = $nilai;
+        }
+
+        $invoice->update([
+            'diskon_global_tipe'  => $tipe,
+            'diskon_global_nilai' => $nilai,
+            'diskon_global'       => $diskonNominal,
+        ]);
+
         $this->invoiceService->recalcTotal($invoice);
         unset($this->invoice);
     }
@@ -292,10 +333,13 @@ class TagihanPasien extends Component
             'satuan'       => $this->manualSatuan ?: null,
             'harga_satuan' => $this->manualHarga,
             'diskon_item'  => 0,
+            'diskon_tipe'  => 'nominal',
+            'diskon_nilai' => 0,
             'subtotal'     => $subtotal,
         ]);
 
         $this->editDiskon[$item->id] = '0';
+        $this->editDiskonTipe[$item->id] = 'nominal';
         $this->invoiceService->recalcTotal($invoice);
 
         $this->reset(['manualNama', 'manualQty', 'manualHarga', 'manualSatuan', 'showManualForm']);
@@ -414,7 +458,7 @@ class TagihanPasien extends Component
     {
         $this->reset([
             'kunjunganId', 'invoiceId', 'searchPasien',
-            'editDiskon', 'diskonGlobalNominal',
+            'editDiskon', 'editDiskonTipe', 'diskonGlobalNominal', 'diskonGlobalTipe',
             'metodePembayaran', 'jumlahTunai', 'bankNama',
             'nomorReferensi', 'namaAsuransi', 'catatanBayar',
         ]);
@@ -544,10 +588,13 @@ class TagihanPasien extends Component
             'satuan'       => $satuan,
             'harga_satuan' => $harga,
             'diskon_item'  => 0,
+            'diskon_tipe'  => 'nominal',
+            'diskon_nilai' => 0,
             'subtotal'     => $subtotal,
         ]);
 
         $this->editDiskon[$item->id] = '0';
+        $this->editDiskonTipe[$item->id] = 'nominal';
         $this->invoiceService->recalcTotal($invoice);
         unset($this->invoice, $this->komponenList);
 

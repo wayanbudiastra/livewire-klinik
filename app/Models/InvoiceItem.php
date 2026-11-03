@@ -11,7 +11,7 @@ class InvoiceItem extends Model
     protected $fillable = [
         'billing_id', 'jenis', 'ref_id',
         'nama_item', 'qty', 'satuan',
-        'harga_satuan', 'diskon_item', 'subtotal',
+        'harga_satuan', 'diskon_item', 'diskon_tipe', 'diskon_nilai', 'subtotal',
     ];
 
     protected function casts(): array
@@ -20,6 +20,7 @@ class InvoiceItem extends Model
             'qty'          => 'decimal:2',
             'harga_satuan' => 'decimal:2',
             'diskon_item'  => 'decimal:2',
+            'diskon_nilai' => 'decimal:2',
             'subtotal'     => 'decimal:2',
         ];
     }

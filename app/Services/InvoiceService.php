@@ -36,6 +36,8 @@ class InvoiceService
                 'satuan'       => 'tindakan',
                 'harga_satuan' => $tarif,
                 'diskon_item'  => 0,
+                'diskon_tipe'  => 'nominal',
+                'diskon_nilai' => 0,
                 'subtotal'     => $subtotal,
             ];
         }
@@ -58,11 +60,13 @@ class InvoiceService
                 'satuan'       => $a->barang->satuan,
                 'harga_satuan' => $harga,
                 'diskon_item'  => 0,
+                'diskon_tipe'  => 'nominal',
+                'diskon_nilai' => 0,
                 'subtotal'     => $subtotal,
             ];
         }
 
-        // 3. Penunjang (lab / radiology) — only selesai orders
+        // 3. Penunjang (lab / radiology) â€” only selesai orders
         foreach (
             $kunjungan->permintaanPenunjang()
                 ->with('itemPenunjang')
@@ -85,6 +89,8 @@ class InvoiceService
                 'satuan'       => 'pemeriksaan',
                 'harga_satuan' => $tarif,
                 'diskon_item'  => 0,
+                'diskon_tipe'  => 'nominal',
+                'diskon_nilai' => 0,
                 'subtotal'     => $subtotal,
             ];
         }
@@ -114,11 +120,13 @@ class InvoiceService
                     'satuan'       => $ir->barang->satuan,
                     'harga_satuan' => $harga,
                     'diskon_item'  => 0,
+                    'diskon_tipe'  => 'nominal',
+                    'diskon_nilai' => 0,
                     'subtotal'     => $subtotal,
                 ];
             }
 
-            // Racikan — price = total cost of all bahan
+            // Racikan â€” price = total cost of all bahan
             foreach ($resep->racikan as $racikan) {
                 $totalBahan = $racikan->bahanRacikan->sum(function ($b) use ($isWna) {
                     $harga = TarifResolver::pilih(
@@ -138,6 +146,8 @@ class InvoiceService
                     'satuan'       => 'racikan',
                     'harga_satuan' => $totalBahan,
                     'diskon_item'  => 0,
+                    'diskon_tipe'  => 'nominal',
+                    'diskon_nilai' => 0,
                     'subtotal'     => $totalBahan,
                 ];
             }
@@ -197,7 +207,7 @@ class InvoiceService
     {
         $invoice->load('items', 'pembayaran', 'pembayaranSplit');
 
-        // item.subtotal sudah net diskon_item (lihat TagihanPasien::updateDiskonItem) — jangan dipotong dua kali.
+        // item.subtotal sudah net diskon_item (lihat TagihanPasien::updateDiskonItem) â€” jangan dipotong dua kali.
         $subtotalItems  = $invoice->items->sum('subtotal');
         $totalTagihan   = max(0, $subtotalItems - $invoice->diskon_global);
         $totalBayar     = $invoice->pembayaran->sum('jumlah')
@@ -217,7 +227,7 @@ class InvoiceService
         $existing = Invoice::where('kunjungan_id', $kunjunganId)->count();
 
         // First invoice: INV-20260525-00042
-        // Re-issued after cancellation: INV-20260525-00042-R1, -R2, …
+        // Re-issued after cancellation: INV-20260525-00042-R1, -R2, â€¦
         $suffix = $existing > 0 ? "-R{$existing}" : '';
 
         return "INV-{$tanggal}-{$base}{$suffix}";
