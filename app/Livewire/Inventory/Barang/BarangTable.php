@@ -109,7 +109,10 @@ class BarangTable extends Component
 
         return $collection->skip(1) // lewati baris header
             ->map(fn ($r) => array_values($r->toArray()))
-            ->filter(fn ($r) => trim((string) ($r[0] ?? '')) !== '') // lewati baris kosong total
+            // Lewati baris yang BENAR-BENAR KOSONG (semua kolom), bukan hanya Kode.
+            // Kolom Kode (index 0) boleh kosong -- akan auto-generate di BarangImportService.
+            // Yang penting ada minimal Nama (index 1) atau kolom lain yg terisi.
+            ->filter(fn ($r) => collect($r)->filter(fn ($v) => trim((string) $v) !== '')->isNotEmpty())
             ->values()
             ->toArray();
     }

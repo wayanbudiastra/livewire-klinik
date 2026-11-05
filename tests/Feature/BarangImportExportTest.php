@@ -340,6 +340,39 @@ class BarangImportExportTest extends TestCase
         $this->assertDatabaseHas('barang', ['kode' => 'BRG-LW', 'nama' => 'Barang Via Livewire']);
     }
 
+    /**
+     * Bug production: BarangTable::parseRows() membuang SEMUA baris yang
+     * kolom Kode-nya kosong (dianggap "baris kosong total") -- padahal Kode
+     * boleh dikosongkan utk auto-generate. Akibatnya upload 87 baris dgn
+     * 86 kode kosong cuma memproses 1 baris. Test service langsung tidak
+     * menangkap ini krn tidak lewat parseRows().
+     */
+    /** @test */
+    public function upload_xlsx_dengan_kode_kosong_lewat_livewire_tidak_dibuang(): void
+    {
+        $apoteker = $this->buatUserDenganRole('apoteker');
+        $this->actingAs($apoteker);
+
+        $file = $this->buatXlsxUpload(
+            ['Kode', 'Nama Barang', 'Jenis', 'Satuan', 'Stok Awal', 'Stok Minimum', 'HPR', 'Harga Jual', 'Kode Supplier', 'Status Aktif'],
+            [
+                ['', 'Barang Auto Kode Satu', 'alkes', 'Pcs', 10, 2, 1000, 2000, '', 'Y'],
+                ['', 'Barang Auto Kode Dua', 'bhp', 'Pc(s)', 5, 2, 300, 600, '', 'Y'],
+            ]
+        );
+
+        Livewire::test(BarangTable::class)
+            ->call('openImportModal', 'baru')
+            ->set('importFile', $file)
+            ->assertSet('importState', 'preview')
+            ->assertSet('previewRowCount', 2)
+            ->call('doImport')
+            ->assertSet('importState', 'done');
+
+        $this->assertDatabaseHas('barang', ['nama' => 'Barang Auto Kode Satu']);
+        $this->assertDatabaseHas('barang', ['nama' => 'Barang Auto Kode Dua']);
+    }
+
     /** @test */
     public function role_tanpa_obat_create_ditolak_buka_import_modal(): void
     {
