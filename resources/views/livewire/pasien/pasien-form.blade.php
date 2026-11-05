@@ -206,8 +206,8 @@
             <div class="flex items-center justify-between w-full">
                 <div class="flex items-center gap-2">
                     <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-100">
-                        Kontak Darurat <span class="text-red-500">*</span>
-                        <span class="text-xs font-normal text-gray-400 ml-1">(Wajib minimal 1)</span>
+                        Kontak Darurat
+                        <span class="text-xs font-normal text-gray-400 ml-1">(Opsional)</span>
                     </h3>
                     <span class="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-blue-600 rounded-full dark:bg-blue-500">
                         {{ count($kontak) }}
@@ -254,12 +254,7 @@
                         </button>
                         @endif
                         <button type="button" wire:click="confirmDeleteKontak({{ $i }})"
-                                @if(count($kontak) <= 1) disabled @endif
-                                @class([
-                                    'text-xs text-red-500 hover:text-red-700',
-                                    'opacity-50 cursor-not-allowed' => count($kontak) <= 1,
-                                ])
-                                title="{{ count($kontak) <= 1 ? 'Tambahkan kontak baru sebelum menghapus kontak terakhir' : '' }}">
+                                class="text-xs text-red-500 hover:text-red-700">
                             Hapus
                         </button>
                     </div>

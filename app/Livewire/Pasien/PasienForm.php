@@ -68,13 +68,7 @@ class PasienForm extends Component
 
     public function confirmDeleteKontak(int $index): void
     {
-        // Cegah hapus jika hanya tersisa 1 kontak (mandatory requirement)
-        if (count($this->kontak) <= 1) {
-            $this->addError('kontak', 'Minimal 1 kontak darurat harus tetap ada. Tambahkan kontak baru sebelum menghapus kontak ini.');
-            return;
-        }
-
-        // Show confirmation dialog
+        // Show confirmation dialog (tidak ada validasi -- boleh hapus semua kontak)
         $this->deleteKontakIndex = $index;
         $this->showDeleteConfirm = true;
     }
@@ -104,12 +98,6 @@ class PasienForm extends Component
 
     public function removeKontak(int $index): void
     {
-        // Cegah hapus jika hanya tersisa 1 kontak (mandatory requirement)
-        if (count($this->kontak) <= 1) {
-            $this->addError('kontak', 'Minimal 1 kontak darurat harus tetap ada. Tambahkan kontak baru sebelum menghapus kontak ini.');
-            return;
-        }
-
         // Store info sebelum di-splice
         $namaKontak = $this->kontak[$index]['nama'] ?? 'Unknown';
         $wasPrimary = $this->kontak[$index]['is_primary'] ?? false;
@@ -125,6 +113,26 @@ class PasienForm extends Component
         // Close dialog
         $this->showDeleteConfirm = false;
         $this->deleteKontakIndex = null;
+    }
+
+    /**
+     * Kontak darurat tidak wajib -- buang baris yang nama & nomor HP-nya
+     * sama-sama kosong (mis. user klik "Tambah Kontak" lalu tidak jadi
+     * mengisi), supaya tidak memicu error validasi "Nama kontak wajib
+     * diisi". Kalau baris kontak utama ikut terbuang, tandai baris pertama
+     * yang tersisa sebagai utama.
+     */
+    private function buangKontakKosong(): void
+    {
+        $this->kontak = array_values(array_filter(
+            $this->kontak,
+            fn ($k) => trim((string) ($k['nama'] ?? '')) !== ''
+                    || trim((string) ($k['nomor_hp'] ?? '')) !== ''
+        ));
+
+        if ($this->kontak && ! collect($this->kontak)->contains('is_primary', true)) {
+            $this->kontak[0]['is_primary'] = true;
+        }
     }
 
     public function setPrimaryKontak(int $index): void
@@ -258,8 +266,12 @@ class PasienForm extends Component
             'alergi'        => ['required', 'string', 'max:1000'],
             'asuransi_id'   => ['nullable', 'integer', 'exists:asuransi,id'],
             'nomor_polis'   => ['nullable', 'string', 'max:50'],
-            // Kontak Darurat — MANDATORY (minimal 1 kontak)
-            'kontak'            => ['required', 'array', 'min:1'],
+            // Kontak Darurat — OPTIONAL: boleh tidak diisi sama sekali.
+            // Baris yang benar-benar kosong dibuang dulu di save()
+            // (buangKontakKosong()), jadi aturan di bawah hanya berlaku
+            // untuk baris yang memang diisi sebagian -- kalau user sudah
+            // mulai mengisi satu kontak, isinya harus lengkap & valid.
+            'kontak'            => ['nullable', 'array'],
             'kontak.*.nama'     => ['required', 'string', 'min:3'],
             'kontak.*.nomor_hp' => ['required', 'string',
                                     'regex:/^(\+62|62|0)[0-9]{8,13}$/'],
@@ -288,9 +300,8 @@ class PasienForm extends Component
             'telepon.regex'              => 'Format nomor telepon tidak valid.',
             'alergi.required'            => 'Riwayat alergi wajib diisi. Tulis "Tidak ada alergi" jika tidak ada.',
             
-            // Kontak Darurat — error messages
-            'kontak.required'            => 'Minimal 1 kontak darurat wajib ditambahkan.',
-            'kontak.min'                 => 'Minimal 1 kontak darurat wajib ditambahkan.',
+            // Kontak Darurat — error messages (kontak itu sendiri opsional,
+            // tapi baris yang sudah mulai diisi harus lengkap)
             'kontak.*.nama.required'     => 'Nama kontak wajib diisi.',
             'kontak.*.nomor_hp.required' => 'No. HP kontak wajib diisi.',
             'kontak.*.nomor_hp.regex'    => 'Format HP kontak tidak valid.',
@@ -310,6 +321,8 @@ class PasienForm extends Component
 
     public function save(PasienService $service)
     {
+        $this->buangKontakKosong();
+
         $validated = $this->validate($this->getRules(), $this->getMessages());
 
         // Validasi kondisional WNI/WNA

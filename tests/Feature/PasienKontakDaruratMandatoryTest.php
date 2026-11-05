@@ -9,6 +9,14 @@ use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Livewire\Livewire;
 use Tests\TestCase;
 
+/**
+ * Test kontak darurat saat pendaftaran pasien.
+ *
+ * Permintaan user: ubah kontak darurat dari MANDATORY menjadi OPTIONAL.
+ * Alasan: proses pendaftaran pasien baru di antrian panjang tidak perlu
+ * terhenti hanya karena pasien tidak mau memberikan kontak darurat di momen
+ * pendaftaran -- bisa diisi nanti saat check-in atau update profil.
+ */
 class PasienKontakDaruratMandatoryTest extends TestCase
 {
     use DatabaseTransactions;
@@ -27,7 +35,7 @@ class PasienKontakDaruratMandatoryTest extends TestCase
     }
 
     /** @test */
-    public function kontak_darurat_wajib_tidak_boleh_kosong(): void
+    public function kontak_darurat_boleh_kosong(): void
     {
         $sumber = SumberInformasi::first();
 
@@ -43,7 +51,7 @@ class PasienKontakDaruratMandatoryTest extends TestCase
             ->set('sumberInformasiId', $sumber->id)
             ->set('kontak', [])
             ->call('save')
-            ->assertHasErrors('kontak');
+            ->assertHasNoErrors();
     }
 
     /** @test */
@@ -72,6 +80,66 @@ class PasienKontakDaruratMandatoryTest extends TestCase
             ])
             ->call('save')
             ->assertHasNoErrors();
+    }
+
+    /**
+     * User klik "Tambah Kontak" lalu tidak jadi mengisi -- baris kosong itu
+     * harus dibuang diam-diam, bukan memicu "Nama kontak wajib diisi".
+     */
+    /** @test */
+    public function baris_kontak_yang_kosong_total_dibuang_tanpa_error(): void
+    {
+        $sumber = SumberInformasi::first();
+
+        $component = Livewire::test(PasienForm::class)
+            ->set('nama', 'Test Pasien')
+            ->set('tempat_lahir', 'Jakarta')
+            ->set('tanggal_lahir', '1990-01-01')
+            ->set('jenis_kelamin', 'L')
+            ->set('tipe_pasien', 'WNI')
+            ->set('nik', '1234567890123456')
+            ->set('alamat', 'Jl. Test')
+            ->set('telepon', '081234567890')
+            ->set('sumberInformasiId', $sumber->id)
+            ->set('kontak', [
+                ['nama' => '', 'nomor_hp' => '', 'hubungan' => 'lainnya', 'alamat' => '', 'is_primary' => true],
+            ])
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertCount(0, $component->get('kontak'));
+    }
+
+    /**
+     * Baris kosong dibuang, tapi baris yang terisi tetap tersimpan -- dan
+     * kontak utama berpindah ke baris tersisa (baris kosong tadi yg primary).
+     */
+    /** @test */
+    public function baris_kosong_dibuang_baris_terisi_tetap_disimpan(): void
+    {
+        $sumber = SumberInformasi::first();
+
+        $component = Livewire::test(PasienForm::class)
+            ->set('nama', 'Test Pasien')
+            ->set('tempat_lahir', 'Jakarta')
+            ->set('tanggal_lahir', '1990-01-01')
+            ->set('jenis_kelamin', 'L')
+            ->set('tipe_pasien', 'WNI')
+            ->set('nik', '1234567890123456')
+            ->set('alamat', 'Jl. Test')
+            ->set('telepon', '081234567890')
+            ->set('sumberInformasiId', $sumber->id)
+            ->set('kontak', [
+                ['nama' => '', 'nomor_hp' => '', 'hubungan' => 'lainnya', 'alamat' => '', 'is_primary' => true],
+                ['nama' => 'Ibu', 'nomor_hp' => '081234567892', 'hubungan' => 'ibu', 'alamat' => '', 'is_primary' => false],
+            ])
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $kontak = $component->get('kontak');
+        $this->assertCount(1, $kontak);
+        $this->assertSame('Ibu', $kontak[0]['nama']);
+        $this->assertTrue($kontak[0]['is_primary'], 'Kontak tersisa harus jadi kontak utama.');
     }
 
     /** @test */
@@ -217,7 +285,7 @@ class PasienKontakDaruratMandatoryTest extends TestCase
     }
 
     /** @test */
-    public function tidak_bisa_hapus_kontak_terakhir(): void
+    public function bisa_hapus_kontak_terakhir(): void
     {
         $sumber = SumberInformasi::first();
 
@@ -241,11 +309,26 @@ class PasienKontakDaruratMandatoryTest extends TestCase
                 ]
             ])
             ->call('removeKontak', 0)
-            ->assertHasErrors('kontak');
+            ->assertHasNoErrors();
+
+        // Setelah dihapus, array kontak kosong
+        Livewire::test(PasienForm::class)
+            ->set('nama', 'Test Pasien 2')
+            ->set('tempat_lahir', 'Jakarta')
+            ->set('tanggal_lahir', '1990-01-01')
+            ->set('jenis_kelamin', 'L')
+            ->set('tipe_pasien', 'WNI')
+            ->set('nik', '9999999999999999')
+            ->set('alamat', 'Jl. Test')
+            ->set('telepon', '081234567890')
+            ->set('sumberInformasiId', $sumber->id)
+            ->set('kontak', [])
+            ->call('save')
+            ->assertHasNoErrors();
     }
 
     /** @test */
-    public function bisa_hapus_kontak_jika_ada_lebih_dari_satu(): void
+    public function bisa_hapus_salah_satu_dari_multiple_kontak(): void
     {
         $sumber = SumberInformasi::first();
 
