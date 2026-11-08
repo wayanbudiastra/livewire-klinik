@@ -116,6 +116,24 @@ class TagihanPasien extends Component
         return $k->resep()->where('is_locked', false)->exists();
     }
 
+    /**
+     * SOAP Note dokter sudah difinalisasi? Kasir boleh menyusun tagihan
+     * sebelum ini terpenuhi (cukup tanda vital), tapi tombol Bayar tetap
+     * dikunci sampai dokter menyimpan & memfinalisasi SOAP Note-nya.
+     *
+     * Dicek via status kunjungan (bukan query langsung ke SoapNote) karena
+     * status 'selesai' HANYA bisa dicapai lewat
+     * KunjunganService::selesaiPemeriksaan(), yang sudah mewajibkan SOAP
+     * Note final sebelum mengizinkan transisi status itu -- jadi status
+     * 'selesai' disini otomatis berarti SOAP sudah final.
+     */
+    #[Computed]
+    public function soapSudahFinal(): bool
+    {
+        if (! $this->kunjunganId) return false;
+        return Kunjungan::where('id', $this->kunjunganId)->value('status') === 'selesai';
+    }
+
     #[Computed]
     public function daftarHariIni(): array
     {
@@ -188,9 +206,14 @@ class TagihanPasien extends Component
         $this->searchPasien  = '';
         unset($this->kunjungan, $this->invoice, $this->hasPendingResep);
 
-        // Hanya fetch tagihan jika pemeriksaan sudah selesai
-        $kunjungan = Kunjungan::find($id);
-        if ($kunjungan && $kunjungan->status === 'selesai') {
+        // Fetch tagihan jika:
+        // 1. Pemeriksaan sudah selesai (status = selesai), ATAU
+        // 2. Masih dalam pemeriksaan tapi sudah ada tanda vital (AsesmenPerawat)
+        //    -- kasir bisa lihat/susun tagihan, tapi pembayaran tetap diblokir
+        //    sampai SOAP final (lihat prosesPembayaran()).
+        $kunjungan = Kunjungan::with('asesmenPerawat')->find($id);
+        if ($kunjungan && $kunjungan->status !== 'dibatalkan'
+            && ($kunjungan->status === 'selesai' || $kunjungan->asesmenPerawat)) {
             $this->fetchTagihan();
         }
     }
@@ -202,11 +225,20 @@ class TagihanPasien extends Component
             return;
         }
 
-        $kunjungan = Kunjungan::find($this->kunjunganId);
+        $kunjungan = Kunjungan::with('asesmenPerawat')->find($this->kunjunganId);
         if (! $kunjungan) return;
 
-        if ($kunjungan->status !== 'selesai') {
-            session()->flash('error', 'Pemeriksaan pasien belum selesai. Tagihan hanya dapat dibuat setelah dokter menyelesaikan pemeriksaan.');
+        if ($kunjungan->status === 'dibatalkan') {
+            session()->flash('error', 'Kunjungan ini sudah dibatalkan.');
+            $this->kunjunganId = null;
+            return;
+        }
+
+        // Kasir boleh lihat tagihan jika:
+        // 1. Status selesai (SOAP sudah final), ATAU
+        // 2. Masih dalam pemeriksaan tapi sudah ada tanda vital (AsesmenPerawat)
+        if ($kunjungan->status !== 'selesai' && ! $kunjungan->asesmenPerawat) {
+            session()->flash('error', 'Isi tanda vital terlebih dahulu sebelum dapat membuat tagihan.');
             $this->kunjunganId = null;
             return;
         }
@@ -355,9 +387,17 @@ class TagihanPasien extends Component
             return;
         }
 
+        // Tagihan boleh DISUSUN kasir sejak tanda vital terisi (lihat
+        // fetchTagihan()), tapi PEMBAYARAN tetap menunggu kunjungan berstatus
+        // 'selesai' -- jangan sampai pasien sudah dibayar sementara rekam
+        // medis kunjungannya masih kosong. Status 'selesai' sendiri hanya bisa
+        // dicapai lewat KunjunganService::selesaiPemeriksaan() yang mewajibkan
+        // SOAP Note sudah difinalisasi, jadi status di sini sekaligus menjadi
+        // penanda SOAP sudah final -- karena itu pesan errornya menyebut SOAP
+        // supaya kasir tahu persis apa yang harus ditunggu dari dokter.
         $kunjungan = Kunjungan::find($this->kunjunganId);
         if (! $kunjungan || $kunjungan->status !== 'selesai') {
-            session()->flash('error', 'Pemeriksaan pasien belum selesai.');
+            session()->flash('error', 'SOAP Note dokter belum disimpan/difinalisasi. Pembayaran baru dapat diproses setelah dokter memfinalisasi SOAP Note dan menyelesaikan pemeriksaan.');
             return;
         }
 

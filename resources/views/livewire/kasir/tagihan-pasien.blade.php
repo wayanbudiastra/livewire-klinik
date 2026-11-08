@@ -122,11 +122,11 @@
             </div>
         </div>
 
-        @if ($this->kunjungan->status !== 'selesai')
-        <div class="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-            <strong>Pemeriksaan belum selesai.</strong>
-            Status saat ini: <span class="font-semibold">{{ ucfirst(str_replace('_', ' ', $this->kunjungan->status)) }}</span>.
-            Tagihan dapat diproses setelah dokter menyelesaikan pemeriksaan.
+        @if (! $this->soapSudahFinal)
+        <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            <strong>SOAP Note dokter belum disimpan/difinalisasi.</strong>
+            Status pemeriksaan saat ini: <span class="font-semibold">{{ ucfirst(str_replace('_', ' ', $this->kunjungan->status)) }}</span>.
+            Tagihan sudah dapat disusun, tapi <u>pembayaran baru dapat diproses</u> setelah dokter menyimpan &amp; memfinalisasi SOAP Note.
         </div>
         @elseif ($this->hasPendingResep)
         <div class="rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-700">
@@ -441,10 +441,17 @@
                         placeholder="Catatan pembayaran">
                 </div>
 
+                @if (! $this->soapSudahFinal)
+                <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 mb-4">
+                    <strong>⚠ SOAP Note belum difinalisasi.</strong>
+                    Tombol "Bayar" akan diaktifkan setelah dokter menyimpan &amp; memfinalisasi SOAP Note.
+                </div>
+                @endif
+
                 <div class="mt-5 flex items-center gap-3">
                     <button wire:click="prosesPembayaran"
                         wire:confirm="Konfirmasi proses pembayaran untuk pasien {{ $this->kunjungan->pasien->nama }}?"
-                        @disabled($this->hasPendingResep)
+                        @disabled($this->hasPendingResep || ! $this->soapSudahFinal)
                         class="flex items-center gap-2 rounded-xl bg-green-600 px-6 py-2.5 text-sm font-bold text-white shadow hover:bg-green-700 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50">
                         <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
