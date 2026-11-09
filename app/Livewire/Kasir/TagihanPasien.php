@@ -88,7 +88,7 @@ class TagihanPasien extends Component
     public function kunjungan(): ?Kunjungan
     {
         if (! $this->kunjunganId) return null;
-        return Kunjungan::with('pasien', 'dokter', 'poli')->find($this->kunjunganId);
+        return Kunjungan::with('pasien', 'dokter', 'poli', 'asesmenPerawat')->find($this->kunjunganId);
     }
 
     #[Computed]
@@ -117,21 +117,26 @@ class TagihanPasien extends Component
     }
 
     /**
-     * SOAP Note dokter sudah difinalisasi? Kasir boleh menyusun tagihan
-     * sebelum ini terpenuhi (cukup tanda vital), tapi tombol Bayar tetap
-     * dikunci sampai dokter menyimpan & memfinalisasi SOAP Note-nya.
+     * Tanda vital sudah difinalisasi perawat? Ini gate PEMBAYARAN sejak
+     * 2026-11-09 (keputusan kebijakan klinik atas permintaan user): kasir
+     * tidak lagi perlu menunggu dokter memfinalisasi SOAP Note, cukup
+     * perawat mengunci TTV lewat KunjunganService::finalisasiTtv().
      *
-     * Dicek via status kunjungan (bukan query langsung ke SoapNote) karena
-     * status 'selesai' HANYA bisa dicapai lewat
-     * KunjunganService::selesaiPemeriksaan(), yang sudah mewajibkan SOAP
-     * Note final sebelum mengizinkan transisi status itu -- jadi status
-     * 'selesai' disini otomatis berarti SOAP sudah final.
+     * Kunjungan yang sudah berstatus 'selesai' tetap lolos -- status itu
+     * hanya bisa dicapai lewat selesaiPemeriksaan() yang mewajibkan SOAP
+     * Note final, jadi jalur lama (termasuk kunjungan lama yang TTV-nya
+     * tidak pernah difinalisasi) tidak ikut terkunci.
      */
     #[Computed]
-    public function soapSudahFinal(): bool
+    public function ttvSudahFinal(): bool
     {
         if (! $this->kunjunganId) return false;
-        return Kunjungan::where('id', $this->kunjunganId)->value('status') === 'selesai';
+
+        $kunjungan = Kunjungan::with('asesmenPerawat')->find($this->kunjunganId);
+        if (! $kunjungan) return false;
+
+        return $kunjungan->status === 'selesai'
+            || (bool) $kunjungan->asesmenPerawat?->is_final;
     }
 
     #[Computed]
@@ -210,7 +215,7 @@ class TagihanPasien extends Component
         // 1. Pemeriksaan sudah selesai (status = selesai), ATAU
         // 2. Masih dalam pemeriksaan tapi sudah ada tanda vital (AsesmenPerawat)
         //    -- kasir bisa lihat/susun tagihan, tapi pembayaran tetap diblokir
-        //    sampai SOAP final (lihat prosesPembayaran()).
+        //    sampai perawat memfinalisasi TTV (lihat prosesPembayaran()).
         $kunjungan = Kunjungan::with('asesmenPerawat')->find($id);
         if ($kunjungan && $kunjungan->status !== 'dibatalkan'
             && ($kunjungan->status === 'selesai' || $kunjungan->asesmenPerawat)) {
@@ -388,16 +393,14 @@ class TagihanPasien extends Component
         }
 
         // Tagihan boleh DISUSUN kasir sejak tanda vital terisi (lihat
-        // fetchTagihan()), tapi PEMBAYARAN tetap menunggu kunjungan berstatus
-        // 'selesai' -- jangan sampai pasien sudah dibayar sementara rekam
-        // medis kunjungannya masih kosong. Status 'selesai' sendiri hanya bisa
-        // dicapai lewat KunjunganService::selesaiPemeriksaan() yang mewajibkan
-        // SOAP Note sudah difinalisasi, jadi status di sini sekaligus menjadi
-        // penanda SOAP sudah final -- karena itu pesan errornya menyebut SOAP
-        // supaya kasir tahu persis apa yang harus ditunggu dari dokter.
-        $kunjungan = Kunjungan::find($this->kunjunganId);
-        if (! $kunjungan || $kunjungan->status !== 'selesai') {
-            session()->flash('error', 'SOAP Note dokter belum disimpan/difinalisasi. Pembayaran baru dapat diproses setelah dokter memfinalisasi SOAP Note dan menyelesaikan pemeriksaan.');
+        // fetchTagihan()). PEMBAYARAN menunggu tanda vital DIFINALISASI
+        // perawat (atau kunjungan sudah 'selesai'). Sejak 2026-11-09 gate ini
+        // tidak lagi mewajibkan SOAP Note dokter final -- keputusan kebijakan
+        // klinik supaya kasir tidak terhenti saat antrean panjang.
+        // Tradeoff: pasien bisa lunas sebelum dokter menulis SOAP Note.
+        unset($this->ttvSudahFinal);
+        if (! $this->ttvSudahFinal) {
+            session()->flash('error', 'Tanda vital belum difinalisasi oleh perawat. Pembayaran baru dapat diproses setelah perawat memfinalisasi tanda vital (TTV).');
             return;
         }
 

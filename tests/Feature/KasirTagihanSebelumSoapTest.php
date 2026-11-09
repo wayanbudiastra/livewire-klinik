@@ -29,12 +29,9 @@ use Tests\TestCase;
  * jadi kasir tidak bisa menyiapkan/menghitung tagihan lebih awal walau
  * tindakan & tanda vital sudah tercatat.
  *
- * Gate pembayaran tetap memakai status kunjungan 'selesai' sebagai sumber
- * kebenaran, karena status itu HANYA bisa dicapai lewat
- * KunjunganService::selesaiPemeriksaan() yang sudah mewajibkan SOAP Note
- * final (lihat PemeriksaanAuditFixesTest) -- jadi fix keamanan rekam medis
- * yang lama TIDAK dilonggarkan sama sekali, hanya tahap penyusunan tagihan
- * yang dimajukan.
+ * UPDATE 2026-11-09: gate pembayaran diganti dari SOAP final menjadi TTV
+ * final oleh perawat (atau kunjungan sudah 'selesai'). Lihat
+ * TtvFinalisasiTest untuk alur finalisasi lengkapnya.
  *
  * Pakai DatabaseTransactions -- bukan RefreshDatabase.
  */
@@ -176,7 +173,7 @@ class KasirTagihanSebelumSoapTest extends TestCase
     // ── Pembayaran tetap diblokir sampai SOAP final ──────────────────
 
     /** @test */
-    public function pembayaran_ditolak_dengan_notif_soap_kalau_pemeriksaan_belum_diselesaikan(): void
+    public function pembayaran_ditolak_kalau_ttv_belum_difinalisasi(): void
     {
         $kasir     = $this->buatKasir();
         $kunjungan = $this->buatKunjunganDalamPemeriksaan();
@@ -192,17 +189,17 @@ class KasirTagihanSebelumSoapTest extends TestCase
             ->set('jumlahTunai', '150000')
             ->call('prosesPembayaran');
 
-        $this->assertStringContainsString('SOAP Note', (string) session('error'),
-            'Notif harus menyebut SOAP Note supaya kasir tahu apa yang ditunggu dari dokter.');
+        $this->assertStringContainsString('Tanda vital belum difinalisasi', (string) session('error'),
+            'Notif harus menyebut finalisasi tanda vital supaya kasir tahu apa yang ditunggu dari perawat.');
 
         $invoice = Invoice::where('kunjungan_id', $kunjungan->id)->first();
         $this->assertSame('belum_bayar', $invoice->fresh()->status);
         $this->assertSame(0, PembayaranSplit::where('billing_id', $invoice->id)->count(),
-            'Tidak boleh ada pembayaran tercatat selama SOAP belum final.');
+            'Tidak boleh ada pembayaran tercatat selama TTV belum final.');
     }
 
     /** @test */
-    public function soap_sudah_final_false_selama_kunjungan_belum_selesai(): void
+    public function ttv_sudah_final_false_selama_ttv_belum_dikunci(): void
     {
         $kasir     = $this->buatKasir();
         $kunjungan = $this->buatKunjunganDalamPemeriksaan();
@@ -214,8 +211,8 @@ class KasirTagihanSebelumSoapTest extends TestCase
         $component = Livewire::test(TagihanPasien::class)
             ->call('selectKunjungan', $kunjungan->id);
 
-        $this->assertFalse($component->instance()->soapSudahFinal(),
-            'Tombol Bayar harus dikunci (soapSudahFinal = false) selama kunjungan belum selesai.');
+        $this->assertFalse($component->instance()->ttvSudahFinal(),
+            'Tombol Bayar harus dikunci (ttvSudahFinal = false) selama TTV belum difinalisasi perawat.');
     }
 
     /** @test */

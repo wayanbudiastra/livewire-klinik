@@ -130,6 +130,23 @@ class DetailPemeriksaan extends Component
 
     public function simpanVitals(KunjunganService $service): void
     {
+        try {
+            $this->persistVitals($service);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Error validasi field (beratBadan dst.) dilempar ulang supaya
+            // tampil di bawah input; error dari service (TTV sudah final)
+            // ditampilkan sebagai notifikasi.
+            if (! isset($e->errors()['id'])) throw $e;
+            $this->dispatch('notify', type: 'error', message: $e->errors()['id'][0]);
+            return;
+        }
+
+        unset($this->kunjungan);
+        $this->dispatch('notify', type: 'success', message: 'Data vital & asesmen berhasil disimpan.');
+    }
+
+    private function persistVitals(KunjunganService $service): void
+    {
         $this->validate([
             'beratBadan'  => 'nullable|numeric|min:1|max:500',
             'tinggiBadan' => 'nullable|numeric|min:1|max:300',
@@ -156,9 +173,6 @@ class DetailPemeriksaan extends Component
             'asal_kedatangan' => $this->asalKedatangan ?: null,
             'catatan_penting' => $this->catatanPenting ?: null,
         ]);
-
-        unset($this->kunjungan);
-        $this->dispatch('notify', type: 'success', message: 'Data vital & asesmen berhasil disimpan.');
     }
 
     public function batalkanRegistrasi(KunjunganService $service): void
@@ -181,6 +195,56 @@ class DetailPemeriksaan extends Component
             // dengan aksinya sendiri (status kunjungan ini justru berubah
             // jadi 'selesai', bukan status antara "siap diperiksa dokter").
             $this->dispatch('notify', type: 'success', message: 'Pemeriksaan selesai.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->dispatch('notify', type: 'error', message: $e->errors()[array_key_first($e->errors())][0]);
+        }
+    }
+
+    // ── Finalisasi Tanda Vital ──────────────────────────────────
+
+    /**
+     * Perawat mengunci tanda vital -- begitu dikunci, kasir sudah boleh
+     * memproses pembayaran tanpa menunggu dokter memfinalisasi SOAP Note.
+     * Sejak 2026-11-09 (keputusan kebijakan klinik).
+     */
+    public function finalisasiTtv(KunjunganService $service): void
+    {
+        // asesmen.edit dimiliki perawat & dokter (lihat RolePermissionSeeder)
+        // -- keduanya boleh mengunci TTV.
+        $this->authorize('asesmen.edit');
+
+        try {
+            // Simpan dulu isian form terbaru -- jangan sampai yang terkunci
+            // adalah data lama karena perawat langsung klik Finalisasi tanpa
+            // Simpan. Dilewati kalau TTV sudah final (simpanAsesmen menolak).
+            $sudahFinal = (bool) \App\Models\AsesmenPerawat::where('kunjungan_id', $this->kunjunganId)
+                ->value('is_final');
+            if (! $sudahFinal) {
+                $this->persistVitals($service);
+            }
+
+            $service->finalisasiTtv($this->kunjunganId);
+            unset($this->kunjungan);
+            $this->dispatch('notify', type: 'success', message: 'Tanda vital berhasil difinalisasi. Kasir sudah boleh memproses pembayaran.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Error validasi field (beratBadan dst.) dilempar ulang supaya
+            // tampil di bawah input masing-masing.
+            if (! isset($e->errors()['id'])) throw $e;
+            $this->dispatch('notify', type: 'error', message: $e->errors()['id'][0]);
+        }
+    }
+
+    /**
+     * Buka kunci TTV supaya bisa dikoreksi (jika belum ada pembayaran).
+     */
+    public function bukaFinalisasiTtv(KunjunganService $service): void
+    {
+        $this->authorize('asesmen.edit');
+
+        try {
+            $service->bukaFinalisasiTtv($this->kunjunganId);
+            unset($this->kunjungan);
+            $this->dispatch('notify', type: 'success', message: 'Finalisasi tanda vital sudah dibuka -- Anda dapat mengubah data vital sekarang.');
         } catch (\Illuminate\Validation\ValidationException $e) {
             $this->dispatch('notify', type: 'error', message: $e->errors()[array_key_first($e->errors())][0]);
         }

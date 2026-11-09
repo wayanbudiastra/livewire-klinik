@@ -335,14 +335,52 @@
                                   class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"></textarea>
                     </div>
 
+                    @php($ttvFinal = (bool) optional($k->asesmenPerawat)->is_final)
+
+                    @if($ttvFinal)
+                    <div class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-900/30 dark:text-green-300">
+                        <strong>✓ Tanda vital sudah difinalisasi</strong>
+                        @if($k->asesmenPerawat->finalized_at)
+                            pada {{ $k->asesmenPerawat->finalized_at->format('d/m/Y H:i') }}
+                        @endif
+                        @if($k->asesmenPerawat->finalizedBy)
+                            oleh {{ $k->asesmenPerawat->finalizedBy->nama }}
+                        @endif
+                        . Kasir sudah boleh memproses pembayaran tanpa menunggu SOAP Note.
+                    </div>
+                    @elseif(in_array($k->status, ['menunggu', 'dalam_pemeriksaan']))
+                    <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                        Tanda vital belum difinalisasi. Setelah difinalisasi, kasir dapat memproses pembayaran meski SOAP Note dokter belum disimpan.
+                    </div>
+                    @endif
+
                     @if(in_array($k->status, ['menunggu', 'dalam_pemeriksaan']))
-                    <div class="flex justify-end">
+                    <div class="flex justify-end gap-2">
+                        @if($ttvFinal)
+                        <button wire:click="bukaFinalisasiTtv"
+                                wire:confirm="Buka kunci finalisasi tanda vital supaya bisa diedit lagi?"
+                                class="btn-secondary" wire:loading.attr="disabled">
+                            <span wire:loading.remove wire:target="bukaFinalisasiTtv">Buka Kunci Finalisasi</span>
+                            <span wire:loading wire:target="bukaFinalisasiTtv" class="flex items-center gap-2">
+                                <div class="spinner h-4 w-4 border-t-transparent"></div> Memproses...
+                            </span>
+                        </button>
+                        @else
                         <button wire:click="simpanVitals" class="btn-primary" wire:loading.attr="disabled">
                             <span wire:loading.remove wire:target="simpanVitals">Simpan Data Vital & Asesmen</span>
                             <span wire:loading wire:target="simpanVitals" class="flex items-center gap-2">
                                 <div class="spinner h-4 w-4 border-white border-t-transparent"></div> Menyimpan...
                             </span>
                         </button>
+                        <button wire:click="finalisasiTtv"
+                                wire:confirm="Finalisasi tanda vital? Kasir akan bisa memproses pembayaran begitu ini dikunci."
+                                class="btn-primary bg-teal-600 hover:bg-teal-700" wire:loading.attr="disabled">
+                            <span wire:loading.remove wire:target="finalisasiTtv">Finalisasi Tanda Vital</span>
+                            <span wire:loading wire:target="finalisasiTtv" class="flex items-center gap-2">
+                                <div class="spinner h-4 w-4 border-white border-t-transparent"></div> Memproses...
+                            </span>
+                        </button>
+                        @endif
                     </div>
                     @endif
                 </div>

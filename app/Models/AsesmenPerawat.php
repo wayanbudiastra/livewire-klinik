@@ -13,6 +13,9 @@ class AsesmenPerawat extends Model
         'berat_badan', 'tinggi_badan',
         'tekanan_darah', 'nadi', 'frekuensi_napas', 'suhu', 'saturasi', 'gds',
         'anamnesis_awal',
+        // Finalisasi oleh perawat -- begitu di-final, kasir sudah boleh
+        // memproses pembayaran tanpa menunggu SOAP Note dokter.
+        'is_final', 'finalized_at', 'finalized_by',
     ];
 
     protected function casts(): array
@@ -23,7 +26,14 @@ class AsesmenPerawat extends Model
             'suhu'         => 'decimal:1',
             'saturasi'     => 'decimal:1',
             'gds'          => 'decimal:2',
+            'is_final'     => 'boolean',
+            'finalized_at' => 'datetime',
         ];
+    }
+
+    public function finalizedBy()
+    {
+        return $this->belongsTo(User::class, 'finalized_by');
     }
 
     public function kunjungan()

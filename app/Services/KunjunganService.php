@@ -271,12 +271,111 @@ class KunjunganService
 
     public function simpanAsesmen(int $kunjunganId, array $data): \App\Models\AsesmenPerawat
     {
+        $existing = \App\Models\AsesmenPerawat::where('kunjungan_id', $kunjunganId)->first();
+        if ($existing && $existing->is_final) {
+            throw ValidationException::withMessages([
+                'id' => 'Tanda vital sudah difinalisasi. Buka kunci finalisasi terlebih dahulu untuk mengubahnya.',
+            ]);
+        }
+
         $perawatId = \App\Models\Perawat::where('user_id', auth()->id())->value('id');
 
         return \App\Models\AsesmenPerawat::updateOrCreate(
             ['kunjungan_id' => $kunjunganId],
             array_merge($data, ['perawat_id' => $perawatId])
         );
+    }
+
+    // ── Finalisasi Tanda Vital (TTV) ─────────────────────────────
+
+    /** Kolom tanda vital -- minimal satu harus terisi sebelum TTV boleh dikunci. */
+    private const KOLOM_TTV = [
+        'berat_badan', 'tinggi_badan', 'tekanan_darah', 'nadi',
+        'frekuensi_napas', 'suhu', 'saturasi', 'gds',
+    ];
+
+    /**
+     * Perawat (atau dokter) mengunci tanda vital. Begitu TTV final, kasir
+     * sudah boleh memproses PEMBAYARAN tanpa menunggu dokter memfinalisasi
+     * SOAP Note (lihat TagihanPasien::prosesPembayaran()).
+     *
+     * Keputusan kebijakan klinik (permintaan user 2026-11-09): billing cukup
+     * berdasarkan TTV final + tindakan yang tercatat. Status kunjungan
+     * SENGAJA tidak diubah -- dokter tetap bisa menulis & memfinalisasi SOAP
+     * Note lalu menekan "Selesai" seperti biasa; syarat SOAP final untuk
+     * status 'selesai' (selesaiPemeriksaan()) tetap berlaku.
+     */
+    public function finalisasiTtv(int $kunjunganId): \App\Models\AsesmenPerawat
+    {
+        $kunjungan = Kunjungan::with('asesmenPerawat')->findOrFail($kunjunganId);
+
+        if ($kunjungan->status === 'dibatalkan') {
+            throw ValidationException::withMessages([
+                'id' => 'Kunjungan sudah dibatalkan -- tanda vital tidak dapat difinalisasi.',
+            ]);
+        }
+
+        $asesmen = $kunjungan->asesmenPerawat;
+        $adaTtv  = $asesmen && collect(self::KOLOM_TTV)
+            ->contains(fn ($kolom) => $asesmen->{$kolom} !== null && $asesmen->{$kolom} !== '');
+
+        if (! $adaTtv) {
+            throw ValidationException::withMessages([
+                'id' => 'Simpan minimal satu tanda vital terlebih dahulu sebelum finalisasi.',
+            ]);
+        }
+
+        if ($asesmen->is_final) {
+            return $asesmen;
+        }
+
+        $asesmen->update([
+            'is_final'     => true,
+            'finalized_at' => now(),
+            'finalized_by' => auth()->id(),
+        ]);
+
+        activity('kunjungan')
+            ->performedOn($kunjungan)
+            ->causedBy(auth()->user())
+            ->log('Tanda vital difinalisasi');
+
+        return $asesmen;
+    }
+
+    /**
+     * Buka kunci TTV supaya bisa dikoreksi. Ditolak kalau tagihan kunjungan
+     * sudah lunas -- data yang jadi dasar pembayaran tidak boleh berubah lagi.
+     */
+    public function bukaFinalisasiTtv(int $kunjunganId): \App\Models\AsesmenPerawat
+    {
+        $kunjungan = Kunjungan::with(['asesmenPerawat', 'invoice'])->findOrFail($kunjunganId);
+        $asesmen   = $kunjungan->asesmenPerawat;
+
+        if (! $asesmen || ! $asesmen->is_final) {
+            throw ValidationException::withMessages([
+                'id' => 'Tanda vital belum difinalisasi.',
+            ]);
+        }
+
+        if ($kunjungan->invoice && $kunjungan->invoice->status === 'lunas') {
+            throw ValidationException::withMessages([
+                'id' => 'Tagihan kunjungan ini sudah lunas -- finalisasi tanda vital tidak dapat dibuka lagi.',
+            ]);
+        }
+
+        $asesmen->update([
+            'is_final'     => false,
+            'finalized_at' => null,
+            'finalized_by' => null,
+        ]);
+
+        activity('kunjungan')
+            ->performedOn($kunjungan)
+            ->causedBy(auth()->user())
+            ->log('Finalisasi tanda vital dibuka');
+
+        return $asesmen;
     }
 
     // ── Cancel Kunjungan ──────────────────────────────────────
