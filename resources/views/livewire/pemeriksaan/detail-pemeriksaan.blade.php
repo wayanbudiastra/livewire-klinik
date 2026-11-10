@@ -335,7 +335,9 @@
                                   class="form-input dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"></textarea>
                     </div>
 
-                    @php($ttvFinal = (bool) optional($k->asesmenPerawat)->is_final)
+                    @php
+                        $ttvFinal = (bool) optional($k->asesmenPerawat)->is_final;
+                    @endphp
 
                     @if($ttvFinal)
                     <div class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-900/30 dark:text-green-300">

@@ -122,8 +122,13 @@
             </div>
         </div>
 
-        @php($kunjungan = $this->kunjungan)
-        @php($ttvFinal = $kunjungan->status === 'selesai' || (bool) optional($kunjungan->asesmenPerawat)->is_final)
+        {{-- Bentuk blok @php...@endphp (bukan inline @php(...)) -- kalau dicampur
+             dengan blok @php lain di file yang sama, Blade salah memasangkan
+             @php( dengan @endphp berikutnya dan menelan template di antaranya. --}}
+        @php
+            $kunjungan = $this->kunjungan;
+            $ttvFinal  = $kunjungan->status === 'selesai' || (bool) optional($kunjungan->asesmenPerawat)->is_final;
+        @endphp
 
         @if (! $ttvFinal)
         <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
