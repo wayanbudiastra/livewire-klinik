@@ -313,6 +313,19 @@ Route::middleware(['auth', 'active'])->group(function () {
             })->name('edit');
         });
 
+        // Adjustment Stok
+        Route::prefix('adjustment')->name('adjustment.')->group(function () {
+            Route::get('/', fn () => view('inventory.adjustment'))->name('index');
+            Route::get('/create', fn () => view('inventory.adjustment', ['tab' => 'create']))
+                 ->name('create')->middleware('permission:obat.edit');
+            Route::get('/{adjustment}', fn (\App\Models\AdjustmentStok $adjustment) => view('inventory.adjustment-detail', compact('adjustment')))->name('show');
+            // Attachment berisi bukti/dokumen internal (foto fisik stok, nota, memo),
+            // jadi permission di-set eksplisit meski prefix inventory sudah
+            // obat.view -- pola sama dgn /pemeriksaan/lampiran/{lampiran}/unduh.
+            Route::get('/{adjustment}/attachment', [\App\Http\Controllers\Inventory\AdjustmentController::class, 'download'])
+                 ->name('attachment')
+                 ->middleware('permission:obat.view');
+        });
         // Stok Opname
         Route::prefix('opname')->name('opname.')->group(function () {
             Route::get('/',       fn () => view('inventory.opname.index'))->name('index');

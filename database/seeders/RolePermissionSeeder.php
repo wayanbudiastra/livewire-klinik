@@ -103,6 +103,10 @@ class RolePermissionSeeder extends Seeder
             'apoteker' => [
                 'resep.view', 'resep.edit',
                 'obat.view', 'obat.create', 'obat.edit',
+                // obat.delete dipakai utk membatalkan Adjustment Stok
+                // (fitur fitur-adjustment.md) -- apoteker yg bikin adjustment
+                // jadi juga bisa membatalkannya sendiri jika salah input.
+                'obat.delete',
                 'laporan.farmasi',
                 'laporan.pharmacy.view', 'laporan.export',
             ],
