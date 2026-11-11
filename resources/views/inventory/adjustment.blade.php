@@ -15,8 +15,9 @@
         <div class="alert alert-success mb-4">{{ session('success') }}</div>
     @endif
 
-    {{-- Blok @php, bukan inline @php() -- menghindari parsing error.
-         $tab bisa datang sbg data view (dari route /create) atau query string. --}}
+    {{-- $tab bisa datang sbg data view (dari route /create) atau query string.
+         JANGAN tulis directive php (dgn @) di dalam komentar Blade: Blade
+         memproses blok php sebelum komentar, jadi akan salah dipasangkan. --}}
     @php
         $tab = $tab ?? request()->query('tab', 'list');
     @endphp
