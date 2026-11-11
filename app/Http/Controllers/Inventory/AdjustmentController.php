@@ -11,7 +11,7 @@ class AdjustmentController extends Controller
     public function download(AdjustmentStok $adjustment)
     {
         // Lapis kedua selain middleware route (defense in depth).
-        abort_unless(auth()->user()?->can('obat.view'), 403);
+        abort_unless(auth()->user()?->can('adjustment.view'), 403);
 
         abort_unless($adjustment->file_attachment, 404);
         abort_unless(Storage::disk('local')->exists($adjustment->file_attachment), 404);

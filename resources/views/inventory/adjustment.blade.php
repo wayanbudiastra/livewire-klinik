@@ -6,7 +6,7 @@
             <h2 class="page-title">Adjustment Stok Barang</h2>
             <p class="page-subtitle">Penyesuaian manual dengan catatan wajib untuk audit</p>
         </div>
-        @can('obat.edit')
+        @can('adjustment.create')
             <a href="{{ route('inventory.adjustment.create') }}" class="btn-primary">+ Adjustment Baru</a>
         @endcan
     </div>
@@ -27,7 +27,7 @@
             <a href="{{ route('inventory.adjustment.index') }}" class="px-5 py-3 text-sm font-medium border-b-2">
                 Riwayat Adjustment
             </a>
-            @can('obat.edit')
+            @can('adjustment.create')
                 <a href="{{ route('inventory.adjustment.create') }}" class="px-5 py-3 text-sm font-medium border-b-2">
                     Buat Adjustment
                 </a>

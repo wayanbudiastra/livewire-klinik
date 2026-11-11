@@ -95,9 +95,10 @@
             @can('obat.view')
             <x-sidebar-item route="inventory.bhp.index" icon="beaker">Pemakaian BHP</x-sidebar-item>
             <x-sidebar-item route="inventory.opname.index" icon="clipboard-list">Stok Opname</x-sidebar-item>
-            <x-sidebar-item route="inventory.adjustment.index" icon="adjustments">Adjustment Stok</x-sidebar-item>
             <x-sidebar-item route="inventory.retur-gr.index" icon="document-text">Retur ke Supplier</x-sidebar-item>
             @endcan
+            {{-- Di luar blok obat.view: bisa dibagikan ke staf non-farmasi lewat Hak Akses Tambahan --}}
+            <x-sidebar-item route="inventory.adjustment.index" icon="adjustments" permission="adjustment.view">Adjustment Stok</x-sidebar-item>
 
             @can('pengaturan.satusehat')
             <div x-data="{ satusehatOpen: {{ request()->routeIs('satusehat.*') ? 'true' : 'false' }} }">

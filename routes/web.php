@@ -313,19 +313,9 @@ Route::middleware(['auth', 'active'])->group(function () {
             })->name('edit');
         });
 
-        // Adjustment Stok
-        Route::prefix('adjustment')->name('adjustment.')->group(function () {
-            Route::get('/', fn () => view('inventory.adjustment'))->name('index');
-            Route::get('/create', fn () => view('inventory.adjustment', ['tab' => 'create']))
-                 ->name('create')->middleware('permission:obat.edit');
-            Route::get('/{adjustment}', fn (\App\Models\AdjustmentStok $adjustment) => view('inventory.adjustment-detail', compact('adjustment')))->name('show');
-            // Attachment berisi bukti/dokumen internal (foto fisik stok, nota, memo),
-            // jadi permission di-set eksplisit meski prefix inventory sudah
-            // obat.view -- pola sama dgn /pemeriksaan/lampiran/{lampiran}/unduh.
-            Route::get('/{adjustment}/attachment', [\App\Http\Controllers\Inventory\AdjustmentController::class, 'download'])
-                 ->name('attachment')
-                 ->middleware('permission:obat.view');
-        });
+        // Adjustment Stok -- route-nya ada di grup terpisah di bawah (di luar
+        // prefix ini) krn pakai permission granular adjustment.*, bukan obat.view.
+
         // Stok Opname
         Route::prefix('opname')->name('opname.')->group(function () {
             Route::get('/',       fn () => view('inventory.opname.index'))->name('index');
@@ -337,6 +327,28 @@ Route::middleware(['auth', 'active'])->group(function () {
                 return view('inventory.opname.show', compact('opname'));
             })->name('show');
         });
+    });
+
+    // ── Adjustment Stok ─────────────────────────────────────
+    // Sengaja DI LUAR grup inventory (permission:obat.view) supaya staf non-
+    // farmasi (mis. perawat yg ditunjuk) bisa diberi akses HANYA ke fitur ini
+    // lewat Hak Akses Tambahan (adjustment.*), tanpa ikut dapat akses master
+    // barang/PO/GR/Retur. URL & nama route tetap inventory/adjustment/...
+    Route::prefix('inventory/adjustment')->name('inventory.adjustment.')->group(function () {
+        Route::get('/', fn () => view('inventory.adjustment'))
+             ->name('index')
+             ->middleware('permission:adjustment.view');
+        Route::get('/create', fn () => view('inventory.adjustment', ['tab' => 'create']))
+             ->name('create')
+             ->middleware('permission:adjustment.create');
+        Route::get('/{adjustment}', fn (\App\Models\AdjustmentStok $adjustment) => view('inventory.adjustment-detail', compact('adjustment')))
+             ->name('show')
+             ->middleware('permission:adjustment.view');
+        // Attachment berisi bukti/dokumen internal (foto fisik stok, nota, memo)
+        // -- pola sama dgn /pemeriksaan/lampiran/{lampiran}/unduh.
+        Route::get('/{adjustment}/attachment', [\App\Http\Controllers\Inventory\AdjustmentController::class, 'download'])
+             ->name('attachment')
+             ->middleware('permission:adjustment.view');
     });
 
     // ── Pengaturan ──────────────────────────────────────────

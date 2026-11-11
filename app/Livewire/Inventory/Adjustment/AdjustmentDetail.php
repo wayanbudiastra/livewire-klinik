@@ -23,7 +23,7 @@ class AdjustmentDetail extends Component
      */
     public function batalkan(AdjustmentStokService $service): void
     {
-        abort_unless(auth()->user()?->can('obat.delete'), 403);
+        abort_unless(auth()->user()?->can('adjustment.delete'), 403);
 
         $this->validate(
             ['alasanBatal' => 'required|string|min:10|max:500'],

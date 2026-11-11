@@ -59,8 +59,8 @@
         @endif
     </div>
 
-    {{-- Tombol & Form Pembatalan (hanya jika user punya permission obat.delete) --}}
-    @can('obat.delete')
+    {{-- Tombol & Form Pembatalan (hanya jika user punya permission adjustment.delete) --}}
+    @can('adjustment.delete')
         <div class="card border-red-200 bg-red-50">
             <div class="card-body">
                 <p class="font-medium text-red-900">Zona Berbahaya</p>
