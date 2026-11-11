@@ -242,7 +242,20 @@
                                 {{ ucfirst($item->jenis) }}
                             </span>
                         </td>
-                        <td class="px-3 py-2.5 text-right text-gray-600">{{ $item->qty }} {{ $item->satuan }}</td>
+                        <td class="px-3 py-2.5 text-right">
+                            {{-- Qty obat/racikan dikunci: terikat resep & stok, koreksi lewat Retur Resep --}}
+                            @if ($this->invoice->status === 'belum_bayar' && ! in_array($item->jenis, ['obat', 'racikan'], true))
+                                <div class="flex items-center justify-end gap-1">
+                                    <input wire:model="editQty.{{ $item->id }}"
+                                        wire:change="updateQtyItem({{ $item->id }})"
+                                        type="number" min="0.01" step="0.01"
+                                        class="w-24 rounded border-gray-300 text-right text-xs shadow-sm">
+                                    <span class="text-gray-600 text-xs min-w-fit">{{ $item->satuan }}</span>
+                                </div>
+                            @else
+                                <span class="text-gray-600">{{ $item->qty }} {{ $item->satuan }}</span>
+                            @endif
+                        </td>
                         <td class="px-3 py-2.5 text-right text-gray-600">Rp {{ number_format($item->harga_satuan, 0, ',', '.') }}</td>
                         <td class="px-3 py-2.5 text-right">
                             @if ($this->invoice->status === 'belum_bayar')

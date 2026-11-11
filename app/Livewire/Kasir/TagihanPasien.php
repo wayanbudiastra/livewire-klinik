@@ -30,9 +30,10 @@ class TagihanPasien extends Component
     public ?int $kunjunganId = null;
     public ?int $invoiceId   = null;
 
-    // Invoice items (editable diskon)
+    // Invoice items (editable diskon dan qty)
     public array $editDiskon = [];      // [itemId => diskon_value]
     public array $editDiskonTipe = [];  // [itemId => 'nominal'|'persen']
+    public array $editQty = [];         // [itemId => qty_value]
 
     // Add manual item form
     public bool   $showManualForm = false;
@@ -257,6 +258,9 @@ class TagihanPasien extends Component
         $this->editDiskonTipe    = $invoice->items->pluck('diskon_tipe', 'id')
             ->map(fn ($v) => (string) ($v ?? 'nominal'))
             ->toArray();
+        $this->editQty = $invoice->items->pluck('qty', 'id')
+            ->map(fn ($v) => (string) ($v ?? 1))
+            ->toArray();
         $this->diskonGlobalNominal = (string) ($invoice->diskon_global_nilai ?? $invoice->diskon_global ?? 0);
         $this->diskonGlobalTipe = (string) ($invoice->diskon_global_tipe ?? 'nominal');
 
@@ -292,6 +296,63 @@ class TagihanPasien extends Component
             'diskon_item'   => $diskonNominal,
             'subtotal'      => max(0, $bruto - $diskonNominal),
         ]);
+
+        $this->invoiceService->recalcTotal($item->billing);
+        unset($this->invoice);
+    }
+
+    /**
+     * Edit qty item langsung di tabel rincian tagihan.
+     *
+     * Diskon per-item disimpan sbg (tipe, nilai) -- bukan nominal jadi -- krn
+     * bruto = harga_satuan * qty ikut berubah saat qty diedit. Jadi diskon_item
+     * & subtotal WAJIB dihitung ulang di sini, pakai rumus yg sama persis dgn
+     * updateDiskonItem(), supaya diskon persen tetap proporsional dan diskon
+     * nominal tidak pernah melebihi bruto yg baru.
+     */
+    public function updateQtyItem(int $itemId): void
+    {
+        $this->authorize('billing.edit');
+
+        $item = InvoiceItem::find($itemId);
+        if (! $item || $item->billing->status !== 'belum_bayar') return;
+
+        // Obat/racikan: qty terikat ke resep yg sudah dikunci apoteker & stok
+        // yg sudah keluar -- koreksi lewat Retur Resep, bukan di kasir (sama
+        // alasannya dgn tombol hapus yg disembunyikan utk jenis ini).
+        if (in_array($item->jenis, ['obat', 'racikan'], true)) return;
+
+        // Qty minimal 0.01 (kolom decimal:2) -- item yg benar2 tidak dipakai
+        // dihapus lewat tombol hapus, bukan dgn set qty 0.
+        $qty = round((float) ($this->editQty[$itemId] ?? 0), 2);
+
+        if ($qty < 0.01) {
+            // Kembalikan tampilan ke nilai tersimpan supaya input tidak
+            // menyisakan angka invalid yg terlihat seolah sudah tersimpan.
+            $this->editQty[$itemId] = (string) $item->qty;
+            $this->dispatch('notify', type: 'error', message: 'Qty minimal 0.01. Gunakan tombol hapus untuk membuang item.');
+            return;
+        }
+
+        $bruto = $item->harga_satuan * $qty;
+        $tipe  = (string) ($item->diskon_tipe ?? 'nominal');
+        $nilai = (float) ($item->diskon_nilai ?? 0);
+
+        if ($tipe === 'persen') {
+            $nilai = max(0, min(100, $nilai));
+            $diskonNominal = ($bruto * $nilai) / 100;
+        } else {
+            $diskonNominal = min($nilai, $bruto);
+        }
+
+        $item->update([
+            'qty'         => $qty,
+            'diskon_item' => $diskonNominal,
+            'subtotal'    => max(0, $bruto - $diskonNominal),
+        ]);
+
+        // Sinkronkan tampilan input dgn nilai yg benar2 tersimpan (hasil round).
+        $this->editQty[$itemId] = (string) $qty;
 
         $this->invoiceService->recalcTotal($item->billing);
         unset($this->invoice);
@@ -377,6 +438,7 @@ class TagihanPasien extends Component
 
         $this->editDiskon[$item->id] = '0';
         $this->editDiskonTipe[$item->id] = 'nominal';
+        $this->editQty[$item->id] = (string) $this->manualQty;
         $this->invoiceService->recalcTotal($invoice);
 
         $this->reset(['manualNama', 'manualQty', 'manualHarga', 'manualSatuan', 'showManualForm']);
@@ -638,6 +700,7 @@ class TagihanPasien extends Component
 
         $this->editDiskon[$item->id] = '0';
         $this->editDiskonTipe[$item->id] = 'nominal';
+        $this->editQty[$item->id] = (string) $qty;
         $this->invoiceService->recalcTotal($invoice);
         unset($this->invoice, $this->komponenList);
 
