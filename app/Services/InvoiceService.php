@@ -209,7 +209,16 @@ class InvoiceService
 
         // item.subtotal sudah net diskon_item (lihat TagihanPasien::updateDiskonItem) â€” jangan dipotong dua kali.
         $subtotalItems  = $invoice->items->sum('subtotal');
-        $totalTagihan   = max(0, $subtotalItems - $invoice->diskon_global);
+
+        // Diskon global persen disimpan sbg (tipe, nilai); nominal diskon_global
+        // WAJIB dihitung ulang dari subtotal terkini -- kalau tidak, setelah qty /
+        // diskon item / item manual berubah, diskon 10% masih memotong nominal lama.
+        if ($invoice->diskon_global_tipe === 'persen') {
+            $persen = max(0, min(100, (float) $invoice->diskon_global_nilai));
+            $invoice->diskon_global = round(($subtotalItems * $persen) / 100, 2);
+        }
+
+        $totalTagihan   = max(0, $subtotalItems - (float) $invoice->diskon_global);
         $totalBayar     = $invoice->pembayaran->sum('jumlah')
                         + $invoice->pembayaranSplit->sum('jumlah');
         $sisa           = max(0, $totalTagihan - $totalBayar);

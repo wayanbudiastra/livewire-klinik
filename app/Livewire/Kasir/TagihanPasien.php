@@ -563,7 +563,7 @@ class TagihanPasien extends Component
     {
         $this->reset([
             'kunjunganId', 'invoiceId', 'searchPasien',
-            'editDiskon', 'editDiskonTipe', 'diskonGlobalNominal', 'diskonGlobalTipe',
+            'editDiskon', 'editDiskonTipe', 'editQty', 'diskonGlobalNominal', 'diskonGlobalTipe',
             'metodePembayaran', 'jumlahTunai', 'bankNama',
             'nomorReferensi', 'namaAsuransi', 'catatanBayar',
         ]);

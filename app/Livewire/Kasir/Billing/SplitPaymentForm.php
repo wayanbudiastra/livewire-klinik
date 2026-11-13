@@ -130,6 +130,19 @@ class SplitPaymentForm extends Component
     {
         $this->authorize('pembayaran.create');
 
+        // Gate TTV final (same as TagihanPasien::prosesPembayaran) -- sebelumnya
+        // kelupaan, jadi jalur split-payment bisa lolos tanpa cek TTV final.
+        $kunjungan = Kunjungan::with('asesmenPerawat')->find($this->billing->kunjungan_id);
+        $ttvSudahFinal = $kunjungan && (
+            $kunjungan->status === 'selesai'
+            || (bool) $kunjungan->asesmenPerawat?->is_final
+        );
+
+        if (!$ttvSudahFinal) {
+            $this->addError('global', 'Tanda vital belum difinalisasi oleh perawat. Pembayaran baru dapat diproses setelah perawat memfinalisasi tanda vital (TTV).');
+            return;
+        }
+
         if ($this->hasPendingResep) {
             $this->addError('global', 'Masih ada resep obat yang belum dikonfirmasi apoteker. Selesaikan terlebih dahulu sebelum proses pembayaran.');
             return;
