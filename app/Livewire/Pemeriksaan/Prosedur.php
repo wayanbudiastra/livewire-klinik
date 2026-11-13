@@ -140,6 +140,8 @@ class Prosedur extends Component
 
     public function simpanTindakan(): void
     {
+        $this->authorize('tindakan.create');
+
         if (\App\Models\Invoice::kunjunganSudahLunas($this->kunjunganId)) {
             $this->dispatch('notify', type: 'error', message: 'Bill pasien sudah lunas: data yang memengaruhi tagihan tidak dapat diubah.');
             return;
@@ -149,6 +151,12 @@ class Prosedur extends Component
             $this->dispatch('notify', type: 'error', message: 'Pilih tindakan terlebih dahulu.');
             return;
         }
+
+        $this->validate([
+            'jumlahTindakan' => 'required|integer|min:1|max:999',
+        ], [
+            'jumlahTindakan.min' => 'Jumlah tindakan minimal 1.',
+        ]);
 
         Tindakan::create([
             'kunjungan_id'       => $this->kunjunganId,
@@ -197,6 +205,8 @@ class Prosedur extends Component
 
     public function simpanAlkes(): void
     {
+        $this->authorize('peralatan.pakai');
+
         if (\App\Models\Invoice::kunjunganSudahLunas($this->kunjunganId)) {
             $this->dispatch('notify', type: 'error', message: 'Bill pasien sudah lunas: data yang memengaruhi tagihan tidak dapat diubah.');
             return;
@@ -206,6 +216,12 @@ class Prosedur extends Component
             $this->dispatch('notify', type: 'error', message: 'Pilih alat/BHP terlebih dahulu.');
             return;
         }
+
+        $this->validate([
+            'jumlahAlkes' => 'required|integer|min:1|max:999',
+        ], [
+            'jumlahAlkes.min' => 'Jumlah alkes/BHP minimal 1.',
+        ]);
 
         $barang = Barang::find($this->alkesId);
         if ($barang && $barang->stok > 0 && $barang->stok < $this->jumlahAlkes) {

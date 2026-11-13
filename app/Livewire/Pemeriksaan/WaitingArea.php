@@ -122,13 +122,21 @@ class WaitingArea extends Component
 
     public function panggil(int $id, KunjunganService $service): void
     {
-        $service->panggilPasien($id);
-        unset($this->kunjungan);
-        $this->dispatch('notify', type: 'success', message: 'Pasien dipanggil ke ruang pemeriksaan.');
+        $this->authorize('kunjungan.edit');
+
+        try {
+            $service->panggilPasien($id);
+            unset($this->kunjungan);
+            $this->dispatch('notify', type: 'success', message: 'Pasien dipanggil ke ruang pemeriksaan.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->dispatch('notify', type: 'error', message: $e->errors()[array_key_first($e->errors())][0]);
+        }
     }
 
     public function selesai(int $id, KunjunganService $service): void
     {
+        $this->authorize('kunjungan.edit');
+
         try {
             $service->selesaiPemeriksaan($id);
             unset($this->kunjungan);

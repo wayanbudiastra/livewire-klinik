@@ -7,6 +7,7 @@ use App\Models\Kunjungan;
 use App\Models\SuratKeterangan;
 use App\Models\TujuanRujukan;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\DB;
 
 class SuratKeteranganService
 {
@@ -419,7 +420,9 @@ class SuratKeteranganService
     ): SuratKeterangan {
         $this->assertBelumDiterbitkanJikaSelesai($kunjungan, $tipe);
 
-        return SuratKeterangan::create([
+        // Transaksi supaya lockForUpdate di generateNomor() benar-benar berlaku
+        // sampai row baru ter-insert (cegah nomor surat kembar).
+        return DB::transaction(fn () => SuratKeterangan::create([
             'nomor_surat'       => SuratKeterangan::generateNomor($tipe),
             'kunjungan_id'      => $kunjungan->id,
             'tipe'              => $tipe,
@@ -428,6 +431,6 @@ class SuratKeteranganService
             'data'              => $data,
             'dicetak_oleh'      => $userId,
             'dicetak_pada'      => now(),
-        ]);
+        ]));
     }
 }

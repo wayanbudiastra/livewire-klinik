@@ -61,8 +61,11 @@ class ResepObat extends Component
     {
         if (strlen($this->searchBahan) < 2) return collect();
 
+        // Filter stok > 0 disamakan dgn suggestionsObat -- sebelumnya bahan
+        // racikan yg stoknya habis tetap muncul di saran.
         return Barang::aktif()
             ->whereIn('jenis', ['obat', 'alkes'])
+            ->where('stok', '>', 0)
             ->search($this->searchBahan)
             ->limit(10)
             ->get(['id', 'kode', 'nama', 'satuan', 'stok']);
@@ -124,7 +127,17 @@ class ResepObat extends Component
 
         foreach ($this->cartObat as $item) {
             $barang = Barang::find($item['id']);
-            if (! $barang || $barang->stok < $item['jumlah']) {
+
+            // Validasi qty
+            $jumlah = (float) ($item['jumlah'] ?? 0);
+            if ($jumlah <= 0) {
+                $this->dispatch('notify', type: 'error',
+                    message: "Jumlah {$item['nama']} harus > 0.");
+                return;
+            }
+
+            // Validasi stok
+            if (! $barang || (float) $barang->stok < $jumlah) {
                 $this->dispatch('notify', type: 'error',
                     message: "Stok {$item['nama']} tidak mencukupi (tersisa {$barang?->stok}).");
                 return;
@@ -194,6 +207,28 @@ class ResepObat extends Component
         if (empty($this->cartBahan)) {
             $this->dispatch('notify', type: 'error', message: 'Tambahkan minimal 1 bahan racikan.');
             return;
+        }
+
+        // Validasi stok bahan racikan -- sebelumnya tidak dicek (berbeda
+        // dengan submitNonRacikan yg sudah benar check stok). Racikan bisa
+        // dibuat dari bahan yg stoknya 0 atau tidak cukup.
+        foreach ($this->cartBahan as $b) {
+            $barang = Barang::find($b['id']);
+
+            // Validasi qty
+            $jumlah = (float) ($b['jumlah'] ?? 0);
+            if ($jumlah <= 0) {
+                $this->dispatch('notify', type: 'error',
+                    message: "Jumlah {$b['nama']} harus > 0.");
+                return;
+            }
+
+            // Validasi stok
+            if (! $barang || (float) $barang->stok < $jumlah) {
+                $this->dispatch('notify', type: 'error',
+                    message: "Stok {$b['nama']} tidak mencukupi (tersisa {$barang?->stok}).");
+                return;
+            }
         }
 
         $resep = $this->getOrCreateResep();

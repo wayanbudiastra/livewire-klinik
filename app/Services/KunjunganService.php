@@ -239,6 +239,16 @@ class KunjunganService
     public function panggilPasien(int $kunjunganId): Kunjungan
     {
         $kunjungan = Kunjungan::findOrFail($kunjunganId);
+
+        // Hanya status "menunggu" yg boleh dipanggil. Sebelumnya tidak dicek,
+        // jadi klik "Panggil" pada kunjungan yg sudah "selesai" atau "dibatalkan"
+        // bisa memundurkan statusnya kembali jadi "dalam_pemeriksaan".
+        if ($kunjungan->status !== 'menunggu') {
+            throw ValidationException::withMessages([
+                'id' => 'Hanya kunjungan berstatus menunggu yang bisa dipanggil.',
+            ]);
+        }
+
         $kunjungan->update([
             'status'        => 'dalam_pemeriksaan',
             'waktu_panggil' => now(),
@@ -267,6 +277,16 @@ class KunjunganService
     public function selesaiPemeriksaan(int $kunjunganId): Kunjungan
     {
         $kunjungan = Kunjungan::with('soapNote')->findOrFail($kunjunganId);
+
+        // Kunjungan yg sudah dibatalkan tidak boleh "dihidupkan" lagi jadi
+        // selesai: SOAP bisa saja sudah final sebelum dibatalkan (cancelKunjungan
+        // tidak mengecek SOAP), jadi tanpa cek ini kunjungan batal bisa masuk
+        // alur billing.
+        if ($kunjungan->status === 'dibatalkan') {
+            throw ValidationException::withMessages([
+                'id' => 'Kunjungan sudah dibatalkan -- tidak dapat diselesaikan.',
+            ]);
+        }
 
         if (! $kunjungan->soapNote || ! $kunjungan->soapNote->is_final) {
             throw ValidationException::withMessages([

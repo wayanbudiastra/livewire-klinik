@@ -189,6 +189,7 @@ class CetakSurat extends Component
         ]);
 
         $surat = SuratKeterangan::findOrFail($this->editingSuratId);
+        abort_unless($surat->kunjungan_id === $this->kunjunganId, 403);
         $d     = $surat->data ?? [];
 
         $this->reset(['errorMsg', 'keperluan', 'butaWarna', 'tujuanFasilitas', 'tujuanDokter',
@@ -296,7 +297,18 @@ class CetakSurat extends Component
 
         try {
             if ($this->editingSuratId) {
+                // $editingSuratId adalah properti public, bisa diubah dari client
+                // (mis. lewat devtools). mulaiEdit() sudah cek kepemilikan ($surat->
+                // kunjungan_id === $this->kunjunganId) tapi cetak() sendiri belum --
+                // tanpa ini, user bisa merevisi surat milik kunjungan pasien lain.
+                // Revisi wajib surat.revisi -- cetak() sendiri hanya digerbang
+                // surat.cetak (dimiliki perawat), jadi tanpa cek ini perawat bisa
+                // merevisi surat terbit dgn mengisi editingSuratId dari client.
+                $this->authorize('surat.revisi');
+
                 $surat = SuratKeterangan::findOrFail($this->editingSuratId);
+                abort_unless($surat->kunjungan_id === $this->kunjunganId, 403);
+
                 $surat = $service->editSurat($surat, $input, auth()->id(), $this->alasanRevisi);
             } else {
                 $surat = match ($this->tipe) {

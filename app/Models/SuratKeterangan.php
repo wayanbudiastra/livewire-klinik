@@ -95,8 +95,14 @@ class SuratKeterangan extends Model
 
         $bulan = now()->format('Ym');
         $like  = "{$prefix}-{$bulan}-%";
+
+        // lockForUpdate: tanpa ini 2 surat bertipe sama yg diterbitkan
+        // bersamaan membaca MAX yg sama, lalu insert nomor kembar & ditolak
+        // unique index nomor_surat (error 500 di muka user). Lock baru efektif
+        // kalau dipanggil dari dalam transaksi -- lihat SuratKeteranganService::simpan().
         $last  = static::where('nomor_surat', 'like', $like)
             ->orderByDesc('nomor_surat')
+            ->lockForUpdate()
             ->value('nomor_surat');
 
         $urut = $last ? ((int) substr($last, -4)) + 1 : 1;

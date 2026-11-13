@@ -488,7 +488,19 @@ class SoapNote extends Component
         ]);
 
         $sebelum    = SoapNoteModel::find($this->soapId)?->only(self::KOLOM_ISI);
-        $ttvSebelum = AsesmenPerawat::where('kunjungan_id', $this->kunjunganId)->first()?->only(self::KOLOM_TTV);
+        $asesmenLama = AsesmenPerawat::where('kunjungan_id', $this->kunjunganId)->first();
+        $ttvSebelum = $asesmenLama?->only(self::KOLOM_TTV);
+
+        // TTV final = dasar pembayaran kasir. Mengubahnya wajib lewat "Buka
+        // Finalisasi TTV" (KunjunganService::bukaFinalisasiTtv), yg juga menolak
+        // kalau tagihan sudah lunas. Sebelumnya revisi SOAP menimpa TTV final
+        // langsung via updateOrCreate & melewati kedua penjagaan itu. Dicek
+        // SEBELUM doSimpan() supaya SOAP tidak tersimpan setengah jalan.
+        if ($asesmenLama?->is_final && $this->ttvBerubah($asesmenLama)) {
+            $this->dispatch('notify', type: 'error',
+                message: 'Tanda vital sudah difinalisasi perawat. Buka finalisasi TTV terlebih dahulu untuk mengubah nilainya, atau kembalikan nilai TTV ke semula.');
+            return;
+        }
 
         if (! $this->doSimpan()) return;
 
@@ -525,8 +537,43 @@ class SoapNote extends Component
      * isLocked()). Perawat_id yang sudah ada dipertahankan, bukan ditimpa
      * jadi dokter yang merevisi.
      */
+    /**
+     * Nilai TTV di form berbeda dgn yg tersimpan? Angka dibandingkan sbg float
+     * (DB menyimpan "70.00", form berisi "70"), tekanan darah sbg string.
+     */
+    private function ttvBerubah(?AsesmenPerawat $asesmen): bool
+    {
+        $form = [
+            'berat_badan' => $this->beratBadan, 'tinggi_badan' => $this->tinggiBadan,
+            'tekanan_darah' => $this->tekananDarah, 'nadi' => $this->nadi,
+            'frekuensi_napas' => $this->frekuensiNapas, 'suhu' => $this->suhu,
+            'saturasi' => $this->saturasi, 'gds' => $this->gds,
+        ];
+
+        foreach ($form as $kolom => $nilaiForm) {
+            $nilaiDb = $asesmen?->{$kolom};
+
+            $sama = $kolom === 'tekanan_darah'
+                ? (string) ($nilaiDb ?? '') === (string) ($nilaiForm ?: '')
+                : (($nilaiDb === null || $nilaiDb === '') ? null : (float) $nilaiDb)
+                    === (($nilaiForm === '' || $nilaiForm === null) ? null : (float) $nilaiForm);
+
+            if (! $sama) return true;
+        }
+
+        return false;
+    }
+
     private function simpanTtv(): AsesmenPerawat
     {
+        $asesmen = AsesmenPerawat::where('kunjungan_id', $this->kunjunganId)->first();
+
+        // TTV final tidak ditulis ulang -- simpanRevisi() sudah menolak lebih
+        // dulu kalau nilainya diubah, jadi di sini nilainya pasti sama.
+        if ($asesmen?->is_final) {
+            return $asesmen;
+        }
+
         $asesmen = AsesmenPerawat::updateOrCreate(
             ['kunjungan_id' => $this->kunjunganId],
             [
