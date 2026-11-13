@@ -112,6 +112,8 @@ class AppointmentTab extends Component
 
     public function buatAppointment(KunjunganService $service): void
     {
+        $this->authorize('kunjungan.create');
+
         $this->validate([
             'selectedJadwalId'  => 'required|integer',
             'selectedDokterId'  => 'required|integer',

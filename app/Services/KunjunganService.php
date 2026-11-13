@@ -118,40 +118,47 @@ class KunjunganService
 
     public function buatAppointment(array $data): Appointment
     {
-        // Validasi kuota
-        if (isset($data['jadwal_praktek_id'])) {
-            $sisa = $this->cekSisaKuota($data['jadwal_praktek_id'], $data['tanggal_appointment']);
-            if ($sisa <= 0) {
+        return DB::transaction(function () use ($data) {
+            // Validasi kuota
+            if (isset($data['jadwal_praktek_id'])) {
+                $sisa = $this->cekSisaKuota($data['jadwal_praktek_id'], $data['tanggal_appointment']);
+                if ($sisa <= 0) {
+                    throw ValidationException::withMessages([
+                        'jadwal_praktek_id' => 'Kuota jadwal dokter ini sudah penuh.',
+                    ]);
+                }
+            }
+
+            // Cek duplikat appointment (pasien + dokter + tanggal) DI DALAM
+            // transaksi dgn lockForUpdate. Tanpa lock, 2 request bersamaan
+            // sama-sama lolos cek lalu insert 2 appointment. Dgn lock, request
+            // kedua menunggu sampai yg pertama commit (gap lock InnoDB mencegah
+            // insert di range yg sama), lalu melihat duplikatnya & ditolak.
+            $duplikat = Appointment::where('pasien_id', $data['pasien_id'])
+                ->where('dokter_id', $data['dokter_id'])
+                ->where('tanggal_appointment', $data['tanggal_appointment'])
+                ->where('status', 'booked')
+                ->lockForUpdate()
+                ->exists();
+
+            if ($duplikat) {
                 throw ValidationException::withMessages([
-                    'jadwal_praktek_id' => 'Kuota jadwal dokter ini sudah penuh.',
+                    'pasien_id' => 'Pasien sudah memiliki appointment dengan dokter ini pada tanggal tersebut.',
                 ]);
             }
-        }
 
-        // Cek apakah pasien sudah punya appointment di hari/dokter yang sama
-        $duplikat = Appointment::where('pasien_id', $data['pasien_id'])
-            ->where('dokter_id', $data['dokter_id'])
-            ->where('tanggal_appointment', $data['tanggal_appointment'])
-            ->where('status', 'booked')
-            ->exists();
+            $data['kode_booking'] = Appointment::generateKodeBooking();
 
-        if ($duplikat) {
-            throw ValidationException::withMessages([
-                'pasien_id' => 'Pasien sudah memiliki appointment dengan dokter ini pada tanggal tersebut.',
-            ]);
-        }
+            $appointment = Appointment::create($data);
 
-        $data['kode_booking'] = Appointment::generateKodeBooking();
+            activity('kunjungan')
+                ->performedOn($appointment)
+                ->causedBy(auth()->user())
+                ->withProperties(['kode_booking' => $appointment->kode_booking])
+                ->log('Appointment dibuat');
 
-        $appointment = Appointment::create($data);
-
-        activity('kunjungan')
-            ->performedOn($appointment)
-            ->causedBy(auth()->user())
-            ->withProperties(['kode_booking' => $appointment->kode_booking])
-            ->log('Appointment dibuat');
-
-        return $appointment;
+            return $appointment;
+        });
     }
 
     // ── Daftarkan Kunjungan (Tab 2 - Walk-in / dari Appointment) ──
@@ -181,10 +188,20 @@ class KunjunganService
                 }
             }
 
-            // Update appointment jika dari appointment
+            // Update appointment jika dari appointment. Dikunci & dicek ulang
+            // statusnya DI DALAM transaksi -- tanpa ini, klik ganda "Daftarkan"
+            // (atau auto-daftar dari link + klik manual) membuat 2 kunjungan &
+            // 2 nomor antrean untuk 1 appointment.
             if ($appointmentId) {
-                Appointment::where('id', $appointmentId)
-                    ->update(['status' => 'checked_in']);
+                $appointment = Appointment::where('id', $appointmentId)->lockForUpdate()->first();
+
+                if (! $appointment || $appointment->status !== 'booked') {
+                    throw ValidationException::withMessages([
+                        'appointment_id' => 'Appointment ini sudah didaftarkan atau tidak lagi aktif.',
+                    ]);
+                }
+
+                $appointment->update(['status' => 'checked_in']);
             }
 
             // Appointment → prefix A (prioritas), Walk-in → prefix W

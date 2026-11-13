@@ -130,6 +130,8 @@ class DetailPemeriksaan extends Component
 
     public function simpanVitals(KunjunganService $service): void
     {
+        $this->authorize('asesmen.edit');
+
         try {
             $this->persistVitals($service);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -177,6 +179,8 @@ class DetailPemeriksaan extends Component
 
     public function batalkanRegistrasi(KunjunganService $service): void
     {
+        $this->authorize('kunjungan.edit');
+
         try {
             $service->cancelKunjungan($this->kunjunganId);
             unset($this->kunjungan);
@@ -188,6 +192,8 @@ class DetailPemeriksaan extends Component
 
     public function selesaiPemeriksaan(KunjunganService $service): void
     {
+        $this->authorize('kunjungan.edit');
+
         try {
             $service->selesaiPemeriksaan($this->kunjunganId);
             unset($this->kunjungan);

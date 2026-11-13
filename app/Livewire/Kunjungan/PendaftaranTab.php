@@ -81,6 +81,14 @@ class PendaftaranTab extends Component
             return;
         }
 
+        // Pasien bisa null kalau datanya sudah dihapus (soft delete) setelah
+        // appointment dibuat -- jangan crash, perlakukan seperti appointment
+        // tidak valid (sama dgn kasus !$apt di atas).
+        if (! $apt->pasien) {
+            $this->appointmentId = null;
+            return;
+        }
+
         $this->appointmentId  = $apt->id;
         $this->pasienId       = $apt->pasien_id;
         $this->namaPasien     = $apt->pasien->nama;
@@ -165,6 +173,8 @@ class PendaftaranTab extends Component
 
     public function prosesAutoDaftar(KunjunganService $service): void
     {
+        $this->authorize('kunjungan.create');
+
         if (! $this->autoDaftar || ! $this->appointmentId) return;
 
         $this->autoDaftar = false;
@@ -243,6 +253,8 @@ class PendaftaranTab extends Component
 
     public function daftar(KunjunganService $service): void
     {
+        $this->authorize('kunjungan.create');
+
         if (! $this->pasienId) {
             $this->addError(
                 $this->mode === 'appointment' ? 'kodeBooking' : 'searchPasien',
