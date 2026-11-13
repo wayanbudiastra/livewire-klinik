@@ -42,7 +42,7 @@ class InvoiceService
             ];
         }
 
-        // 2. BMHP / Alkes consumables
+        // 2. BHP / Alkes consumables
         foreach ($kunjungan->pemakaianAlkes()->with('barang')->get() as $a) {
             $harga = TarifResolver::pilih(
                 (float) $a->barang->harga_jual,

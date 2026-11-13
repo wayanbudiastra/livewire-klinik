@@ -127,20 +127,20 @@
         </div>
     </div>
 
-    {{-- ═══ FORM ALKES / BMHP ═══ --}}
+    {{-- ═══ FORM ALKES / BHP ═══ --}}
     <div class="card">
         <div class="card-header flex items-center gap-2">
             <svg class="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
             </svg>
-            <h3 class="text-sm font-semibold dark:text-white">Tambah Pemakaian Alkes / BMHP</h3>
+            <h3 class="text-sm font-semibold dark:text-white">Tambah Pemakaian Alkes / BHP</h3>
         </div>
         <div class="card-body space-y-3">
 
             {{-- Cari Alkes --}}
             <div x-data="{ open: false }" class="relative">
-                <label class="form-label dark:text-gray-300">Nama Alat / BMHP <span class="text-red-500">*</span></label>
+                <label class="form-label dark:text-gray-300">Nama Alat / BHP <span class="text-red-500">*</span></label>
                 @if($alkesId)
                 <div class="flex items-center gap-2 p-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg border border-purple-200 dark:border-purple-700">
                     <svg class="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -159,7 +159,7 @@
                     <input wire:model.live.debounce.300ms="searchAlkes"
                            @focus="open = true" @click.away="open = false"
                            type="text"
-                           placeholder="Ketik nama atau kode alkes/BMHP (min. 2 karakter)..."
+                           placeholder="Ketik nama atau kode alkes/BHP (min. 2 karakter)..."
                            class="form-input pr-10 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"/>
                     <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                         <svg wire:loading wire:target="searchAlkes" class="animate-spin h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24">
@@ -187,7 +187,7 @@
                         </div>
                     </button>
                     @empty
-                    <div class="px-4 py-3 text-sm text-gray-400 text-center">Tidak ada alkes/BMHP ditemukan (aktif)</div>
+                    <div class="px-4 py-3 text-sm text-gray-400 text-center">Tidak ada alkes/BHP ditemukan (aktif)</div>
                     @endforelse
                 </div>
                 @endif
@@ -271,7 +271,7 @@
                             'waktu'     => $a->created_at,
                             'nama'      => $a->barang?->nama ?? '—',
                             'kode'      => $a->barang?->kode ?? '',
-                            'kategori'  => 'Alkes/BMHP',
+                            'kategori'  => 'Alkes/BHP',
                             'pelaksana' => '—',
                             'jumlah'    => $a->jumlah,
                             'tarif'     => $a->barang?->harga_jual ?? 0,
@@ -300,7 +300,7 @@
                             @if($row['type'] === 'tindakan')
                             <span class="badge badge-primary text-xs">{{ $row['kategori'] ?: 'Tindakan' }}</span>
                             @else
-                            <span class="badge badge-purple text-xs">Alkes/BMHP</span>
+                            <span class="badge badge-purple text-xs">Alkes/BHP</span>
                             @endif
                         </td>
                         <td class="text-sm text-gray-600 dark:text-gray-400">{{ $row['pelaksana'] }}</td>

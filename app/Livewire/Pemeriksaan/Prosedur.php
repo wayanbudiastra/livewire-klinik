@@ -25,7 +25,7 @@ class Prosedur extends Component
     public string  $waktuTindakan    = '';
     public string  $catatanTindakan  = '';
 
-    // ── Form Alkes/BMHP ─────────────────────────────────────
+    // ── Form Alkes/BHP ──────────────────────────────────────
     public string  $searchAlkes  = '';
     public ?int    $alkesId      = null;
     public string  $alkesNama    = '';
@@ -88,7 +88,7 @@ class Prosedur extends Component
         // Obat::class/tabel 'obat' yang sudah tidak ada sama sekali, jadi
         // SELALU gagal dgn SQLSTATE[42S02] begitu diketik >= 2 karakter
         // (laporan dokter: muncul Internal Server Error). Label field ini
-        // "Alkes / BMHP" -- disamakan dgn jenis yg benar2 ada di Barang
+        // "Alkes / BHP" -- disamakan dgn jenis yg benar2 ada di Barang
         // (alkes & bahan_habis_pakai), bukan cuma 'alkes' spt kode lama
         // (peninggalan skema tabel 'obat' yg dulu tidak punya kategori BHP
         // terpisah).
@@ -203,7 +203,7 @@ class Prosedur extends Component
         }
 
         if (! $this->alkesId) {
-            $this->dispatch('notify', type: 'error', message: 'Pilih alat/BMHP terlebih dahulu.');
+            $this->dispatch('notify', type: 'error', message: 'Pilih alat/BHP terlebih dahulu.');
             return;
         }
 

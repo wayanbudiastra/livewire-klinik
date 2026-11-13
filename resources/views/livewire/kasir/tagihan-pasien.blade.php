@@ -660,7 +660,7 @@
                             Tidak ada {{ match($komponenTab) { 'prosedur' => 'prosedur', 'peralatan' => 'peralatan', 'lab' => 'item laboratorium', 'radiologi' => 'item radiologi', default => 'item' } }}
                             yang cocok dengan "{{ $searchKomponen }}"
                         @else
-                            Belum ada data {{ match($komponenTab) { 'prosedur' => 'prosedur', 'peralatan' => 'peralatan/BMHP', 'lab' => 'laboratorium', 'radiologi' => 'radiologi', default => '' } }} aktif.
+                            Belum ada data {{ match($komponenTab) { 'prosedur' => 'prosedur', 'peralatan' => 'peralatan/BHP', 'lab' => 'laboratorium', 'radiologi' => 'radiologi', default => '' } }} aktif.
                         @endif
                     </p>
                 </div>
