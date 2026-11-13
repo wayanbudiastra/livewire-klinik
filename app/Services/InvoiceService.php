@@ -189,9 +189,20 @@ class InvoiceService
 
         $invoice->save();
 
+        // Simpan override kasir (qty & diskon per-item) sebelum item klinis
+        // dihapus -- tanpa ini, setiap klik "Muat Ulang" mengembalikan qty &
+        // diskon yg sudah diedit kasir ke nilai awal. Dicocokkan via
+        // (jenis, ref_id). Qty obat/racikan tidak dibawa: terikat resep terkunci.
+        $overrides = $invoice->items()->where('jenis', '!=', 'manual')->get()
+            ->keyBy(fn ($i) => $i->jenis . '|' . $i->ref_id);
+
         // Replace all non-manual items
         $invoice->items()->where('jenis', '!=', 'manual')->delete();
         foreach ($clinicalItems as $itemData) {
+            $lama = $overrides->get($itemData['jenis'] . '|' . $itemData['ref_id']);
+            if ($lama) {
+                $itemData = $this->terapkanOverride($itemData, $lama);
+            }
             $invoice->items()->create($itemData);
         }
 
@@ -227,6 +238,33 @@ class InvoiceService
         $invoice->total_bayar   = $totalBayar;
         $invoice->sisa          = $sisa;
         $invoice->save();
+    }
+
+    /**
+     * Terapkan qty & diskon item hasil edit kasir ke data item klinis baru,
+     * lalu hitung ulang diskon_item & subtotal dgn rumus yg sama dgn
+     * TagihanPasien::updateDiskonItem()/updateQtyItem().
+     */
+    private function terapkanOverride(array $itemData, $lama): array
+    {
+        if (! in_array($itemData['jenis'], ['obat', 'racikan'], true)) {
+            $itemData['qty'] = (float) $lama->qty;
+        }
+
+        $tipe  = $lama->diskon_tipe ?? 'nominal';
+        $nilai = (float) ($lama->diskon_nilai ?? 0);
+        $bruto = (float) $itemData['harga_satuan'] * (float) $itemData['qty'];
+
+        $diskon = $tipe === 'persen'
+            ? ($bruto * max(0, min(100, $nilai))) / 100
+            : min($nilai, $bruto);
+
+        $itemData['diskon_tipe']  = $tipe;
+        $itemData['diskon_nilai'] = $nilai;
+        $itemData['diskon_item']  = $diskon;
+        $itemData['subtotal']     = max(0, $bruto - $diskon);
+
+        return $itemData;
     }
 
     private function generateNomor(int $kunjunganId): string
