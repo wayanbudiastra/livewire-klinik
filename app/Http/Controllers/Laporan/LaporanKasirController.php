@@ -21,4 +21,9 @@ class LaporanKasirController extends Controller
     {
         return view('laporan.kasir.index', ['tab' => 'deposit']);
     }
+
+    public function bhp(): View
+    {
+        return view('laporan.kasir.index', ['tab' => 'bhp']);
+    }
 }

@@ -237,6 +237,7 @@ Route::middleware(['auth', 'active'])->group(function () {
             Route::get('/transaksi',   [\App\Http\Controllers\Laporan\LaporanKasirController::class, 'transaksi'])->name('transaksi');
             Route::get('/cancel-bill', [\App\Http\Controllers\Laporan\LaporanKasirController::class, 'cancelBill'])->name('cancel-bill');
             Route::get('/deposit',     [\App\Http\Controllers\Laporan\LaporanKasirController::class, 'deposit'])->name('deposit');
+            Route::get('/bhp',         [\App\Http\Controllers\Laporan\LaporanKasirController::class, 'bhp'])->name('bhp');
         });
 
         // Pharmacy

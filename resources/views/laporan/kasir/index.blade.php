@@ -4,7 +4,7 @@
     <div class="page-header">
         <div>
             <h1 class="page-title">Laporan Kasir</h1>
-            <p class="page-subtitle">Transaksi Kasir, Cancel Bill, dan Deposit Pasien</p>
+            <p class="page-subtitle">Transaksi Kasir, Cancel Bill, Deposit Pasien, dan BHP Kasir</p>
         </div>
     </div>
 
@@ -15,6 +15,7 @@
                 'transaksi'   => 'Transaksi Kasir',
                 'cancel-bill' => 'Cancel Bill',
                 'deposit'     => 'Deposit Pasien',
+                'bhp'         => 'BHP Kasir',
             ] as $key => $label)
             <button @click="tab = '{{ $key }}'"
                 :class="tab === '{{ $key }}'
@@ -34,6 +35,9 @@
         </div>
         <div x-show="tab === 'deposit'" x-cloak>
             <livewire:laporan.kasir.deposit-report />
+        </div>
+        <div x-show="tab === 'bhp'" x-cloak>
+            <livewire:laporan.kasir.bhp-kasir-report />
         </div>
 
     </div>
