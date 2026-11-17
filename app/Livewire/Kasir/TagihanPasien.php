@@ -14,6 +14,7 @@ use App\Services\Akuntansi\BillingJurnalService;
 use App\Services\Akuntansi\SharingFeeService;
 use App\Services\Harga\TarifResolver;
 use App\Services\InvoiceService;
+use App\Services\Kasir\BhpKasirService;
 use App\Services\Kasir\SesiKasService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -326,6 +327,15 @@ class TagihanPasien extends Component
         // dihapus lewat tombol hapus, bukan dgn set qty 0.
         $qty = round((float) ($this->editQty[$itemId] ?? 0), 2);
 
+        // BHP kasir: qty bulat & tidak boleh melebihi stok.
+        try {
+            app(BhpKasirService::class)->ubahQty($item, $qty);
+        } catch (\DomainException $e) {
+            $this->editQty[$itemId] = (string) $item->qty;
+            $this->dispatch('notify', type: 'error', message: $e->getMessage());
+            return;
+        }
+
         if ($qty < 0.01) {
             // Kembalikan tampilan ke nilai tersimpan supaya input tidak
             // menyisakan angka invalid yg terlihat seolah sudah tersimpan.
@@ -399,9 +409,11 @@ class TagihanPasien extends Component
         if (! $item || $item->jenis === 'obat' || $item->billing->status !== 'belum_bayar') return;
 
         $billing = $item->billing;
+        // BHP kasir: hapus juga baris pemakaian_alkes, kalau tidak item muncul lagi saat tagihan dimuat ulang.
+        app(BhpKasirService::class)->hapus($item);
         $item->delete();
         $this->invoiceService->recalcTotal($billing);
-        unset($this->invoice);
+        unset($this->invoice, $this->komponenList);
     }
 
     public function addManualItem(): void
@@ -535,6 +547,7 @@ class TagihanPasien extends Component
                     $invoiceLocked->update(['status' => 'lunas']);
 
                     $invoiceFresh = $invoiceLocked->fresh(['items', 'kunjungan.dokter']);
+                    app(BhpKasirService::class)->potongStokSaatLunas($invoiceFresh, (int) Auth::id());
                     app(BillingJurnalService::class)->catatPelunasan($invoiceFresh, [
                         ['metode' => $metodeSplit, 'jumlah' => $jumlah],
                     ]);
@@ -658,6 +671,8 @@ class TagihanPasien extends Component
                 ])
                 ->toArray(),
 
+            'bhp' => app(BhpKasirService::class)->daftar($q, $isWna),
+
             default => [],
         };
     }
@@ -705,6 +720,28 @@ class TagihanPasien extends Component
         unset($this->invoice, $this->komponenList);
 
         $this->dispatch('notify', type: 'success', message: "{$nama} berhasil ditambahkan ke tagihan.");
+    }
+
+    public function addBhpItem(int $barangId, int $qty): void
+    {
+        $this->authorize('billing.edit');
+
+        $invoice = Invoice::with('kunjungan.pasien')->find($this->invoiceId);
+        if (! $invoice || $invoice->status !== 'belum_bayar') return;
+
+        try {
+            $item = app(BhpKasirService::class)->tambah($invoice, $barangId, max(1, $qty), (int) Auth::id());
+        } catch (\DomainException $e) {
+            $this->dispatch('notify', type: 'error', message: $e->getMessage());
+            return;
+        }
+
+        $this->editDiskon[$item->id]     = (string) ($item->diskon_nilai ?? 0);
+        $this->editDiskonTipe[$item->id] = (string) ($item->diskon_tipe ?? 'nominal');
+        $this->editQty[$item->id]        = (string) $item->qty;
+        unset($this->invoice, $this->komponenList);
+
+        $this->dispatch('notify', type: 'success', message: "{$item->nama_item} berhasil ditambahkan ke tagihan.");
     }
 
     public function render()

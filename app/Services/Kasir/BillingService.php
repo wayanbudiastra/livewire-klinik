@@ -90,6 +90,7 @@ class BillingService
             ]);
 
             $billingFresh = $billingLocked->fresh(['items', 'kunjungan.dokter']);
+            app(BhpKasirService::class)->potongStokSaatLunas($billingFresh, $userId);
             app(BillingJurnalService::class)->catatPelunasan($billingFresh, $splitItems);
             app(SharingFeeService::class)->catatSharingFee($billingFresh);
             app(SharingFeeService::class)->catatSharingFeePerawat($billingFresh);
@@ -163,6 +164,7 @@ class BillingService
 
             $billingFresh = $billingLocked->fresh(['items', 'pembayaranSplit', 'kunjungan.dokter']);
             app(BillingJurnalService::class)->catatPembatalan($billingFresh, $requestUserId);
+            app(BhpKasirService::class)->kembalikanStokSaatBatal($billingFresh, $requestUserId);
             app(SharingFeeService::class)->catatPembatalanSharingFee($billingFresh, $requestUserId);
             app(SharingFeeService::class)->catatPembatalanSharingFeePerawat($billingFresh, $requestUserId);
 

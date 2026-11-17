@@ -555,6 +555,7 @@
                 @foreach([
                     'prosedur'  => ['label' => 'Prosedur',     'color' => 'purple', 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01'],
                     'peralatan' => ['label' => 'Peralatan',    'color' => 'amber',  'icon' => 'M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z'],
+                    'bhp'       => ['label' => 'BHP',          'color' => 'emerald','icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'],
                     'lab'       => ['label' => 'Laboratorium', 'color' => 'cyan',   'icon' => 'M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18'],
                     'radiologi' => ['label' => 'Radiologi',    'color' => 'rose',   'icon' => 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'],
                 ] as $tabKey => $tabCfg)
@@ -563,6 +564,7 @@
                     $activeClass = match($tabCfg['color']) {
                         'purple' => 'border-purple-600 text-purple-700 bg-white',
                         'amber'  => 'border-amber-500 text-amber-700 bg-white',
+                        'emerald'=> 'border-emerald-600 text-emerald-700 bg-white',
                         'cyan'   => 'border-cyan-600 text-cyan-700 bg-white',
                         'rose'   => 'border-rose-600 text-rose-700 bg-white',
                         default  => 'border-blue-600 text-blue-700 bg-white',
@@ -640,7 +642,11 @@
                                 class="px-2 py-1 text-gray-500 hover:bg-gray-100 text-sm leading-none">+</button>
                         </div>
                         <button
+                            @if($komponenTab === 'bhp')
+                            x-on:click="$wire.addBhpItem({{ $item['id'] }}, qty)"
+                            @else
                             x-on:click="$wire.addKomponenItem({{ $item['id'] }}, @js($item['nama']), harga, @js($item['satuan']), qty)"
+                            @endif
                             class="flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors">
                             <svg class="size-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -657,10 +663,10 @@
                     </svg>
                     <p class="text-sm text-gray-400">
                         @if(strlen($searchKomponen) >= 2)
-                            Tidak ada {{ match($komponenTab) { 'prosedur' => 'prosedur', 'peralatan' => 'peralatan', 'lab' => 'item laboratorium', 'radiologi' => 'item radiologi', default => 'item' } }}
+                            Tidak ada {{ match($komponenTab) { 'prosedur' => 'prosedur', 'peralatan' => 'peralatan', 'bhp' => 'BHP', 'lab' => 'item laboratorium', 'radiologi' => 'item radiologi', default => 'item' } }}
                             yang cocok dengan "{{ $searchKomponen }}"
                         @else
-                            Belum ada data {{ match($komponenTab) { 'prosedur' => 'prosedur', 'peralatan' => 'peralatan/BHP', 'lab' => 'laboratorium', 'radiologi' => 'radiologi', default => '' } }} aktif.
+                            Belum ada data {{ match($komponenTab) { 'prosedur' => 'prosedur', 'peralatan' => 'peralatan', 'bhp' => 'BHP (stok tersedia)', 'lab' => 'laboratorium', 'radiologi' => 'radiologi', default => '' } }} aktif.
                         @endif
                     </p>
                 </div>
