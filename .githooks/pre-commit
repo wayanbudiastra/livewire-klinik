@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Hanya berlaku di branch agen AI (ai/*). Branch lain (main, fitur pemilik) tidak dibatasi.
+branch=$(git symbolic-ref --short HEAD 2>/dev/null || true)
+if [[ "$branch" == ai/* ]]; then
+    exec "$(git rev-parse --show-toplevel)/scripts/check-protected-paths.sh" staged
+fi

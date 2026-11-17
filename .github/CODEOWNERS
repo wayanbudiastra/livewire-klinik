@@ -1,0 +1,95 @@
+# Semua perubahan di area ini WAJIB di-review pemilik repo.
+# Aktifkan "Require review from Code Owners" di Settings > Branches > aturan branch main.
+# Daftar ini harus sama dengan .github/protected-paths.txt.
+
+# Keuangan
+/app/Services/Akuntansi/        @wayanbudiastra
+/app/Services/Kasir/            @wayanbudiastra
+/app/Services/Asuransi/         @wayanbudiastra
+/app/Services/Harga/            @wayanbudiastra
+/app/Services/InvoiceService.php @wayanbudiastra
+/app/Livewire/Kasir/            @wayanbudiastra
+/app/Livewire/Akuntansi/        @wayanbudiastra
+/app/Livewire/Keuangan/         @wayanbudiastra
+/app/Livewire/Harga/            @wayanbudiastra
+/app/Models/Invoice*            @wayanbudiastra
+/app/Models/Pembayaran*         @wayanbudiastra
+/app/Models/Deposit*            @wayanbudiastra
+/app/Models/TransaksiDeposit*   @wayanbudiastra
+/app/Models/Piutang*            @wayanbudiastra
+/app/Models/Penagihan*          @wayanbudiastra
+/app/Models/SesiKas*            @wayanbudiastra
+/app/Models/ShiftKasir*         @wayanbudiastra
+/app/Models/AuditKasir*         @wayanbudiastra
+/app/Models/SharingFee*         @wayanbudiastra
+/app/Models/KonfigurasiSharingFee* @wayanbudiastra
+/app/Models/Akuntansi/          @wayanbudiastra
+/app/Models/ProposalHarga*      @wayanbudiastra
+/app/Models/KonfigurasiHargaWna* @wayanbudiastra
+/app/Models/KonfigurasiMarkupHarga* @wayanbudiastra
+/resources/views/kasir/         @wayanbudiastra
+/resources/views/akuntansi/     @wayanbudiastra
+/resources/views/keuangan/      @wayanbudiastra
+/resources/views/harga/         @wayanbudiastra
+/resources/views/livewire/kasir/      @wayanbudiastra
+/resources/views/livewire/akuntansi/  @wayanbudiastra
+/resources/views/livewire/keuangan/   @wayanbudiastra
+/resources/views/livewire/harga/      @wayanbudiastra
+
+# Stok & farmasi
+/app/Services/Inventory/        @wayanbudiastra
+/app/Services/Farmasi/          @wayanbudiastra
+/app/Services/FarmasiService.php @wayanbudiastra
+/app/Livewire/Inventory/        @wayanbudiastra
+/app/Livewire/Farmasi/          @wayanbudiastra
+/app/Models/Barang*             @wayanbudiastra
+/app/Models/BatchExpired*       @wayanbudiastra
+/app/Models/StokGudang*         @wayanbudiastra
+/app/Models/MutasiStok*         @wayanbudiastra
+/app/Models/StokOpname*         @wayanbudiastra
+/app/Models/AdjustmentStok*     @wayanbudiastra
+/app/Models/GoodsReceipt*       @wayanbudiastra
+/app/Models/GrItem*             @wayanbudiastra
+/app/Models/PurchaseOrder*      @wayanbudiastra
+/app/Models/PoItem*             @wayanbudiastra
+/app/Models/ReturGr*            @wayanbudiastra
+/app/Models/ReturResep*         @wayanbudiastra
+/app/Models/TransaksiRitel*     @wayanbudiastra
+/app/Models/PemakaianBhp*       @wayanbudiastra
+/app/Models/PemakaianAlkes*     @wayanbudiastra
+/app/Models/LokasiGudang*       @wayanbudiastra
+/resources/views/inventory/     @wayanbudiastra
+/resources/views/farmasi/       @wayanbudiastra
+/resources/views/livewire/inventory/ @wayanbudiastra
+/resources/views/livewire/farmasi/   @wayanbudiastra
+
+# Pemeriksaan yang memengaruhi tagihan/stok
+/app/Livewire/Pemeriksaan/Prosedur.php   @wayanbudiastra
+/app/Livewire/Pemeriksaan/ResepObat.php  @wayanbudiastra
+/app/Livewire/Pemeriksaan/Penunjang.php  @wayanbudiastra
+/resources/views/livewire/pemeriksaan/prosedur.blade.php   @wayanbudiastra
+/resources/views/livewire/pemeriksaan/resep-obat.blade.php @wayanbudiastra
+/resources/views/livewire/pemeriksaan/penunjang.blade.php  @wayanbudiastra
+/app/Models/Resep.php               @wayanbudiastra
+/app/Models/ItemResep.php           @wayanbudiastra
+/app/Models/Racikan.php             @wayanbudiastra
+/app/Models/BahanRacikan.php        @wayanbudiastra
+/app/Models/Tindakan.php            @wayanbudiastra
+/app/Models/PermintaanPenunjang.php @wayanbudiastra
+
+# Skema, permission, infrastruktur
+/database/migrations/   @wayanbudiastra
+/database/seeders/      @wayanbudiastra
+/config/emr.php         @wayanbudiastra
+/phpunit.xml            @wayanbudiastra
+/composer.json          @wayanbudiastra
+/composer.lock          @wayanbudiastra
+/package.json           @wayanbudiastra
+/package-lock.json      @wayanbudiastra
+/deploy.sh              @wayanbudiastra
+/update.sh              @wayanbudiastra
+/.github/               @wayanbudiastra
+/.githooks/             @wayanbudiastra
+/scripts/check-protected-paths.sh @wayanbudiastra
+/CLAUDE.md              @wayanbudiastra
+/AGENTS.md              @wayanbudiastra

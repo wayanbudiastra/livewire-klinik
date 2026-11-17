@@ -1,0 +1,16 @@
+name: Protected paths
+
+# PR dari branch ai/* tidak boleh menyentuh area terlarang (keuangan/stok/skema/infrastruktur).
+on:
+  pull_request:
+
+jobs:
+  check:
+    if: startsWith(github.head_ref, 'ai/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Periksa path terlarang
+        run: scripts/check-protected-paths.sh "origin/${{ github.base_ref }}"

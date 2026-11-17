@@ -1,0 +1,97 @@
+# Daftar path TERLARANG untuk agen AI selain pemilik repo (DeepSeek, Qwen, dll).
+# Satu pola per baris (glob bash; '*' juga cocok lintas folder). Baris '#' dan kosong diabaikan.
+# Dipakai oleh scripts/check-protected-paths.sh (hook lokal + GitHub Actions).
+# Samakan dengan .github/CODEOWNERS dan bagian 2 CLAUDE.md bila diubah.
+
+# ── Keuangan ──────────────────────────────────────────────
+app/Services/Akuntansi/*
+app/Services/Kasir/*
+app/Services/Asuransi/*
+app/Services/Harga/*
+app/Services/InvoiceService.php
+app/Livewire/Kasir/*
+app/Livewire/Akuntansi/*
+app/Livewire/Keuangan/*
+app/Livewire/Harga/*
+app/Models/Invoice*
+app/Models/Pembayaran*
+app/Models/Deposit*
+app/Models/TransaksiDeposit*
+app/Models/Piutang*
+app/Models/Penagihan*
+app/Models/SesiKas*
+app/Models/ShiftKasir*
+app/Models/AuditKasir*
+app/Models/SharingFee*
+app/Models/KonfigurasiSharingFee*
+app/Models/Akuntansi/*
+app/Models/ProposalHarga*
+app/Models/KonfigurasiHargaWna*
+app/Models/KonfigurasiMarkupHarga*
+resources/views/kasir/*
+resources/views/akuntansi/*
+resources/views/keuangan/*
+resources/views/harga/*
+resources/views/livewire/kasir/*
+resources/views/livewire/akuntansi/*
+resources/views/livewire/keuangan/*
+resources/views/livewire/harga/*
+
+# ── Stok & farmasi ────────────────────────────────────────
+app/Services/Inventory/*
+app/Services/Farmasi/*
+app/Services/FarmasiService.php
+app/Livewire/Inventory/*
+app/Livewire/Farmasi/*
+app/Models/Barang*
+app/Models/BatchExpired*
+app/Models/StokGudang*
+app/Models/MutasiStok*
+app/Models/StokOpname*
+app/Models/AdjustmentStok*
+app/Models/GoodsReceipt*
+app/Models/GrItem*
+app/Models/PurchaseOrder*
+app/Models/PoItem*
+app/Models/ReturGr*
+app/Models/ReturResep*
+app/Models/TransaksiRitel*
+app/Models/PemakaianBhp*
+app/Models/PemakaianAlkes*
+app/Models/LokasiGudang*
+resources/views/inventory/*
+resources/views/farmasi/*
+resources/views/livewire/inventory/*
+resources/views/livewire/farmasi/*
+
+# ── Modul Pemeriksaan yang memengaruhi tagihan/stok ──────
+app/Livewire/Pemeriksaan/Prosedur.php
+app/Livewire/Pemeriksaan/ResepObat.php
+app/Livewire/Pemeriksaan/Penunjang.php
+resources/views/livewire/pemeriksaan/prosedur.blade.php
+resources/views/livewire/pemeriksaan/resep-obat.blade.php
+resources/views/livewire/pemeriksaan/penunjang.blade.php
+app/Models/Resep.php
+app/Models/ItemResep.php
+app/Models/Racikan.php
+app/Models/BahanRacikan.php
+app/Models/Tindakan.php
+app/Models/PermintaanPenunjang.php
+
+# ── Skema, permission, infrastruktur ─────────────────────
+database/migrations/*
+database/seeders/*
+config/emr.php
+phpunit.xml
+composer.json
+composer.lock
+package.json
+package-lock.json
+deploy.sh
+update.sh
+.env*
+.github/*
+.githooks/*
+scripts/check-protected-paths.sh
+CLAUDE.md
+AGENTS.md
