@@ -1,6 +1,6 @@
 # Livewire Klinik - Development Instructions
 
-Instruksi ini dibaca semua model/agen yang mengerjakan repo ini (Claude dan DeepSeek). Bagian 2 menentukan **siapa boleh menyentuh apa**; baca bagian itu lebih dulu.
+Instruksi ini dibaca semua model/agen yang mengerjakan repo ini (Claude, DeepSeek, Qwen). Bagian 2 menentukan **siapa boleh menyentuh apa**; baca bagian itu lebih dulu. Agen selain Claude juga wajib membaca `AGENTS.md` (aturan ringkas dan alur kerja).
 
 ## 1. Project Overview
 
@@ -16,8 +16,10 @@ Alur inti: Registrasi → Antrian → Panggil → Pemeriksaan (SOAP, resep, tind
 
 ## 2. Pembagian Wewenang (WAJIB)
 
-### Area TERLARANG untuk DeepSeek: keuangan dan stok
-DeepSeek **tidak boleh membuat, mengubah, atau menghapus** file di area berikut. Hanya Claude (atau pemilik repo) yang boleh.
+### Area TERLARANG untuk DeepSeek/Qwen: keuangan dan stok
+Agen selain Claude **tidak boleh membuat, mengubah, atau menghapus** file di area berikut. Hanya Claude (atau pemilik repo) yang boleh.
+
+Daftar resmi dan yang ditegakkan mesin ada di `.github/protected-paths.txt` (sama dengan `.github/CODEOWNERS`). Penegakan: hook pre-commit di branch `ai/*` (`git config core.hooksPath .githooks`), workflow CI `protected-paths.yml` untuk PR dari `ai/*`, dan review Code Owners di GitHub. Agen non-Claude bekerja hanya di branch `ai/<model>-<topik>`. Daftar di bawah adalah ringkasannya.
 
 - **Keuangan:** `app/Services/Akuntansi/`, `app/Services/Kasir/`, `app/Services/Asuransi/`, `app/Services/Harga/`, `app/Services/InvoiceService.php`, `app/Livewire/Kasir/`, `app/Livewire/Akuntansi/`, `app/Livewire/Keuangan/`, `app/Livewire/Harga/`, model Invoice, InvoiceItem, Pembayaran*, Deposit*, TransaksiDeposit, Piutang*, Penagihan*, Sesi/ShiftKasir, SharingFee*, Akuntansi*, Proposal*Harga, Konfigurasi*Harga*.
 - **Stok & farmasi:** `app/Services/Inventory/`, `app/Services/Farmasi/`, `app/Livewire/Inventory/`, `app/Livewire/Farmasi/`, model Barang, BatchExpired, StokGudang, MutasiStok, StokOpname*, AdjustmentStok, GoodsReceipt, PurchaseOrder, ReturGr*, ReturResep*, TransaksiRitel*, PemakaianBhp*.
