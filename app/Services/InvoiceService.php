@@ -193,11 +193,14 @@ class InvoiceService
         // dihapus -- tanpa ini, setiap klik "Muat Ulang" mengembalikan qty &
         // diskon yg sudah diedit kasir ke nilai awal. Dicocokkan via
         // (jenis, ref_id). Qty obat/racikan tidak dibawa: terikat resep terkunci.
-        $overrides = $invoice->items()->where('jenis', '!=', 'manual')->get()
+        $overrides = $invoice->items()->where('jenis', '!=', 'manual')->whereNotNull('ref_id')->get()
             ->keyBy(fn ($i) => $i->jenis . '|' . $i->ref_id);
 
-        // Replace all non-manual items
-        $invoice->items()->where('jenis', '!=', 'manual')->delete();
+        // Bangun ulang HANYA item turunan klinis (ref_id terisi: tindakan, alkes, penunjang,
+        // obat, racikan dari modul pemeriksaan). Item yang ditambah kasir dari panel "Tambah
+        // Komponen" (ref_id kosong) dan item 'manual' dipertahankan -- sebelumnya ikut terhapus
+        // setiap tagihan dimuat ulang.
+        $invoice->items()->where('jenis', '!=', 'manual')->whereNotNull('ref_id')->delete();
         foreach ($clinicalItems as $itemData) {
             $lama = $overrides->get($itemData['jenis'] . '|' . $itemData['ref_id']);
             if ($lama) {
