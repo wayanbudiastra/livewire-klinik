@@ -224,22 +224,28 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
+                    @php $labelAlkes = \App\Models\InvoiceItem::petaLabelAlkes($this->invoice->items); @endphp
                     @forelse ($this->invoice->items as $item)
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-2.5 text-gray-800">{{ $item->nama_item }}</td>
                         <td class="px-3 py-2.5 text-center">
                             @php
-                                $jenisClass = match($item->jenis) {
-                                    'tindakan' => 'bg-purple-100 text-purple-700',
-                                    'alkes'    => 'bg-yellow-100 text-yellow-700',
-                                    'penunjang'=> 'bg-cyan-100 text-cyan-700',
-                                    'obat'     => 'bg-green-100 text-green-700',
-                                    'racikan'  => 'bg-teal-100 text-teal-700',
+                                $labelJenis = $item->jenis === 'alkes'
+                                    ? ($labelAlkes[$item->ref_id] ?? 'Alkes')
+                                    : ucfirst($item->jenis);
+                                $jenisClass = match(true) {
+                                    $labelJenis === 'Obat' => 'bg-green-100 text-green-700',
+                                    $labelJenis === 'BHP'  => 'bg-emerald-100 text-emerald-700',
+                                    $item->jenis === 'tindakan' => 'bg-purple-100 text-purple-700',
+                                    $item->jenis === 'alkes'    => 'bg-yellow-100 text-yellow-700',
+                                    $item->jenis === 'penunjang'=> 'bg-cyan-100 text-cyan-700',
+                                    $item->jenis === 'obat'     => 'bg-green-100 text-green-700',
+                                    $item->jenis === 'racikan'  => 'bg-teal-100 text-teal-700',
                                     default    => 'bg-gray-100 text-gray-700',
                                 };
                             @endphp
                             <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $jenisClass }}">
-                                {{ ucfirst($item->jenis) }}
+                                {{ $labelJenis }}
                             </span>
                         </td>
                         <td class="px-3 py-2.5 text-right">

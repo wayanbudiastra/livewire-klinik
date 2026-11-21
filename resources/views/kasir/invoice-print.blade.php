@@ -150,11 +150,12 @@
             </tr>
         </thead>
         <tbody>
+            @php $labelAlkes = \App\Models\InvoiceItem::petaLabelAlkes($invoice->items); @endphp
             @foreach ($invoice->items as $i => $item)
             <tr>
                 <td>{{ $i + 1 }}</td>
                 <td>{{ $item->nama_item }}</td>
-                <td>{{ ucfirst($item->jenis) }}</td>
+                <td>{{ $item->jenis === 'alkes' ? ($labelAlkes[$item->ref_id] ?? 'Alkes') : ucfirst($item->jenis) }}</td>
                 <td class="right">{{ rtrim(rtrim(number_format($item->qty, 2, ',', '.'), '0'), ',') }} {{ $item->satuan }}</td>
                 <td class="right">{{ number_format($item->harga_satuan, 0, ',', '.') }}</td>
                 <td class="right">

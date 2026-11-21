@@ -274,4 +274,22 @@ class BhpKasirTest extends TestCase
         $c->call('addObatItem', $obat->id, 11);      // melebihi stok 10
         $this->assertSame(0, PemakaianAlkes::where('kunjungan_id', $this->kunjungan->id)->count());
     }
+
+    /** @test */
+    public function label_jenis_di_tagihan_menampilkan_obat_atau_bhp_bukan_alkes(): void
+    {
+        $obat = $this->buatObat();
+        $c = $this->buka()->call('addObatItem', $obat->id, 1)->call('addBhpItem', $this->bhp->id, 1);
+
+        $items = Invoice::where('kunjungan_id', $this->kunjungan->id)->firstOrFail()->items;
+        $peta  = InvoiceItem::petaLabelAlkes($items);
+
+        $labelObat = $items->firstWhere('nama_item', 'Paracetamol Uji');
+        $labelBhp  = $items->firstWhere('nama_item', 'Kasa Steril Uji');
+        $this->assertSame('Obat', $peta[$labelObat->ref_id]);
+        $this->assertSame('BHP', $peta[$labelBhp->ref_id]);
+
+        // Tampilan tagihan tidak lagi menyebut 'Alkes' untuk kedua item ini.
+        $c->call('fetchTagihan')->assertDontSee('>Alkes<', false)->assertSee('Obat')->assertSee('BHP');
+    }
 }
