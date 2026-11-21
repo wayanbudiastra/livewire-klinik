@@ -4,7 +4,7 @@
     <div class="page-header">
         <div>
             <h1 class="page-title">Laporan Kasir</h1>
-            <p class="page-subtitle">Transaksi Kasir, Cancel Bill, Deposit Pasien, dan BHP Kasir</p>
+            <p class="page-subtitle">Transaksi Kasir, Cancel Bill, Deposit Pasien, serta BHP & Obat Kasir</p>
         </div>
     </div>
 
@@ -15,7 +15,7 @@
                 'transaksi'   => 'Transaksi Kasir',
                 'cancel-bill' => 'Cancel Bill',
                 'deposit'     => 'Deposit Pasien',
-                'bhp'         => 'BHP Kasir',
+                'bhp'         => 'BHP & Obat Kasir',
             ] as $key => $label)
             <button @click="tab = '{{ $key }}'"
                 :class="tab === '{{ $key }}'

@@ -6,7 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Laporan BACA-SAJA BHP yang diinput kasir (pemakaian_alkes sumber 'kasir').
+ * Laporan BACA-SAJA BHP dan obat yang diinput kasir (pemakaian_alkes sumber 'kasir').
  * Tidak menampilkan nominal uang. Lihat docs/PERANCANGAN_BHP_KASIR.md.
  */
 class BhpKasirLaporanService
@@ -33,7 +33,7 @@ class BhpKasirLaporanService
             ->limit(self::BATAS_BARIS)
             ->get([
                 'pa.created_at', 'p.nomor_rm', 'p.nama as pasien',
-                'b.nama as barang', 'b.satuan', 'pa.jumlah',
+                'b.nama as barang', 'b.jenis', 'b.satuan', 'pa.jumlah',
                 'u.nama as kasir', 'pa.stok_dipotong_at',
             ])
             ->map(fn ($r) => [
@@ -41,6 +41,7 @@ class BhpKasirLaporanService
                 'nomor_rm' => $r->nomor_rm,
                 'pasien'   => $r->pasien,
                 'barang'   => $r->barang,
+                'jenis'    => $r->jenis === 'obat' ? 'Obat' : 'BHP',
                 'qty'      => (int) $r->jumlah,
                 'satuan'   => $r->satuan,
                 'kasir'    => $r->kasir ?? '-',

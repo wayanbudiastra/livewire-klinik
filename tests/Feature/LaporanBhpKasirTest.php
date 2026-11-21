@@ -71,7 +71,7 @@ class LaporanBhpKasirTest extends TestCase
     public function halaman_dibuka_pemegang_laporan_kasir_view_dan_ditolak_yang_lain(): void
     {
         $this->actingAs($this->user('kasir'))->get(route('laporan.kasir.bhp'))
-            ->assertOk()->assertSee('BHP Kasir');
+            ->assertOk()->assertSee('Obat Kasir');
 
         $this->actingAs($this->user('perawat'))->get(route('laporan.kasir.bhp'))->assertForbidden();
     }
@@ -90,6 +90,7 @@ class LaporanBhpKasirTest extends TestCase
         $this->assertSame(3, $hasil['total_qty']);
         $this->assertSame('Kasa Laporan Uji', $hasil['detail'][0]['barang']);
         $c->assertSee('Kasa Laporan Uji')->assertSee('Pasien Laporan')->assertSee('Menunggu lunas');
+        $this->assertSame('BHP', $hasil['detail'][0]['jenis']);
     }
 
     /** @test */

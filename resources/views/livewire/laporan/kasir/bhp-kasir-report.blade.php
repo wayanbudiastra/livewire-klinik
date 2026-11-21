@@ -1,8 +1,8 @@
 <div class="space-y-5">
     <div class="page-header">
         <div>
-            <h1 class="page-title">Laporan BHP Kasir</h1>
-            <p class="page-subtitle">BHP yang diinput kasir pada tagihan pasien, per periode</p>
+            <h1 class="page-title">Laporan BHP & Obat Kasir</h1>
+            <p class="page-subtitle">BHP dan obat yang diinput kasir pada tagihan pasien, per periode</p>
         </div>
     </div>
 
@@ -28,7 +28,7 @@
         @endif
 
         <div class="card">
-            <div class="card-header"><h3 class="text-sm font-semibold text-gray-700">Detail BHP Kasir</h3></div>
+            <div class="card-header"><h3 class="text-sm font-semibold text-gray-700">Detail BHP & Obat Kasir</h3></div>
             <div class="card-body p-0 overflow-x-auto">
                 <table class="table">
                     <thead>
@@ -37,6 +37,7 @@
                             <th>No. RM</th>
                             <th>Pasien</th>
                             <th>Barang</th>
+                            <th>Jenis</th>
                             <th class="text-right">Qty</th>
                             <th>Dicatat Oleh</th>
                             <th>Status</th>
@@ -49,12 +50,13 @@
                             <td class="text-xs font-mono text-gray-500">{{ $row['nomor_rm'] }}</td>
                             <td class="text-xs">{{ $row['pasien'] }}</td>
                             <td class="text-xs">{{ $row['barang'] }}</td>
+                            <td class="text-xs">{{ $row['jenis'] }}</td>
                             <td class="text-xs text-right font-semibold">{{ number_format($row['qty']) }} {{ $row['satuan'] }}</td>
                             <td class="text-xs">{{ $row['kasir'] }}</td>
                             <td class="text-xs {{ $row['status'] === 'Menunggu lunas' ? 'text-amber-600' : 'text-emerald-700' }}">{{ $row['status'] }}</td>
                         </tr>
                         @empty
-                        <tr><td colspan="7" class="text-center text-gray-400 py-4">Tidak ada BHP kasir pada periode ini</td></tr>
+                        <tr><td colspan="8" class="text-center text-gray-400 py-4">Tidak ada BHP/obat kasir pada periode ini</td></tr>
                         @endforelse
                     </tbody>
                 </table>
