@@ -1,4 +1,4 @@
-# Panduan Kasir: Menambah BHP ke Tagihan Pasien
+# Panduan Kasir: Menambah BHP dan Obat ke Tagihan Pasien
 
 BHP (Bahan Habis Pakai) adalah barang yang terpakai saat layanan, misalnya kasa steril. BHP ditagihkan ke pasien dan stoknya berkurang otomatis setelah tagihan lunas.
 
@@ -11,6 +11,14 @@ BHP (Bahan Habis Pakai) adalah barang yang terpakai saat layanan, misalnya kasa 
 6. Atur **Qty**, lalu klik **+ Tambah**. BHP langsung masuk ke Rincian Tagihan.
 
 Jika BHP yang sama ditambahkan lagi, qty-nya digabung ke baris yang sudah ada. Tidak muncul baris ganda.
+
+## Menambah Obat
+Caranya sama seperti BHP, tetapi pilih tab **Obat** (obat bukan racikan yang aktif dan stoknya tersedia). Stok obat juga berkurang **saat tagihan lunas**, dan aturan stok kurang, pembatalan, serta penguncian setelah lunas sama seperti BHP.
+
+Catatan:
+- Obat yang ditambah kasir **tidak diproses apoteker**. Pilih obat yang memang boleh diberikan tanpa resep.
+- Jika obat itu sudah diresepkan dokter, jangan menambahkannya lagi, supaya tidak tertagih dua kali.
+- Obat racikan tetap lewat resep dokter dan apoteker.
 
 ## Mengubah atau menghapus
 - Ubah **Qty** langsung di Rincian Tagihan, seperti item lain. Qty harus bilangan bulat dan tidak boleh lebih besar dari stok.
