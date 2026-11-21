@@ -32,15 +32,16 @@ class InvoiceItem extends Model
 
     /**
      * BHP dan obat yang diinput kasir ditagih sebagai jenis 'alkes' (baris pemakaian_alkes);
-     * kembalikan peta [ref_id => 'Obat'|'BHP'|'Alkes'] berdasarkan jenis barangnya, hanya
-     * untuk tampilan (satu query untuk semua item).
+     * kembalikan peta [ref_id => 'Obat'|'BHP'] berdasarkan jenis barangnya, hanya untuk
+     * tampilan (satu query untuk semua item). HANYA baris sumber 'kasir': alkes input dokter
+     * dan dokumen lama tidak berubah (tetap 'Alkes').
      */
     public static function petaLabelAlkes(iterable $items): array
     {
         $refIds = collect($items)->where('jenis', 'alkes')->pluck('ref_id')->filter()->unique()->all();
         if (! $refIds) return [];
 
-        return PemakaianAlkes::with('barang:id,jenis')->whereIn('id', $refIds)->get()
+        return PemakaianAlkes::with('barang:id,jenis')->whereIn('id', $refIds)->where('sumber', 'kasir')->get()
             ->mapWithKeys(fn ($p) => [$p->id => match ($p->barang?->jenis) {
                 'obat'              => 'Obat',
                 'bahan_habis_pakai' => 'BHP',

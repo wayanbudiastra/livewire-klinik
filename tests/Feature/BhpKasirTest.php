@@ -289,6 +289,14 @@ class BhpKasirTest extends TestCase
         $this->assertSame('Obat', $peta[$labelObat->ref_id]);
         $this->assertSame('BHP', $peta[$labelBhp->ref_id]);
 
+        // Alkes input dokter (sumber 'dokter') dan dokumen lama tetap berlabel 'Alkes'.
+        $dokter = \App\Models\PemakaianAlkes::create([
+            'kunjungan_id' => $this->kunjungan->id, 'barang_id' => $this->bhp->id, 'jumlah' => 1, 'sumber' => 'dokter',
+        ]);
+        $this->assertArrayNotHasKey($dokter->id, InvoiceItem::petaLabelAlkes([
+            (object) ['jenis' => 'alkes', 'ref_id' => $dokter->id],
+        ]));
+
         // Tampilan tagihan tidak lagi menyebut 'Alkes' untuk kedua item ini.
         $c->call('fetchTagihan')->assertDontSee('>Alkes<', false)->assertSee('Obat')->assertSee('BHP');
     }
