@@ -217,4 +217,61 @@ class BhpKasirTest extends TestCase
         $this->assertNotSame('pending', $hpp->status);
         $this->assertNull(PemakaianAlkes::where('kunjungan_id', $this->kunjungan->id)->value('stok_dipotong_at'));
     }
+
+    private function buatObat(int $stok = 10): Barang
+    {
+        return Barang::create([
+            'kode' => 'OBT' . rand(1000, 9999), 'nama' => 'Paracetamol Uji', 'jenis' => 'obat',
+            'satuan' => 'tab', 'stok' => $stok, 'harga_pokok' => 400, 'harga_jual' => 1000, 'is_active' => true,
+        ]);
+    }
+
+    /** @test */
+    public function tab_obat_menampilkan_obat_aktif_bukan_bhp_dan_sebaliknya(): void
+    {
+        $this->buatObat();
+        $obat = collect(app(BhpKasirService::class)->daftar('Uji', false, 40, 'obat'))->pluck('nama');
+        $bhp  = collect(app(BhpKasirService::class)->daftar('Uji', false))->pluck('nama');
+
+        $this->assertTrue($obat->contains('Paracetamol Uji'));
+        $this->assertFalse($obat->contains('Kasa Steril Uji'));
+        $this->assertTrue($bhp->contains('Kasa Steril Uji'));
+        $this->assertFalse($bhp->contains('Paracetamol Uji'));
+    }
+
+    /** @test */
+    public function obat_kasir_masuk_tagihan_stok_dipotong_saat_lunas_sebagai_penjualan_langsung_dengan_hpp(): void
+    {
+        $obat = $this->buatObat();
+        $c = $this->buka()->call('addObatItem', $obat->id, 4);
+        $c->call('fetchTagihan');
+
+        $item = InvoiceItem::where('nama_item', 'Paracetamol Uji')->first();
+        $this->assertNotNull($item, 'Obat harus tetap ada setelah muat ulang');
+        $this->assertEquals(4000, (float) $item->subtotal);
+        $this->assertSame(10, (int) $obat->fresh()->stok, 'Stok belum boleh dipotong sebelum lunas');
+
+        $this->bayar($c);
+
+        $inv = Invoice::where('kunjungan_id', $this->kunjungan->id)->firstOrFail();
+        $this->assertSame('lunas', $inv->status);
+        $this->assertSame(6, (int) $obat->fresh()->stok);
+        $this->assertSame(1, MutasiStok::where('barang_id', $obat->id)->where('tipe', 'keluar_ritel')->count());
+        $this->assertEquals(1600, (float) JurnalPending::where('sumber_tipe', 'billing')->where('sumber_id', $inv->id)
+            ->where('tipe_transaksi', 'hpp_bhp_kasir')->value('nominal')); // 4 x 400
+    }
+
+    /** @test */
+    public function jenis_barang_harus_sesuai_tab_dan_racikan_tidak_dilayani(): void
+    {
+        $obat = $this->buatObat();
+        $c = $this->buka();
+
+        $c->call('addObatItem', $this->bhp->id, 1);  // BHP lewat jalur obat
+        $c->call('addBhpItem', $obat->id, 1);        // obat lewat jalur BHP
+        $this->assertSame(0, PemakaianAlkes::where('kunjungan_id', $this->kunjungan->id)->count());
+
+        $c->call('addObatItem', $obat->id, 11);      // melebihi stok 10
+        $this->assertSame(0, PemakaianAlkes::where('kunjungan_id', $this->kunjungan->id)->count());
+    }
 }

@@ -671,7 +671,8 @@ class TagihanPasien extends Component
                 ])
                 ->toArray(),
 
-            'bhp' => app(BhpKasirService::class)->daftar($q, $isWna),
+            'bhp'  => app(BhpKasirService::class)->daftar($q, $isWna),
+            'obat' => app(BhpKasirService::class)->daftar($q, $isWna, 40, BhpKasirService::JENIS_OBAT),
 
             default => [],
         };
@@ -724,13 +725,24 @@ class TagihanPasien extends Component
 
     public function addBhpItem(int $barangId, int $qty): void
     {
+        $this->tambahBarangKasir($barangId, $qty, BhpKasirService::JENIS_BHP);
+    }
+
+    /** Obat (non-racikan) dari panel; mekanisme sama dengan BHP, tanpa sharing fee. */
+    public function addObatItem(int $barangId, int $qty): void
+    {
+        $this->tambahBarangKasir($barangId, $qty, BhpKasirService::JENIS_OBAT);
+    }
+
+    private function tambahBarangKasir(int $barangId, int $qty, string $jenis): void
+    {
         $this->authorize('billing.edit');
 
         $invoice = Invoice::with('kunjungan.pasien')->find($this->invoiceId);
         if (! $invoice || $invoice->status !== 'belum_bayar') return;
 
         try {
-            $item = app(BhpKasirService::class)->tambah($invoice, $barangId, max(1, $qty), (int) Auth::id());
+            $item = app(BhpKasirService::class)->tambah($invoice, $barangId, max(1, $qty), (int) Auth::id(), $jenis);
         } catch (\DomainException $e) {
             $this->dispatch('notify', type: 'error', message: $e->getMessage());
             return;

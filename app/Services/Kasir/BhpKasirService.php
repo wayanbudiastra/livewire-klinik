@@ -14,7 +14,8 @@ use App\Services\InvoiceService;
 use Illuminate\Support\Facades\DB;
 
 /**
- * BHP (bahan habis pakai) yang diinput kasir dari panel "Tambah Komponen Tagihan".
+ * BHP (bahan habis pakai) dan OBAT (non-racikan) yang diinput kasir dari panel
+ * "Tambah Komponen Tagihan" (docs/PERANCANGAN_BHP_KASIR.md, docs/PERANCANGAN_OBAT_KASIR.md).
  *
  * - Disimpan sebagai pemakaian_alkes (sumber 'kasir') + baris invoice_item 'alkes',
  *   sehingga tidak hilang saat tagihan dimuat ulang (lihat InvoiceService::buildItems).
@@ -34,10 +35,13 @@ class BhpKasirService
         private JurnalService $jurnal,
     ) {}
 
-    /** BHP aktif yang bisa dipilih kasir (stok > 0). */
-    public function daftar(?string $q, bool $isWna, int $limit = 40): array
+    const JENIS_BHP  = 'bahan_habis_pakai';
+    const JENIS_OBAT = 'obat';
+
+    /** Barang aktif berjenis $jenis (BHP atau obat) yang bisa dipilih kasir (stok > 0). */
+    public function daftar(?string $q, bool $isWna, int $limit = 40, string $jenis = self::JENIS_BHP): array
     {
-        return Barang::where('jenis', 'bahan_habis_pakai')
+        return Barang::where('jenis', $jenis)
             ->where('is_active', true)
             ->where('stok', '>', 0)
             ->when($q, fn ($query) => $query->where(
@@ -56,8 +60,11 @@ class BhpKasirService
             ->toArray();
     }
 
-    public function tambah(Invoice $invoice, int $barangId, int $qty, int $userId): InvoiceItem
+    public function tambah(Invoice $invoice, int $barangId, int $qty, int $userId, string $jenis = self::JENIS_BHP): InvoiceItem
     {
+        if (! in_array($jenis, [self::JENIS_BHP, self::JENIS_OBAT], true)) {
+            throw new \DomainException('Jenis barang tidak valid.');
+        }
         if ($invoice->status !== 'belum_bayar') {
             throw new \DomainException('Tagihan sudah diproses, BHP tidak dapat ditambahkan.');
         }
@@ -66,8 +73,8 @@ class BhpKasirService
         }
 
         $barang = Barang::find($barangId);
-        if (! $barang || $barang->jenis !== 'bahan_habis_pakai' || ! $barang->is_active) {
-            throw new \DomainException('Barang bukan BHP aktif.');
+        if (! $barang || $barang->jenis !== $jenis || ! $barang->is_active) {
+            throw new \DomainException($jenis === self::JENIS_OBAT ? 'Barang bukan obat aktif.' : 'Barang bukan BHP aktif.');
         }
 
         return DB::transaction(function () use ($invoice, $barang, $qty, $userId) {
@@ -187,7 +194,8 @@ class BhpKasirService
             MutasiStok::create([
                 'barang_id'      => $barang->id,
                 'user_id'        => $userId,
-                'tipe'           => 'keluar_tindakan',
+                // Obat dijual langsung = penjualan ritel; BHP = pemakaian pada tindakan.
+                'tipe'           => $barang->jenis === self::JENIS_OBAT ? 'keluar_ritel' : 'keluar_tindakan',
                 'jumlah'         => $qty,
                 'stok_sebelum'   => $sebelum,
                 'stok_sesudah'   => $sebelum - $qty,
@@ -195,7 +203,7 @@ class BhpKasirService
                 'hpr_sesudah'    => $barang->harga_pokok,
                 'referensi_tipe' => 'pemakaian_alkes',
                 'referensi_id'   => $row->id,
-                'keterangan'     => "BHP kasir {$billing->nomor_invoice}",
+                'keterangan'     => ($barang->jenis === self::JENIS_OBAT ? 'Obat' : 'BHP') . " kasir {$billing->nomor_invoice}",
             ]);
 
             $row->update(['jumlah' => $qty, 'stok_dipotong_at' => now()]);
@@ -211,7 +219,7 @@ class BhpKasirService
                 akunDebit:     self::AKUN_HPP,
                 akunKredit:    self::AKUN_PERSEDIAAN,
                 nominal:       $totalHpp,
-                keterangan:    "HPP BHP kasir {$billing->nomor_invoice}",
+                keterangan:    "HPP BHP/obat kasir {$billing->nomor_invoice}",
             );
         }
     }
@@ -247,7 +255,7 @@ class BhpKasirService
                 'hpr_sesudah'    => $barang->harga_pokok,
                 'referensi_tipe' => 'pemakaian_alkes',
                 'referensi_id'   => $row->id,
-                'keterangan'     => "Pembatalan billing {$billing->nomor_invoice} (BHP kasir)",
+                'keterangan'     => "Pembatalan billing {$billing->nomor_invoice} (BHP/obat kasir)",
             ]);
 
             $row->update(['stok_dipotong_at' => null]);
